@@ -1,0 +1,262 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Lock, ChevronLeft } from "lucide-react";
+import { Mascot } from "../components/mascot";
+
+interface World {
+  id: number;
+  name: string;
+  theme: string;
+  color: string;
+  bgColor: string;
+  unlocked: boolean;
+  progress: number;
+}
+
+const worlds: World[] = [
+  {
+    id: 1,
+    name: "Alphabet Island",
+    theme: "Forest",
+    color: "bg-green-bright",
+    bgColor: "from-green-400 to-emerald-600",
+    unlocked: true,
+    progress: 60,
+  },
+  {
+    id: 2,
+    name: "Tone Valley",
+    theme: "Sky",
+    color: "bg-blue-soft",
+    bgColor: "from-blue-400 to-cyan-500",
+    unlocked: true,
+    progress: 20,
+  },
+  {
+    id: 3,
+    name: "Rhyme Forest",
+    theme: "Magical",
+    color: "bg-pink-soft",
+    bgColor: "from-pink-400 to-purple-500",
+    unlocked: false,
+    progress: 0,
+  },
+  {
+    id: 4,
+    name: "Word Wonderland",
+    theme: "Fantasy",
+    color: "bg-orange-bright",
+    bgColor: "from-orange-400 to-amber-500",
+    unlocked: false,
+    progress: 0,
+  },
+];
+
+interface WorldMapProps {
+  onSelectWorld: (worldId: number) => void;
+  onBack: () => void;
+}
+
+export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-auto">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm p-4 flex items-center gap-4 shadow-md">
+        <motion.button
+          onClick={onBack}
+          className="p-3 bg-green-bright text-white rounded-2xl shadow-lg"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </motion.button>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          World Map
+        </h1>
+        <div className="ml-auto">
+          <Mascot size="sm" emotion="happy" />
+        </div>
+      </div>
+
+      {/* Map Path */}
+      <div className="relative py-12 px-4">
+        {/* Dotted path connecting worlds */}
+        <svg
+          className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-4 pointer-events-none"
+          style={{ zIndex: 0 }}
+        >
+          <line
+            x1="50%"
+            y1="0"
+            x2="50%"
+            y2="100%"
+            stroke="#4ADE80"
+            strokeWidth="4"
+            strokeDasharray="12 8"
+          />
+        </svg>
+
+        <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg mx-auto">
+          {worlds.map((world, index) => (
+            <motion.div
+              key={world.id}
+              className={`w-full ${index % 2 === 0 ? "pr-8" : "pl-8"}`}
+              initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.15, duration: 0.5 }}
+            >
+              <motion.button
+                onClick={() => world.unlocked && onSelectWorld(world.id)}
+                disabled={!world.unlocked}
+                className={`relative w-full group ${!world.unlocked ? "cursor-not-allowed" : ""}`}
+                animate={world.unlocked ? { y: [0, -5, 0] } : {}}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: index * 0.3,
+                }}
+                whileHover={world.unlocked ? { scale: 1.05 } : {}}
+                whileTap={world.unlocked ? { scale: 0.98 } : {}}
+              >
+                {/* Card shadow */}
+                <div
+                  className={`absolute inset-0 rounded-3xl translate-y-2 ${
+                    world.unlocked ? world.color : "bg-gray-400"
+                  } opacity-50`}
+                />
+
+                {/* Main card */}
+                <div
+                  className={`relative rounded-3xl p-6 overflow-hidden ${
+                    world.unlocked
+                      ? `bg-gradient-to-br ${world.bgColor}`
+                      : "bg-gray-300"
+                  } shadow-xl`}
+                >
+                  {/* Island illustration */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-20 flex-shrink-0">
+                      {/* Island shape */}
+                      <svg viewBox="0 0 80 80" className="w-full h-full">
+                        <ellipse
+                          cx="40"
+                          cy="60"
+                          rx="35"
+                          ry="15"
+                          fill={world.unlocked ? "#8B5A2B" : "#9CA3AF"}
+                        />
+                        <ellipse
+                          cx="40"
+                          cy="55"
+                          rx="30"
+                          ry="20"
+                          fill={world.unlocked ? "#22C55E" : "#6B7280"}
+                        />
+                        {world.theme === "Forest" && world.unlocked && (
+                          <>
+                            <polygon
+                              points="40,10 30,40 50,40"
+                              fill="#166534"
+                            />
+                            <polygon
+                              points="55,20 48,45 62,45"
+                              fill="#15803D"
+                            />
+                          </>
+                        )}
+                        {world.theme === "Sky" && world.unlocked && (
+                          <>
+                            <circle
+                              cx="30"
+                              cy="25"
+                              r="12"
+                              fill="white"
+                              opacity="0.9"
+                            />
+                            <circle
+                              cx="45"
+                              cy="22"
+                              r="10"
+                              fill="white"
+                              opacity="0.8"
+                            />
+                          </>
+                        )}
+                        {world.theme === "Magical" && world.unlocked && (
+                          <>
+                            <circle cx="40" cy="25" r="5" fill="#FBBF24" />
+                            <circle cx="30" cy="35" r="3" fill="#F472B6" />
+                            <circle cx="50" cy="32" r="4" fill="#A78BFA" />
+                          </>
+                        )}
+                        {world.theme === "Fantasy" && world.unlocked && (
+                          <>
+                            <rect
+                              x="35"
+                              y="15"
+                              width="10"
+                              height="30"
+                              fill="#DC2626"
+                              rx="2"
+                            />
+                            <polygon points="40,5 32,18 48,18" fill="#FBBF24" />
+                          </>
+                        )}
+                      </svg>
+
+                      {!world.unlocked && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Lock className="w-8 h-8 text-gray-500" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 text-left">
+                      <h3
+                        className={`text-xl font-bold ${world.unlocked ? "text-white" : "text-gray-500"}`}
+                      >
+                        {world.name}
+                      </h3>
+                      <p
+                        className={`text-sm ${world.unlocked ? "text-white/80" : "text-gray-400"}`}
+                      >
+                        {world.theme} Theme
+                      </p>
+
+                      {/* Progress bar */}
+                      {world.unlocked && (
+                        <div className="mt-2 h-3 bg-white/30 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-white rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${world.progress}%` }}
+                            transition={{
+                              delay: 0.5 + index * 0.1,
+                              duration: 0.8,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* World number badge */}
+                  <div
+                    className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
+                      world.unlocked
+                        ? "bg-white text-foreground"
+                        : "bg-gray-400 text-gray-600"
+                    }`}
+                  >
+                    {world.id}
+                  </div>
+                </div>
+              </motion.button>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
