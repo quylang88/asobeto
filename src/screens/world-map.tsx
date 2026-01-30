@@ -105,7 +105,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                           ry="20"
                           fill={world.unlocked ? "#22C55E" : "#6B7280"}
                         />
-                        {world.theme === "Forest" && world.unlocked && (
+                        {world.theme === "Rừng Xanh" && world.unlocked && (
                           <>
                             <polygon
                               points="40,10 30,40 50,40"
@@ -117,7 +117,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                             />
                           </>
                         )}
-                        {world.theme === "Sky" && world.unlocked && (
+                        {world.theme === "Bầu Trời" && world.unlocked && (
                           <>
                             <circle
                               cx="30"
@@ -135,14 +135,14 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                             />
                           </>
                         )}
-                        {world.theme === "Magical" && world.unlocked && (
+                        {world.theme === "Phép Thuật" && world.unlocked && (
                           <>
                             <circle cx="40" cy="25" r="5" fill="#FBBF24" />
                             <circle cx="30" cy="35" r="3" fill="#F472B6" />
                             <circle cx="50" cy="32" r="4" fill="#A78BFA" />
                           </>
                         )}
-                        {world.theme === "Fantasy" && world.unlocked && (
+                        {world.theme === "Cổ Tích" && world.unlocked && (
                           <>
                             <rect
                               x="35"

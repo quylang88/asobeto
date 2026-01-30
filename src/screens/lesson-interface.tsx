@@ -17,7 +17,7 @@ const lessonContent = [
     type: "listen",
     letter: "A",
     pronunciation: "Ah",
-    instruction: "Listen and repeat!",
+    instruction: "Nghe và nhắc lại nào!",
     options: ["A", "B", "C"],
     correct: "A",
   },
@@ -25,7 +25,7 @@ const lessonContent = [
     type: "listen",
     letter: "B",
     pronunciation: "Buh",
-    instruction: "Which letter makes this sound?",
+    instruction: "Chữ cái nào có âm này nhỉ?",
     options: ["D", "B", "P"],
     correct: "B",
   },
@@ -33,7 +33,7 @@ const lessonContent = [
     type: "listen",
     letter: "C",
     pronunciation: "Kuh",
-    instruction: "Tap the right letter!",
+    instruction: "Chọn chữ cái đúng nhé!",
     options: ["C", "G", "K"],
     correct: "C",
   },
@@ -95,7 +95,7 @@ export function LessonInterface({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            Amazing Job!
+            Tuyệt Vời!
           </motion.h1>
 
           {/* Stars */}
@@ -129,7 +129,7 @@ export function LessonInterface({
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3 }}
           >
-            You got {score} out of {lessonContent.length} correct!
+            Bạn đã làm đúng {score}/{lessonContent.length} câu!
           </motion.p>
 
           <motion.button
@@ -142,7 +142,7 @@ export function LessonInterface({
           >
             <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 transition-transform" />
             <div className="relative bg-green-bright text-white text-xl font-bold px-12 py-4 rounded-3xl">
-              Continue
+              Tiếp Tục
             </div>
           </motion.button>
         </motion.div>
@@ -214,7 +214,7 @@ export function LessonInterface({
 
             {/* Pronunciation hint */}
             <p className="text-2xl font-semibold text-foreground mb-8">
-              Sounds like:{" "}
+              Nghe như:{" "}
               <span className="text-green-bright">
                 {currentLesson.pronunciation}
               </span>
@@ -270,8 +270,8 @@ export function LessonInterface({
                   }`}
                 >
                   {isCorrect
-                    ? "Correct! Great job!"
-                    : "Oops! Try again next time!"}
+                    ? "Đúng rồi! Giỏi quá!"
+                    : "Tiếc quá! Thử lại sau nhé!"}
                 </motion.div>
               )}
             </AnimatePresence>
