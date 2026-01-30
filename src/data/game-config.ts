@@ -29,8 +29,8 @@ export interface World {
 export const worlds: World[] = [
   {
     id: 1,
-    name: "Alphabet Island",
-    theme: "Forest",
+    name: "Đảo Chữ Cái",
+    theme: "Rừng Xanh",
     color: "bg-green-bright",
     bgColor: "from-green-400 to-emerald-600",
     unlocked: true,
@@ -38,8 +38,8 @@ export const worlds: World[] = [
   },
   {
     id: 2,
-    name: "Tone Valley",
-    theme: "Sky",
+    name: "Thung Lũng Thanh Điệu",
+    theme: "Bầu Trời",
     color: "bg-blue-soft",
     bgColor: "from-blue-400 to-cyan-500",
     unlocked: true,
@@ -47,8 +47,8 @@ export const worlds: World[] = [
   },
   {
     id: 3,
-    name: "Rhyme Forest",
-    theme: "Magical",
+    name: "Rừng Vần Điệu",
+    theme: "Phép Thuật",
     color: "bg-pink-soft",
     bgColor: "from-pink-400 to-purple-500",
     unlocked: false,
@@ -56,8 +56,8 @@ export const worlds: World[] = [
   },
   {
     id: 4,
-    name: "Word Wonderland",
-    theme: "Fantasy",
+    name: "Xứ Sở Từ Vựng",
+    theme: "Cổ Tích",
     color: "bg-orange-bright",
     bgColor: "from-orange-400 to-amber-500",
     unlocked: false,

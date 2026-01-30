@@ -109,8 +109,8 @@ export const towers: Tower[] = [
   },
   {
     id: 6,
-    name: "BOSS",
-    letters: "Grand Challenge",
+    name: "BOSS!!!!",
+    letters: "Thử Thách",
     stars: 0,
     maxStars: 5,
     completed: false,

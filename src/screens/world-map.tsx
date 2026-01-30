@@ -24,7 +24,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
             <ChevronLeft className="w-6 h-6" />
           </motion.button>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Bản Đồ Thế Giới
+            Thế Giới Diệu Kỳ
           </h1>
           <div className="ml-auto">
             <Mascot size="sm" emotion="happy" />

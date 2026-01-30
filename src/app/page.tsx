@@ -6,6 +6,7 @@ import { WorldMap } from "@/screens/world-map";
 import { TowerSelection } from "@/screens/tower-map";
 import { FloorSelection } from "@/screens/floor-selection";
 import { LessonInterface } from "@/screens/lesson-interface";
+import { worlds, getWorldData } from "@/data/game-config";
 
 type Screen =
   | "welcome"
@@ -20,28 +21,6 @@ interface GameState {
   selectedTower: number | null;
   selectedFloor: number | null;
 }
-
-const worldNames: Record<number, string> = {
-  1: "Alphabet Island",
-  2: "Tone Valley",
-  3: "Rhyme Forest",
-  4: "Word Wonderland",
-};
-
-const towerNames: Record<number, string> = {
-  1: "A-D",
-  2: "E-H",
-  3: "I-L",
-  4: "M-P",
-  5: "Q-T",
-};
-
-const floorNames: Record<number, string> = {
-  1: "Listening & Phonics",
-  2: "Tracing & Writing",
-  3: "Combining Rhymes",
-  4: "Mini-Game Boss",
-};
 
 export default function AsobetoApp() {
   const [gameState, setGameState] = useState<GameState>({
@@ -116,35 +95,52 @@ export default function AsobetoApp() {
         />
       );
 
-    case "towerSelection":
+    case "towerSelection": {
+      const selectedWorld = worlds.find(
+        (w) => w.id === gameState.selectedWorld,
+      );
       return (
         <TowerSelection
           worldId={gameState.selectedWorld!}
-          worldName={worldNames[gameState.selectedWorld!]}
+          worldName={selectedWorld?.name || "Unknown World"}
           onSelectTower={handleSelectTower}
           onBack={() => handleBack("worldMap")}
         />
       );
+    }
 
-    case "floorSelection":
+    case "floorSelection": {
+      const worldData = getWorldData(gameState.selectedWorld!);
+      const selectedTower = worldData.towers.find(
+        (t) => t.id === gameState.selectedTower!,
+      );
       return (
         <FloorSelection
           towerId={gameState.selectedTower!}
-          towerName={towerNames[gameState.selectedTower!]}
+          towerName={selectedTower?.name || "Unknown Tower"}
           onSelectFloor={handleSelectFloor}
           onBack={() => handleBack("towerSelection")}
         />
       );
+    }
 
-    case "lesson":
+    case "lesson": {
+      const worldData = getWorldData(gameState.selectedWorld!);
+      const selectedTower = worldData.towers.find(
+        (t) => t.id === gameState.selectedTower!,
+      );
+      const selectedFloor = selectedTower?.floors?.find(
+        (f) => f.id === gameState.selectedFloor!,
+      );
       return (
         <LessonInterface
           floorId={gameState.selectedFloor!}
-          floorName={floorNames[gameState.selectedFloor!]}
+          floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
           onComplete={handleLessonComplete}
           onBack={() => handleBack("floorSelection")}
         />
       );
+    }
 
     default:
       return <WelcomeScreen onStart={handleStart} />;
