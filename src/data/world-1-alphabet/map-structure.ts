@@ -8,9 +8,9 @@ export interface TowerPosition {
 export interface Floor {
   id: number;
   nameUnlocked: string;
-  nameLocked: string;
+  nameLocked?: string;
   descriptionUnlocked: string;
-  descriptionLocked: string;
+  descriptionLocked?: string;
   letter?: string;
   color: string;
   bgColor: string;

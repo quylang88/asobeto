@@ -143,7 +143,9 @@ function StandardFloorCard({
                   floor.unlocked ? "text-foreground" : "text-gray-400"
                 }`}
               >
-                {floor.unlocked ? floor.nameUnlocked : floor.nameLocked}
+                {floor.unlocked
+                  ? floor.nameUnlocked
+                  : floor.nameLocked ?? "Locked"}
               </h3>
               <p
                 className={`text-xs ${
@@ -152,7 +154,7 @@ function StandardFloorCard({
               >
                 {floor.unlocked
                   ? floor.descriptionUnlocked
-                  : floor.descriptionLocked}
+                  : floor.descriptionLocked ?? "???"}
               </p>
 
               {/* Stars */}
@@ -425,12 +427,16 @@ function BossFloorCard({
               <h3
                 className={`text-xl font-bold ${isLocked ? "text-slate-300" : "text-white"}`}
               >
-                {isLocked ? floor.nameLocked : floor.nameUnlocked}
+                {isLocked
+                  ? floor.nameLocked ?? "Locked"
+                  : floor.nameUnlocked}
               </h3>
               <p
                 className={`text-sm ${isLocked ? "text-slate-400" : "text-amber-100"}`}
               >
-                {isLocked ? floor.descriptionLocked : floor.descriptionUnlocked}
+                {isLocked
+                  ? floor.descriptionLocked ?? "Complete all floors to unlock!"
+                  : floor.descriptionUnlocked}
               </p>
 
               {/* Stars for boss level */}
