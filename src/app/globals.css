@@ -47,8 +47,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Nunito', 'Nunito Fallback', sans-serif;
-  --font-mono: 'Varela Round', 'Varela Round Fallback', sans-serif;
+  --font-sans: var(--font-mali), sans-serif;
+  --font-mono: var(--font-varela), sans-serif;
   
   /* Custom colors for the theme */
   --color-green-bright: var(--green-bright);
