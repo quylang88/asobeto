@@ -13,65 +13,7 @@ import {
   Lock,
 } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
-
-interface Floor {
-  id: number;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  bgColor: string;
-  completed: boolean;
-  unlocked: boolean;
-  stars: number;
-}
-
-const floors: Floor[] = [
-  {
-    id: 1,
-    name: "Listening & Phonics",
-    description: "Learn how letters sound",
-    icon: <Ear className="w-8 h-8" />,
-    color: "text-blue-soft",
-    bgColor: "bg-blue-soft",
-    completed: true,
-    unlocked: true,
-    stars: 3,
-  },
-  {
-    id: 2,
-    name: "Tracing & Writing",
-    description: "Practice writing letters",
-    icon: <Pencil className="w-8 h-8" />,
-    color: "text-green-bright",
-    bgColor: "bg-green-bright",
-    completed: true,
-    unlocked: true,
-    stars: 2,
-  },
-  {
-    id: 3,
-    name: "Combining Rhymes",
-    description: "Put sounds together",
-    icon: <Puzzle className="w-8 h-8" />,
-    color: "text-orange-bright",
-    bgColor: "bg-orange-bright",
-    completed: false,
-    unlocked: true,
-    stars: 0,
-  },
-  {
-    id: 4,
-    name: "Mini-Game Boss",
-    description: "Challenge yourself!",
-    icon: <Gamepad2 className="w-8 h-8" />,
-    color: "text-pink-soft",
-    bgColor: "bg-pink-soft",
-    completed: false,
-    unlocked: false,
-    stars: 0,
-  },
-];
+import { getWorldData } from "../data/game-config";
 
 interface FloorSelectionProps {
   towerId: number;
@@ -81,10 +23,30 @@ interface FloorSelectionProps {
 }
 
 export function FloorSelection({
+  towerId,
   towerName,
   onSelectFloor,
   onBack,
 }: FloorSelectionProps) {
+  const worldData = getWorldData(1); // Default to World 1
+  const currentTower = worldData.towers.find((t) => t.id === towerId);
+  const floors = currentTower?.floors || [];
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case "listening":
+        return <Ear className="w-8 h-8" />;
+      case "writing":
+        return <Pencil className="w-8 h-8" />;
+      case "combining":
+        return <Puzzle className="w-8 h-8" />;
+      case "game":
+        return <Gamepad2 className="w-8 h-8" />;
+      default:
+        return <Star className="w-8 h-8" />;
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-linear-to-b from-orange-bright/20 via-background to-green-bright/10 overflow-hidden">
       {/* Header - iOS safe area */}
@@ -156,7 +118,9 @@ export function FloorSelection({
                       }`}
                     >
                       {floor.unlocked ? (
-                        <div className="text-white">{floor.icon}</div>
+                        <div className="text-white">
+                          {getIcon(floor.iconType)}
+                        </div>
                       ) : (
                         <Lock className="w-8 h-8 text-gray-500" />
                       )}
