@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Volume2, X, Star } from "lucide-react";
-import { Mascot } from "../components/mascot";
+import { Mascot } from "../components/beto-mascot";
 
 interface LessonInterfaceProps {
   floorId: number;

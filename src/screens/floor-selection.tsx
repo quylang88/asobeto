@@ -12,7 +12,7 @@ import {
   Star,
   Lock,
 } from "lucide-react";
-import { Mascot } from "../components/mascot";
+import { Mascot } from "../components/beto-mascot";
 
 interface Floor {
   id: number;

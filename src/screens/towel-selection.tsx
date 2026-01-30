@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ChevronLeft, Star } from "lucide-react";
-import { Mascot } from "../components/mascot";
+import { Mascot } from "../components/beto-mascot";
 
 interface Tower {
   id: number;
