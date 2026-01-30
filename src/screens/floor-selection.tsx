@@ -74,7 +74,7 @@ function StandardFloorCard({
   // Assuming naming convention bg-X -> border-X
   const borderColorClass =
     floor.unlocked || floor.completed
-      ? floor.bgColor.replace("bg-", "border-")
+      ? floor.borderColor
       : "border-gray-200";
 
   return (
@@ -143,14 +143,16 @@ function StandardFloorCard({
                   floor.unlocked ? "text-foreground" : "text-gray-400"
                 }`}
               >
-                {floor.name}
+                {floor.unlocked ? floor.nameUnlocked : floor.nameLocked}
               </h3>
               <p
                 className={`text-xs ${
                   floor.unlocked ? "text-muted-foreground" : "text-gray-400"
                 }`}
               >
-                {floor.description}
+                {floor.unlocked
+                  ? floor.descriptionUnlocked
+                  : floor.descriptionLocked}
               </p>
 
               {/* Stars */}
@@ -423,14 +425,12 @@ function BossFloorCard({
               <h3
                 className={`text-xl font-bold ${isLocked ? "text-slate-300" : "text-white"}`}
               >
-                {floor.name}
+                {isLocked ? floor.nameLocked : floor.nameUnlocked}
               </h3>
               <p
                 className={`text-sm ${isLocked ? "text-slate-400" : "text-amber-100"}`}
               >
-                {isLocked
-                  ? "Complete all floors to unlock!"
-                  : floor.description}
+                {isLocked ? floor.descriptionLocked : floor.descriptionUnlocked}
               </p>
 
               {/* Stars for boss level */}

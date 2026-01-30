@@ -7,11 +7,14 @@ export interface TowerPosition {
 
 export interface Floor {
   id: number;
-  name: string;
-  description: string;
+  nameUnlocked: string;
+  nameLocked: string;
+  descriptionUnlocked: string;
+  descriptionLocked: string;
   letter?: string;
   color: string;
   bgColor: string;
+  borderColor: string;
   completed: boolean;
   unlocked: boolean;
   stars: number;
