@@ -81,7 +81,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
       </div>
 
       {/* Map Path - Scrollable area */}
-      <div className="flex-1 relative py-12 px-4 app-scroll pb-safe">
+      <div className="flex-1 relative py-12 px-4 app-scroll pb-safe overflow-y-auto">
         {/* Dotted path connecting worlds */}
         <svg
           className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-4 pointer-events-none"

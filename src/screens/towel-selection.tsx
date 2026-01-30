@@ -539,7 +539,7 @@ export function TowerSelection({
       </div>
 
       {/* Tower Map - Scrollable area */}
-      <div className="flex-1 relative app-scroll pb-safe">
+      <div className="flex-1 relative app-scroll pb-safe overflow-y-auto">
         <div className="relative w-full min-h-[800px] h-full pb-32">
           {/* Connection Lines */}
           <ConnectionLinesSVG towers={towerState} />
