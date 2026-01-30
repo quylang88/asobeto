@@ -98,7 +98,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
           />
         </svg>
 
-        <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg mx-auto">
+        <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg mx-auto pb-32">
           {worlds.map((world, index) => (
             <motion.div
               key={world.id}
