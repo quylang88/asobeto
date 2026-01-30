@@ -68,12 +68,12 @@ function StandardFloorCard({
     "bg-pink-soft": "#F472B6",
   };
 
-  const blockColor = colorMap[floor.bgColor] || "#60A5FA";
+  const blockColor = (floor.bgColor && colorMap[floor.bgColor]) || "#60A5FA";
 
   // Extract border color class from bgColor or default to gray
   // Assuming naming convention bg-X -> border-X
   const borderColorClass =
-    floor.unlocked || floor.completed
+    (floor.unlocked || floor.completed) && floor.borderColor
       ? floor.borderColor
       : "border-gray-200";
 
@@ -120,7 +120,7 @@ function StandardFloorCard({
           {/* Room interior decoration - top border */}
           <div
             className={`absolute top-0 left-4 right-4 h-1.5 rounded-b-full ${
-              floor.unlocked ? floor.bgColor : "bg-gray-200"
+              floor.unlocked ? (floor.bgColor ?? "bg-gray-200") : "bg-gray-200"
             }`}
           />
 

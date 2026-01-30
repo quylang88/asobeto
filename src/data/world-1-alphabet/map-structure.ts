@@ -12,9 +12,9 @@ export interface Floor {
   descriptionUnlocked: string;
   descriptionLocked?: string;
   letter?: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
+  color?: string;
+  bgColor?: string;
+  borderColor?: string;
   completed: boolean;
   unlocked: boolean;
   stars: number;
