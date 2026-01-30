@@ -509,7 +509,7 @@ export function TowerSelection({
   }, [isUnlocking, onSelectTower]);
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
       {/* Header - iOS safe area */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="flex items-center gap-3 p-4">
@@ -540,10 +540,7 @@ export function TowerSelection({
 
       {/* Tower Map - Scrollable area */}
       <div className="flex-1 relative app-scroll pb-safe">
-        <div
-          className="relative w-full min-h-150 h-full"
-          style={{ maxHeight: "calc(100vh - 120px)" }}
-        >
+        <div className="relative w-full min-h-[800px] h-full">
           {/* Connection Lines */}
           <ConnectionLinesSVG towers={towerState} />
 
