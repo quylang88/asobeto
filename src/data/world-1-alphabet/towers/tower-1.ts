@@ -1,0 +1,48 @@
+import { Floor } from "../map-structure";
+
+export const tower1Floors: Floor[] = [
+  {
+    id: 1,
+    name: "a",
+    description: "Learn how letters sound",
+    iconType: "listening",
+    color: "text-blue-soft",
+    bgColor: "bg-blue-soft",
+    completed: true,
+    unlocked: true,
+    stars: 3,
+  },
+  {
+    id: 2,
+    name: "ă",
+    description: "Practice writing letters",
+    iconType: "writing",
+    color: "text-green-bright",
+    bgColor: "bg-green-bright",
+    completed: true,
+    unlocked: true,
+    stars: 2,
+  },
+  {
+    id: 3,
+    name: "â",
+    description: "Put sounds together",
+    iconType: "combining",
+    color: "text-orange-bright",
+    bgColor: "bg-orange-bright",
+    completed: false,
+    unlocked: true,
+    stars: 0,
+  },
+  {
+    id: 4,
+    name: "Ôn tập",
+    description: "Challenge yourself!",
+    iconType: "game",
+    color: "text-pink-soft",
+    bgColor: "bg-pink-soft",
+    completed: false,
+    unlocked: true,
+    stars: 0,
+  },
+];

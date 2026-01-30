@@ -5,6 +5,18 @@ export interface TowerPosition {
   y: number; // tỷ lệ phần trăm 0-100
 }
 
+export interface Floor {
+  id: number;
+  name: string;
+  description: string;
+  iconType: "listening" | "writing" | "combining" | "game";
+  color: string;
+  bgColor: string;
+  completed: boolean;
+  unlocked: boolean;
+  stars: number;
+}
+
 export interface Tower {
   id: number;
   name: string;
@@ -16,7 +28,10 @@ export interface Tower {
   position: TowerPosition;
   parentIds: number[]; // ID của các tháp mở khóa tháp này
   isBoss?: boolean;
+  floors?: Floor[];
 }
+
+import { tower1Floors } from "./towers/tower-1";
 
 export interface TowerConnection {
   from: number;
@@ -43,6 +58,7 @@ export const towers: Tower[] = [
     unlocked: true,
     position: { x: 50, y: 12 },
     parentIds: [],
+    floors: tower1Floors,
   },
   {
     id: 2,
