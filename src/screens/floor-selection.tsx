@@ -661,7 +661,7 @@ export function FloorSelection({
             {/* Floors - stacked from bottom to top */}
             <div className="flex flex-col-reverse gap-0">
               {floors.map((floor, index) => {
-                const isBoss = floor.iconType === "game"; // "Review" floor is type "game"
+                const isBoss = floor.letter === "?"; // "Review" floor identified by "?" letter
 
                 return (
                   <React.Fragment key={floor.id}>
