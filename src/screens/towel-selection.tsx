@@ -373,8 +373,11 @@ function TowerNode({
             <g>
               <circle cx="40" cy="55" r="15" fill="#4B5563" opacity="0.9" />
               <Lock
-                className="w-6 h-6 text-gray-400"
-                style={{ x: 32, y: 47 }}
+                x={30}
+                y={45}
+                width={20}
+                height={20}
+                className="text-gray-400"
               />
             </g>
           )}
