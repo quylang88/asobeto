@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Star, Lock } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import {
-  towers as initialTowers,
-  towerConnections,
+  getWorldData,
   getTotalStars,
   canUnlockBoss,
   type Tower,
-} from "../data/world-1-alphabet/map-structure";
+  type TowerConnection,
+} from "../data/game-config";
 
 interface TowerSelectionProps {
   worldId: number;
@@ -68,16 +68,18 @@ function TowerNode({
   tower,
   totalStars,
   requiredStars,
+  canBossUnlock,
   onSelect,
   onBossUnlock,
 }: {
   tower: Tower;
   totalStars: number;
   requiredStars: number;
+  canBossUnlock: boolean;
   onSelect: (id: number) => void;
   onBossUnlock: () => void;
 }) {
-  const canUnlock = tower.isBoss && canUnlockBoss(initialTowers, requiredStars);
+  const canUnlock = tower.isBoss && canBossUnlock;
   const isLocked = !tower.unlocked && !canUnlock;
 
   const handleTap = () => {
@@ -403,14 +405,20 @@ function TowerNode({
 }
 
 // Percentage-based SVG connections
-function ConnectionLinesSVG({ towers }: { towers: Tower[] }) {
+function ConnectionLinesSVG({
+  towers,
+  connections,
+}: {
+  towers: Tower[];
+  connections: TowerConnection[];
+}) {
   return (
     <svg
       className="absolute inset-0 w-full h-full pointer-events-none"
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
     >
-      {towerConnections.map((conn, index) => {
+      {connections.map((conn, index) => {
         const fromTower = towers.find((t) => t.id === conn.from);
         const toTower = towers.find((t) => t.id === conn.to);
 
@@ -448,11 +456,13 @@ function ConnectionLinesSVG({ towers }: { towers: Tower[] }) {
 }
 
 export function TowerSelection({
+  worldId,
   worldName,
   onSelectTower,
   onBack,
 }: TowerSelectionProps) {
-  const [towerState] = useState<Tower[]>(initialTowers);
+  const worldData = getWorldData(worldId);
+  const [towerState] = useState<Tower[]>(worldData.towers);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [flyingStars, setFlyingStars] = useState<
     { id: number; startX: number; startY: number; endX: number; endY: number }[]
@@ -461,7 +471,7 @@ export function TowerSelection({
 
   const totalStars = getTotalStars(towerState.filter((t) => !t.isBoss));
   const requiredStars = 15;
-  const bossTower = towerState.find((t) => t.isBoss);
+  const isBossUnlockable = canUnlockBoss(towerState, requiredStars);
 
   const handleBossUnlock = useCallback(() => {
     if (isUnlocking) return;
@@ -542,7 +552,10 @@ export function TowerSelection({
       <div className="flex-1 relative app-scroll pb-safe overflow-y-auto">
         <div className="relative w-full min-h-200 h-full mb-22">
           {/* Connection Lines */}
-          <ConnectionLinesSVG towers={towerState} />
+          <ConnectionLinesSVG
+            towers={towerState}
+            connections={worldData.towerConnections}
+          />
 
           {/* Tower Nodes */}
           {towerState.map((tower) => (
@@ -555,6 +568,7 @@ export function TowerSelection({
                 tower={tower}
                 totalStars={totalStars}
                 requiredStars={requiredStars}
+                canBossUnlock={isBossUnlockable}
                 onSelect={onSelectTower}
                 onBossUnlock={handleBossUnlock}
               />

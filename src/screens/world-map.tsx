@@ -3,55 +3,7 @@
 import { motion } from "framer-motion";
 import { Lock, ChevronLeft } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
-
-interface World {
-  id: number;
-  name: string;
-  theme: string;
-  color: string;
-  bgColor: string;
-  unlocked: boolean;
-  progress: number;
-}
-
-const worlds: World[] = [
-  {
-    id: 1,
-    name: "Alphabet Island",
-    theme: "Forest",
-    color: "bg-green-bright",
-    bgColor: "from-green-400 to-emerald-600",
-    unlocked: true,
-    progress: 60,
-  },
-  {
-    id: 2,
-    name: "Tone Valley",
-    theme: "Sky",
-    color: "bg-blue-soft",
-    bgColor: "from-blue-400 to-cyan-500",
-    unlocked: true,
-    progress: 20,
-  },
-  {
-    id: 3,
-    name: "Rhyme Forest",
-    theme: "Magical",
-    color: "bg-pink-soft",
-    bgColor: "from-pink-400 to-purple-500",
-    unlocked: false,
-    progress: 0,
-  },
-  {
-    id: 4,
-    name: "Word Wonderland",
-    theme: "Fantasy",
-    color: "bg-orange-bright",
-    bgColor: "from-orange-400 to-amber-500",
-    unlocked: false,
-    progress: 0,
-  },
-];
+import { worlds } from "../data/game-config";
 
 interface WorldMapProps {
   onSelectWorld: (worldId: number) => void;
