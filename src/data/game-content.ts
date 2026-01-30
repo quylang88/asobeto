@@ -41,7 +41,7 @@ export const towers: Tower[] = [
     maxStars: 3,
     completed: true,
     unlocked: true,
-    position: { x: 50, y: 20 },
+    position: { x: 50, y: 16 },
     parentIds: [],
   },
   {
