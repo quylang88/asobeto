@@ -3,7 +3,12 @@ import * as World1 from "./world-1-alphabet";
 
 // Export lại các kiểu và hàm hỗ trợ từ triển khai world chính
 // để đảm bảo tính nhất quán trên toàn ứng dụng
-export type { Tower, TowerConnection, TowerPosition } from "./world-1-alphabet";
+export type {
+  Tower,
+  TowerConnection,
+  TowerPosition,
+  Floor,
+} from "./world-1-alphabet";
 export {
   getTotalStars,
   getMaxStars,

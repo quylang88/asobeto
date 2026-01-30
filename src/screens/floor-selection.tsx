@@ -3,23 +3,587 @@
 import React from "react";
 
 import { motion } from "framer-motion";
-import {
-  ChevronLeft,
-  Ear,
-  Pencil,
-  Puzzle,
-  Gamepad2,
-  Star,
-  Lock,
-} from "lucide-react";
+import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { getWorldData } from "../data/game-config";
+import type { Floor } from "../data/game-config";
 
 interface FloorSelectionProps {
   towerId: number;
   towerName: string;
   onSelectFloor: (floorId: number) => void;
   onBack: () => void;
+}
+
+// 3D Letter Block Component
+function LetterBlock({
+  letter,
+  color,
+  small = false,
+}: {
+  letter: string;
+  color: string;
+  small?: boolean;
+}) {
+  const size = small ? "w-10 h-10" : "w-14 h-14";
+  const fontSize = small ? "text-lg" : "text-2xl";
+
+  return (
+    <div className={`${size} relative`}>
+      {/* Block shadow */}
+      <div
+        className="absolute inset-0 rounded-xl transform translate-y-1"
+        style={{ backgroundColor: color, filter: "brightness(0.6)" }}
+      />
+      {/* Block face */}
+      <div
+        className={`absolute inset-0 rounded-xl flex items-center justify-center ${fontSize} font-bold text-white shadow-lg`}
+        style={{ backgroundColor: color }}
+      >
+        {letter}
+      </div>
+      {/* Highlight */}
+      <div
+        className="absolute top-1 left-1 right-3 h-2 rounded-full opacity-40"
+        style={{ backgroundColor: "white" }}
+      />
+    </div>
+  );
+}
+
+// Mascot Props for each letter
+function MascotProp({ type }: { type: string }) {
+  const props: Record<string, React.ReactNode> = {
+    a: (
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        {/* Fish */}
+        <ellipse cx="12" cy="12" rx="8" ry="5" fill="#60A5FA" />
+        <polygon points="2,12 6,8 6,16" fill="#60A5FA" />
+        <circle cx="16" cy="11" r="1.5" fill="#1E3A8A" />
+        <path
+          d="M8 13 Q12 15 16 13"
+          stroke="#1E3A8A"
+          strokeWidth="1"
+          fill="none"
+        />
+      </svg>
+    ),
+    ă: (
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        {/* Moon */}
+        <circle cx="12" cy="12" r="8" fill="#FCD34D" />
+        <circle cx="15" cy="10" r="6" fill="#1E293B" />
+      </svg>
+    ),
+    â: (
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        {/* Star */}
+        <polygon
+          points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9"
+          fill="#F59E0B"
+        />
+      </svg>
+    ),
+    default: <Sparkles className="w-5 h-5 text-amber-400" />,
+  };
+
+  return (
+    <div className="absolute -right-1 -bottom-1">
+      {props[type] || props.default}
+    </div>
+  );
+}
+
+// Standard Floor Card Component
+function StandardFloorCard({
+  floor,
+  index,
+  onSelect,
+}: {
+  floor: Floor;
+  index: number;
+  onSelect: () => void;
+}) {
+  const colorMap: Record<string, string> = {
+    "bg-blue-soft": "#60A5FA",
+    "bg-green-bright": "#4ADE80",
+    "bg-orange-bright": "#FB923C",
+    "bg-pink-soft": "#F472B6",
+  };
+
+  const blockColor = colorMap[floor.bgColor] || "#60A5FA";
+
+  return (
+    <motion.button
+      onClick={() => floor.unlocked && onSelect()}
+      disabled={!floor.unlocked}
+      className={`relative group ios-button w-full ${!floor.unlocked ? "cursor-not-allowed" : ""}`}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.12, type: "spring", stiffness: 100 }}
+      whileTap={floor.unlocked ? { scale: 0.97 } : {}}
+    >
+      {/* Breathing animation for unlocked floors */}
+      <motion.div
+        className="relative"
+        animate={
+          floor.unlocked
+            ? {
+                scale: [1, 1.015, 1],
+              }
+            : {}
+        }
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: index * 0.3,
+        }}
+      >
+        {/* Floor number on ladder */}
+        <div className="absolute -left-8 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+          <div className="w-7 h-7 bg-amber-100 border-2 border-amber-400 rounded-lg flex items-center justify-center font-bold text-amber-700 text-sm shadow-sm">
+            {floor.id}
+          </div>
+        </div>
+
+        {/* Floor card - Cute room style */}
+        <div
+          className={`relative rounded-3xl p-4 shadow-lg transition-all duration-200 ${
+            floor.unlocked ? "bg-white hover:shadow-xl" : "bg-gray-50"
+          } border-3 ${
+            floor.completed
+              ? "border-green-bright"
+              : floor.unlocked
+                ? "border-amber-200"
+                : "border-gray-200"
+          }`}
+        >
+          {/* Room interior decoration - top border */}
+          <div
+            className={`absolute top-0 left-4 right-4 h-1.5 rounded-b-full ${
+              floor.unlocked ? floor.bgColor : "bg-gray-200"
+            }`}
+          />
+
+          <div className="flex items-center gap-4">
+            {/* 3D Letter Block Icon */}
+            <div className="relative">
+              {floor.unlocked ? (
+                <>
+                  <LetterBlock
+                    letter={floor.name.charAt(0).toUpperCase()}
+                    color={blockColor}
+                  />
+                  <MascotProp type={floor.name.toLowerCase()} />
+                </>
+              ) : (
+                <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center shadow-inner">
+                  <Lock className="w-7 h-7 text-gray-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 text-left">
+              <h3
+                className={`text-lg font-bold ${
+                  floor.unlocked ? "text-foreground" : "text-gray-400"
+                }`}
+              >
+                {floor.name}
+              </h3>
+              <p
+                className={`text-xs ${
+                  floor.unlocked ? "text-muted-foreground" : "text-gray-400"
+                }`}
+              >
+                {floor.description}
+              </p>
+
+              {/* Stars */}
+              {floor.unlocked && (
+                <div className="flex gap-0.5 mt-1.5">
+                  {[...Array(3)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                        i < floor.stars
+                          ? "text-yellow-bright fill-yellow-bright"
+                          : "text-gray-300 fill-gray-100"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Completion badge */}
+            {floor.completed && (
+              <motion.div
+                className="w-9 h-9 bg-green-bright rounded-full flex items-center justify-center shadow-md"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.3 }}
+              >
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.button>
+  );
+}
+
+// Boss Floor - The Grand Finale "Royal Penthouse"
+function BossFloorCard({
+  floor,
+  index,
+  onSelect,
+  totalFloors,
+}: {
+  floor: Floor;
+  index: number;
+  onSelect: () => void;
+  totalFloors: number;
+}) {
+  const isLocked = !floor.unlocked;
+
+  return (
+    <motion.button
+      onClick={() => floor.unlocked && onSelect()}
+      disabled={isLocked}
+      className={`relative ios-button w-full ${isLocked ? "cursor-not-allowed" : ""}`}
+      initial={{ opacity: 0, y: 40, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        delay: totalFloors * 0.12 + 0.2,
+        type: "spring",
+        stiffness: 80,
+      }}
+      whileTap={floor.unlocked ? { scale: 0.97 } : {}}
+    >
+      {/* Pulsing glow effect behind */}
+      <motion.div
+        className={`absolute -inset-3 rounded-4xl ${
+          isLocked
+            ? "bg-purple-900/20"
+            : "bg-linear-to-r from-amber-400 via-orange-500 to-amber-400"
+        }`}
+        animate={
+          !isLocked
+            ? {
+                opacity: [0.4, 0.7, 0.4],
+                scale: [1, 1.02, 1],
+              }
+            : {}
+        }
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        style={{ filter: "blur(8px)" }}
+      />
+
+      {/* Shimmer effect for unlocked boss */}
+      {!isLocked && (
+        <motion.div
+          className="absolute inset-0 rounded-4xl overflow-hidden pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent"
+            animate={{
+              x: ["-100%", "200%"],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              repeatDelay: 3,
+              ease: "easeInOut",
+            }}
+            style={{ width: "50%" }}
+          />
+        </motion.div>
+      )}
+
+      {/* Main card */}
+      <div className="relative">
+        {/* Decorative archway roof */}
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-32">
+          <svg viewBox="0 0 100 30" className="w-full">
+            <defs>
+              <linearGradient
+                id="roofGradient"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
+                <stop
+                  offset="0%"
+                  stopColor={isLocked ? "#6B7280" : "#F59E0B"}
+                />
+                <stop
+                  offset="50%"
+                  stopColor={isLocked ? "#9CA3AF" : "#FBBF24"}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={isLocked ? "#6B7280" : "#F59E0B"}
+                />
+              </linearGradient>
+            </defs>
+            {/* Crown-like roof */}
+            <path
+              d="M5 30 L15 10 L30 20 L50 5 L70 20 L85 10 L95 30 Z"
+              fill="url(#roofGradient)"
+            />
+            {/* Jewels on crown */}
+            <circle
+              cx="50"
+              cy="12"
+              r="4"
+              fill={isLocked ? "#4B5563" : "#EF4444"}
+            />
+            <circle
+              cx="30"
+              cy="18"
+              r="2.5"
+              fill={isLocked ? "#4B5563" : "#3B82F6"}
+            />
+            <circle
+              cx="70"
+              cy="18"
+              r="2.5"
+              fill={isLocked ? "#4B5563" : "#10B981"}
+            />
+          </svg>
+        </div>
+
+        {/* The card itself */}
+        <div
+          className={`relative rounded-3xl p-5 shadow-2xl border-4 overflow-hidden ${
+            isLocked
+              ? "bg-linear-to-br from-slate-700 via-slate-800 to-slate-900 border-slate-600"
+              : "bg-linear-to-br from-amber-500 via-orange-500 to-amber-600 border-amber-300"
+          }`}
+        >
+          {/* Force field effect for locked state */}
+          {isLocked && (
+            <div className="absolute inset-0 pointer-events-none">
+              {/* Hexagonal pattern overlay */}
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                }}
+              />
+              {/* Animated energy lines */}
+              <motion.div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(139, 92, 246, 0.3) 50%, transparent 100%)",
+                }}
+                animate={{
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                }}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 relative z-10">
+            {/* Icon area */}
+            <div className="relative">
+              {isLocked ? (
+                // Mysterious treasure chest silhouette
+                <div className="w-16 h-16 rounded-2xl bg-slate-600/50 flex items-center justify-center relative overflow-hidden">
+                  <motion.div
+                    className="absolute inset-0 bg-purple-500/20"
+                    animate={{ opacity: [0.2, 0.4, 0.2] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <svg viewBox="0 0 40 40" className="w-10 h-10 opacity-60">
+                    {/* Treasure chest silhouette */}
+                    <rect
+                      x="5"
+                      y="18"
+                      width="30"
+                      height="18"
+                      rx="3"
+                      fill="#374151"
+                    />
+                    <path d="M5 18 Q20 10 35 18" fill="#374151" />
+                    <rect
+                      x="17"
+                      y="22"
+                      width="6"
+                      height="8"
+                      rx="1"
+                      fill="#1F2937"
+                    />
+                    <circle cx="20" cy="25" r="2" fill="#6B7280" />
+                  </svg>
+                  {/* Chain overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Lock className="w-6 h-6 text-slate-400" />
+                  </div>
+                </div>
+              ) : (
+                // Golden trophy/crown icon
+                <motion.div
+                  className="w-16 h-16 rounded-2xl bg-linear-to-br from-yellow-300 to-amber-500 flex items-center justify-center shadow-lg"
+                  animate={{
+                    rotate: [0, -3, 3, 0],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Crown className="w-9 h-9 text-amber-900" />
+                  <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-yellow-300" />
+                </motion.div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 text-left">
+              <h3
+                className={`text-xl font-bold ${isLocked ? "text-slate-300" : "text-white"}`}
+              >
+                {floor.name}
+              </h3>
+              <p
+                className={`text-sm ${isLocked ? "text-slate-400" : "text-amber-100"}`}
+              >
+                {isLocked
+                  ? "Complete all floors to unlock!"
+                  : floor.description}
+              </p>
+
+              {/* Stars for boss level */}
+              {!isLocked && (
+                <div className="flex gap-1 mt-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < floor.stars
+                          ? "text-yellow-200 fill-yellow-200"
+                          : "text-amber-700 fill-amber-800"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Status indicator */}
+            {isLocked ? (
+              <div className="flex flex-col items-center gap-1">
+                <motion.div
+                  className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center"
+                  animate={{
+                    boxShadow: [
+                      "0 0 0 0 rgba(139, 92, 246, 0.4)",
+                      "0 0 0 8px rgba(139, 92, 246, 0)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                  }}
+                >
+                  <span className="text-lg">?</span>
+                </motion.div>
+              </div>
+            ) : floor.completed ? (
+              <motion.div
+                className="w-10 h-10 bg-yellow-300 rounded-full flex items-center justify-center shadow-lg"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.5 }}
+              >
+                <Crown className="w-6 h-6 text-amber-800" />
+              </motion.div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+// Ladder/Vine connector between floors
+function FloorConnector({ index, total }: { index: number; total: number }) {
+  if (index === 0) return null;
+
+  return (
+    <div className="relative h-6 flex justify-center">
+      {/* Vine/ladder connector */}
+      <svg viewBox="0 0 40 24" className="w-10 h-6">
+        <defs>
+          <linearGradient
+            id={`vineGrad-${index}`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <stop offset="0%" stopColor="#4ADE80" />
+            <stop offset="100%" stopColor="#22C55E" />
+          </linearGradient>
+        </defs>
+        {/* Main vine */}
+        <path
+          d="M20 0 Q15 8 20 12 Q25 16 20 24"
+          stroke={`url(#vineGrad-${index})`}
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+        />
+        {/* Leaves */}
+        <ellipse
+          cx="12"
+          cy="8"
+          rx="5"
+          ry="3"
+          fill="#86EFAC"
+          transform="rotate(-20 12 8)"
+        />
+        <ellipse
+          cx="28"
+          cy="16"
+          rx="5"
+          ry="3"
+          fill="#86EFAC"
+          transform="rotate(20 28 16)"
+        />
+      </svg>
+    </div>
+  );
 }
 
 export function FloorSelection({
@@ -32,25 +596,14 @@ export function FloorSelection({
   const currentTower = worldData.towers.find((t) => t.id === towerId);
   const floors = currentTower?.floors || [];
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "listening":
-        return <Ear className="w-8 h-8" />;
-      case "writing":
-        return <Pencil className="w-8 h-8" />;
-      case "combining":
-        return <Puzzle className="w-8 h-8" />;
-      case "game":
-        return <Gamepad2 className="w-8 h-8" />;
-      default:
-        return <Star className="w-8 h-8" />;
-    }
-  };
+  // Separate boss floor (last floor / floor 4) from regular floors
+  const regularFloors = floors.filter((f) => f.iconType !== "game");
+  const bossFloor = floors.find((f) => f.iconType === "game");
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-b from-orange-bright/20 via-background to-green-bright/10 overflow-hidden">
+    <div className="h-screen flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
       {/* Header - iOS safe area */}
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
+      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md shadow-sm pt-safe">
         <div className="p-4 flex items-center gap-4">
           <motion.button
             onClick={onBack}
@@ -59,149 +612,152 @@ export function FloorSelection({
           >
             <ChevronLeft className="w-6 h-6" />
           </motion.button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-foreground">
               Tower {towerName}
             </h1>
-            <p className="text-sm text-muted-foreground">Choose a Floor</p>
+            <p className="text-xs text-muted-foreground">Climb to the top!</p>
           </div>
-          <div className="ml-auto">
-            <Mascot size="sm" emotion="thinking" />
-          </div>
+          <Mascot size="sm" emotion="thinking" />
         </div>
       </div>
 
-      {/* Tower cutaway view - Scrollable area */}
-      <div className="flex-1 p-6 md:p-12 max-w-lg mx-auto app-scroll pb-safe">
-        {/* Tower frame */}
-        <div className="relative">
-          {/* Left wall */}
-          <div className="absolute left-0 top-0 bottom-0 w-4 bg-green-bright/40 rounded-l-3xl" />
-          {/* Right wall */}
-          <div className="absolute right-0 top-0 bottom-0 w-4 bg-green-bright/40 rounded-r-3xl" />
-
-          {/* Floors */}
-          <div className="flex flex-col-reverse gap-4 py-8 px-6">
-            {floors.map((floor, index) => (
-              <motion.button
-                key={floor.id}
-                onClick={() => floor.unlocked && onSelectFloor(floor.id)}
-                disabled={!floor.unlocked}
-                className={`relative group ios-button ${!floor.unlocked ? "cursor-not-allowed" : ""}`}
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.15 }}
-                whileTap={floor.unlocked ? { scale: 0.95 } : {}}
+      {/* Tower view with perspective */}
+      <div className="flex-1 app-scroll pb-safe overflow-y-auto">
+        <div
+          className="relative max-w-sm mx-auto px-8 py-6"
+          style={{
+            perspective: "800px",
+          }}
+        >
+          {/* Tower structure with slight tilt */}
+          <motion.div
+            className="relative"
+            style={{
+              transformStyle: "preserve-3d",
+              transform: "rotateX(2deg)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Left decorative vine */}
+            <div className="absolute -left-4 top-0 bottom-0 w-3">
+              <svg
+                viewBox="0 0 12 400"
+                className="w-full h-full"
+                preserveAspectRatio="none"
               >
-                {/* Floor number indicator */}
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center font-bold text-foreground">
-                  {floor.id}
+                <path
+                  d="M6 0 Q2 50 6 100 Q10 150 6 200 Q2 250 6 300 Q10 350 6 400"
+                  stroke="#4ADE80"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                {/* Leaves along the vine */}
+                {[0, 1, 2, 3].map((i) => (
+                  <ellipse
+                    key={i}
+                    cx={i % 2 === 0 ? 2 : 10}
+                    cy={50 + i * 100}
+                    rx="4"
+                    ry="6"
+                    fill="#86EFAC"
+                    transform={`rotate(${i % 2 === 0 ? -30 : 30} ${i % 2 === 0 ? 2 : 10} ${50 + i * 100})`}
+                  />
+                ))}
+              </svg>
+            </div>
+
+            {/* Right decorative ladder */}
+            <div className="absolute -right-4 top-0 bottom-0 w-4">
+              <svg
+                viewBox="0 0 16 400"
+                className="w-full h-full"
+                preserveAspectRatio="none"
+              >
+                {/* Ladder rails */}
+                <line
+                  x1="3"
+                  y1="0"
+                  x2="3"
+                  y2="400"
+                  stroke="#D97706"
+                  strokeWidth="2"
+                />
+                <line
+                  x1="13"
+                  y1="0"
+                  x2="13"
+                  y2="400"
+                  stroke="#D97706"
+                  strokeWidth="2"
+                />
+                {/* Rungs */}
+                {[...Array(12)].map((_, i) => (
+                  <line
+                    key={i}
+                    x1="3"
+                    y1={20 + i * 32}
+                    x2="13"
+                    y2={20 + i * 32}
+                    stroke="#F59E0B"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                ))}
+              </svg>
+            </div>
+
+            {/* Floors - stacked from bottom to top */}
+            <div className="flex flex-col-reverse gap-0">
+              {/* Boss floor at the very top */}
+              {bossFloor && (
+                <div className="mb-2">
+                  <BossFloorCard
+                    floor={bossFloor}
+                    index={regularFloors.length}
+                    onSelect={() => onSelectFloor(bossFloor.id)}
+                    totalFloors={regularFloors.length}
+                  />
                 </div>
+              )}
 
-                {/* Floor card */}
-                <div
-                  className={`relative rounded-3xl p-5 shadow-lg ${
-                    floor.unlocked ? "bg-white" : "bg-gray-100"
-                  } border-4 ${
-                    floor.completed
-                      ? "border-green-bright"
-                      : floor.unlocked
-                        ? "border-orange-bright/50"
-                        : "border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Icon */}
-                    <div
-                      className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                        floor.unlocked ? floor.bgColor : "bg-gray-300"
-                      }`}
-                    >
-                      {floor.unlocked ? (
-                        <div className="text-white">
-                          {getIcon(floor.iconType)}
-                        </div>
-                      ) : (
-                        <Lock className="w-8 h-8 text-gray-500" />
-                      )}
-                    </div>
+              {/* Connector to boss */}
+              {bossFloor && (
+                <FloorConnector
+                  index={regularFloors.length}
+                  total={floors.length}
+                />
+              )}
 
-                    {/* Info */}
-                    <div className="flex-1 text-left">
-                      <h3
-                        className={`text-lg font-bold ${
-                          floor.unlocked ? "text-foreground" : "text-gray-400"
-                        }`}
-                      >
-                        {floor.name}
-                      </h3>
-                      <p
-                        className={`text-sm ${
-                          floor.unlocked
-                            ? "text-muted-foreground"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {floor.description}
-                      </p>
+              {/* Regular floors */}
+              {regularFloors.map((floor, index) => (
+                <React.Fragment key={floor.id}>
+                  <StandardFloorCard
+                    floor={floor}
+                    index={index}
+                    onSelect={() => onSelectFloor(floor.id)}
+                  />
+                  <FloorConnector index={index} total={regularFloors.length} />
+                </React.Fragment>
+              ))}
+            </div>
 
-                      {/* Stars */}
-                      {floor.unlocked && (
-                        <div className="flex gap-1 mt-2">
-                          {[...Array(3)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-5 h-5 ${
-                                i < floor.stars
-                                  ? "text-yellow-bright fill-yellow-bright"
-                                  : "text-gray-300 fill-gray-200"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Completion badge */}
-                    {floor.completed && (
-                      <motion.div
-                        className="w-10 h-10 bg-green-bright rounded-full flex items-center justify-center"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring" }}
-                      >
-                        <svg
-                          className="w-6 h-6 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ladder between floors */}
-                {index < floors.length - 1 && (
-                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-1 h-4 bg-orange-bright/50" />
-                )}
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Roof */}
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-            <svg width="120" height="40" viewBox="0 0 120 40">
-              <polygon points="60,0 0,40 120,40" fill="#FB923C" />
-            </svg>
-          </div>
+            {/* Ground decoration */}
+            <div className="mt-4 flex justify-center">
+              <svg viewBox="0 0 200 30" className="w-48 h-8">
+                {/* Grass */}
+                <ellipse cx="100" cy="25" rx="90" ry="8" fill="#86EFAC" />
+                <ellipse cx="100" cy="22" rx="70" ry="5" fill="#4ADE80" />
+                {/* Flowers */}
+                <circle cx="30" cy="18" r="4" fill="#F472B6" />
+                <circle cx="170" cy="18" r="4" fill="#FBBF24" />
+                <circle cx="100" cy="15" r="5" fill="#60A5FA" />
+              </svg>
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>
