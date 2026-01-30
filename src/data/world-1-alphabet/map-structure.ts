@@ -9,7 +9,7 @@ export interface Floor {
   id: number;
   name: string;
   description: string;
-  iconType: "listening" | "writing" | "combining" | "game";
+  letter?: string;
   color: string;
   bgColor: string;
   completed: boolean;

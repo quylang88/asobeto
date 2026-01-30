@@ -51,49 +51,6 @@ function LetterBlock({
   );
 }
 
-// Mascot Props for each letter
-function MascotProp({ type }: { type: string }) {
-  const props: Record<string, React.ReactNode> = {
-    a: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6">
-        {/* Fish */}
-        <ellipse cx="12" cy="12" rx="8" ry="5" fill="#60A5FA" />
-        <polygon points="2,12 6,8 6,16" fill="#60A5FA" />
-        <circle cx="16" cy="11" r="1.5" fill="#1E3A8A" />
-        <path
-          d="M8 13 Q12 15 16 13"
-          stroke="#1E3A8A"
-          strokeWidth="1"
-          fill="none"
-        />
-      </svg>
-    ),
-    ă: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6">
-        {/* Moon */}
-        <circle cx="12" cy="12" r="8" fill="#FCD34D" />
-        <circle cx="15" cy="10" r="6" fill="#1E293B" />
-      </svg>
-    ),
-    â: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6">
-        {/* Star */}
-        <polygon
-          points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9"
-          fill="#F59E0B"
-        />
-      </svg>
-    ),
-    default: <Sparkles className="w-5 h-5 text-amber-400" />,
-  };
-
-  return (
-    <div className="absolute -right-1 -bottom-1">
-      {props[type] || props.default}
-    </div>
-  );
-}
-
 // Standard Floor Card Component
 function StandardFloorCard({
   floor,
@@ -112,6 +69,13 @@ function StandardFloorCard({
   };
 
   const blockColor = colorMap[floor.bgColor] || "#60A5FA";
+
+  // Extract border color class from bgColor or default to gray
+  // Assuming naming convention bg-X -> border-X
+  const borderColorClass =
+    floor.unlocked || floor.completed
+      ? floor.bgColor.replace("bg-", "border-")
+      : "border-gray-200";
 
   return (
     <motion.button
@@ -151,13 +115,7 @@ function StandardFloorCard({
         <div
           className={`relative rounded-3xl p-4 shadow-lg transition-all duration-200 ${
             floor.unlocked ? "bg-white hover:shadow-xl" : "bg-gray-50"
-          } border-3 ${
-            floor.completed
-              ? "border-green-bright"
-              : floor.unlocked
-                ? "border-amber-200"
-                : "border-gray-200"
-          }`}
+          } border-3 ${borderColorClass}`}
         >
           {/* Room interior decoration - top border */}
           <div
@@ -170,13 +128,7 @@ function StandardFloorCard({
             {/* 3D Letter Block Icon */}
             <div className="relative">
               {floor.unlocked ? (
-                <>
-                  <LetterBlock
-                    letter={floor.name.charAt(0).toUpperCase()}
-                    color={blockColor}
-                  />
-                  <MascotProp type={floor.name.toLowerCase()} />
-                </>
+                <LetterBlock letter={floor.letter || "?"} color={blockColor} />
               ) : (
                 <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center shadow-inner">
                   <Lock className="w-7 h-7 text-gray-400" />
@@ -251,12 +203,10 @@ function StandardFloorCard({
 // Boss Floor - The Grand Finale "Royal Penthouse"
 function BossFloorCard({
   floor,
-  index,
   onSelect,
   totalFloors,
 }: {
   floor: Floor;
-  index: number;
   onSelect: () => void;
   totalFloors: number;
 }) {
@@ -537,8 +487,8 @@ function BossFloorCard({
 }
 
 // Ladder/Vine connector between floors
-function FloorConnector({ index, total }: { index: number; total: number }) {
-  if (index === 0) return null;
+function FloorConnector({ index }: { index: number }) {
+  // Removed condition "if (index === 0) return null;" as we control rendering in parent loop
 
   return (
     <div className="relative h-6 flex justify-center">
@@ -595,10 +545,6 @@ export function FloorSelection({
   const worldData = getWorldData(1); // Default to World 1
   const currentTower = worldData.towers.find((t) => t.id === towerId);
   const floors = currentTower?.floors || [];
-
-  // Separate boss floor (last floor / floor 4) from regular floors
-  const regularFloors = floors.filter((f) => f.iconType !== "game");
-  const bossFloor = floors.find((f) => f.iconType === "game");
 
   return (
     <div className="h-screen flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
@@ -712,37 +658,32 @@ export function FloorSelection({
 
             {/* Floors - stacked from bottom to top */}
             <div className="flex flex-col-reverse gap-0">
-              {/* Boss floor at the very top */}
-              {bossFloor && (
-                <div className="mb-2">
-                  <BossFloorCard
-                    floor={bossFloor}
-                    index={regularFloors.length}
-                    onSelect={() => onSelectFloor(bossFloor.id)}
-                    totalFloors={regularFloors.length}
-                  />
-                </div>
-              )}
+              {floors.map((floor, index) => {
+                const isBoss = floor.letter === "?"; // "Review" floor identified by "?" letter
 
-              {/* Connector to boss */}
-              {bossFloor && (
-                <FloorConnector
-                  index={regularFloors.length}
-                  total={floors.length}
-                />
-              )}
+                return (
+                  <React.Fragment key={floor.id}>
+                    {isBoss ? (
+                      <BossFloorCard
+                        floor={floor}
+                        onSelect={() => onSelectFloor(floor.id)}
+                        totalFloors={floors.length}
+                      />
+                    ) : (
+                      <StandardFloorCard
+                        floor={floor}
+                        index={index}
+                        onSelect={() => onSelectFloor(floor.id)}
+                      />
+                    )}
 
-              {/* Regular floors */}
-              {regularFloors.map((floor, index) => (
-                <React.Fragment key={floor.id}>
-                  <StandardFloorCard
-                    floor={floor}
-                    index={index}
-                    onSelect={() => onSelectFloor(floor.id)}
-                  />
-                  <FloorConnector index={index} total={regularFloors.length} />
-                </React.Fragment>
-              ))}
+                    {/* Add connector if this is NOT the last item in the list (which is the TOP item visually) */}
+                    {index < floors.length - 1 && (
+                      <FloorConnector index={index} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
 
             {/* Ground decoration */}
