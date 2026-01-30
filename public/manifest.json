@@ -1,0 +1,17 @@
+{
+  "name": "Asobeto",
+  "short_name": "Asobeto",
+  "description": "A fun language learning app for kids to learn Vietnamese",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#4ADE80",
+  "theme_color": "#4ADE80",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

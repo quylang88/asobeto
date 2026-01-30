@@ -68,13 +68,13 @@ function StandardFloorCard({
     "bg-pink-soft": "#F472B6",
   };
 
-  const blockColor = colorMap[floor.bgColor] || "#60A5FA";
+  const blockColor = (floor.bgColor && colorMap[floor.bgColor]) || "#60A5FA";
 
   // Extract border color class from bgColor or default to gray
   // Assuming naming convention bg-X -> border-X
   const borderColorClass =
-    floor.unlocked || floor.completed
-      ? floor.bgColor.replace("bg-", "border-")
+    (floor.unlocked || floor.completed) && floor.borderColor
+      ? floor.borderColor
       : "border-gray-200";
 
   return (
@@ -120,7 +120,7 @@ function StandardFloorCard({
           {/* Room interior decoration - top border */}
           <div
             className={`absolute top-0 left-4 right-4 h-1.5 rounded-b-full ${
-              floor.unlocked ? floor.bgColor : "bg-gray-200"
+              floor.unlocked ? (floor.bgColor ?? "bg-gray-200") : "bg-gray-200"
             }`}
           />
 
@@ -143,14 +143,18 @@ function StandardFloorCard({
                   floor.unlocked ? "text-foreground" : "text-gray-400"
                 }`}
               >
-                {floor.name}
+                {floor.unlocked
+                  ? floor.nameUnlocked
+                  : (floor.nameLocked ?? "Locked")}
               </h3>
               <p
                 className={`text-xs ${
                   floor.unlocked ? "text-muted-foreground" : "text-gray-400"
                 }`}
               >
-                {floor.description}
+                {floor.unlocked
+                  ? floor.descriptionUnlocked
+                  : (floor.descriptionLocked ?? "???")}
               </p>
 
               {/* Stars */}
@@ -423,14 +427,15 @@ function BossFloorCard({
               <h3
                 className={`text-xl font-bold ${isLocked ? "text-slate-300" : "text-white"}`}
               >
-                {floor.name}
+                {isLocked ? (floor.nameLocked ?? "Locked") : floor.nameUnlocked}
               </h3>
               <p
                 className={`text-sm ${isLocked ? "text-slate-400" : "text-amber-100"}`}
               >
                 {isLocked
-                  ? "Complete all floors to unlock!"
-                  : floor.description}
+                  ? (floor.descriptionLocked ??
+                    "Complete all floors to unlock!")
+                  : floor.descriptionUnlocked}
               </p>
 
               {/* Stars for boss level */}
@@ -547,7 +552,7 @@ export function FloorSelection({
   const floors = currentTower?.floors || [];
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
       {/* Header - iOS safe area */}
       <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md shadow-sm pt-safe">
         <div className="p-4 flex items-center gap-4">
