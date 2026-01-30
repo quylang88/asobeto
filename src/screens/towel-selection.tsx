@@ -399,61 +399,6 @@ function TowerNode({
   );
 }
 
-// Connection Lines Component
-function ConnectionLines({
-  towers,
-  connections,
-}: {
-  towers: Tower[];
-  connections: typeof towerConnections;
-}) {
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 0 }}
-    >
-      {connections.map((conn, index) => {
-        const fromTower = towers.find((t) => t.id === conn.from);
-        const toTower = towers.find((t) => t.id === conn.to);
-
-        if (!fromTower || !toTower) return null;
-
-        const x1 = fromTower.position.x;
-        const y1 = fromTower.position.y + 8; // Offset from tower center
-        const x2 = toTower.position.x;
-        const y2 = toTower.position.y - 8;
-
-        const isUnlocked = fromTower.completed;
-
-        return (
-          <motion.path
-            key={index}
-            d={getCurvedPath(
-              (x1 / 100) * 100 + "%",
-              (y1 / 100) * 100 + "%",
-              (x2 / 100) * 100 + "%",
-              (y2 / 100) * 100 + "%",
-            ).replace(/%/g, "")}
-            stroke={isUnlocked ? "#4ADE80" : "#9CA3AF"}
-            strokeWidth="4"
-            strokeDasharray={isUnlocked ? "0" : "8 8"}
-            fill="none"
-            strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-            style={{
-              filter: isUnlocked
-                ? "drop-shadow(0 2px 4px rgba(74, 222, 128, 0.4))"
-                : "none",
-            }}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
 // Percentage-based SVG connections
 function ConnectionLinesSVG({ towers }: { towers: Tower[] }) {
   return (
