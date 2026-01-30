@@ -60,27 +60,28 @@ interface WorldMapProps {
 
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-auto">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm p-4 flex items-center gap-4 shadow-md">
-        <motion.button
-          onClick={onBack}
-          className="p-3 bg-green-bright text-white rounded-2xl shadow-lg"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </motion.button>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-          World Map
-        </h1>
-        <div className="ml-auto">
-          <Mascot size="sm" emotion="happy" />
+    <div className="h-screen flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
+      {/* Header - iOS safe area */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
+        <div className="p-4 flex items-center gap-4">
+          <motion.button
+            onClick={onBack}
+            className="p-3 bg-green-bright text-white rounded-2xl shadow-lg ios-button"
+            whileTap={{ scale: 0.95 }}
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </motion.button>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            World Map
+          </h1>
+          <div className="ml-auto">
+            <Mascot size="sm" emotion="happy" />
+          </div>
         </div>
       </div>
 
-      {/* Map Path */}
-      <div className="relative py-12 px-4">
+      {/* Map Path - Scrollable area */}
+      <div className="flex-1 relative py-12 px-4 app-scroll pb-safe">
         {/* Dotted path connecting worlds */}
         <svg
           className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-4 pointer-events-none"
@@ -109,15 +110,14 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
               <motion.button
                 onClick={() => world.unlocked && onSelectWorld(world.id)}
                 disabled={!world.unlocked}
-                className={`relative w-full group ${!world.unlocked ? "cursor-not-allowed" : ""}`}
+                className={`relative w-full group ios-button ${!world.unlocked ? "cursor-not-allowed" : ""}`}
                 animate={world.unlocked ? { y: [0, -5, 0] } : {}}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
                   delay: index * 0.3,
                 }}
-                whileHover={world.unlocked ? { scale: 1.05 } : {}}
-                whileTap={world.unlocked ? { scale: 0.98 } : {}}
+                whileTap={world.unlocked ? { scale: 0.95 } : {}}
               >
                 {/* Card shadow */}
                 <div
@@ -130,13 +130,13 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                 <div
                   className={`relative rounded-3xl p-6 overflow-hidden ${
                     world.unlocked
-                      ? `bg-gradient-to-br ${world.bgColor}`
+                      ? `bg-linear-to-br ${world.bgColor}`
                       : "bg-gray-300"
                   } shadow-xl`}
                 >
                   {/* Island illustration */}
                   <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 flex-shrink-0">
+                    <div className="relative w-20 h-20 shrink-0">
                       {/* Island shape */}
                       <svg viewBox="0 0 80 80" className="w-full h-full">
                         <ellipse

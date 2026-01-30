@@ -10,7 +10,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-blue-soft via-green-bright/20 to-orange-bright/30">
+    <div className="relative h-screen overflow-hidden bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30 pt-safe pb-safe">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Floating clouds */}
@@ -102,14 +102,13 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         {/* Start Button */}
         <motion.button
           onClick={onStart}
-          className="mt-12 relative group"
+          className="mt-12 relative group ios-button"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
-          whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
         >
-          <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 group-hover:translate-y-3 transition-transform" />
+          <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 transition-transform" />
           <div className="relative bg-green-bright text-white text-3xl md:text-4xl font-bold px-16 py-6 rounded-3xl shadow-lg">
             START
           </div>
@@ -117,11 +116,10 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
 
         {/* Sound toggle */}
         <motion.button
-          className="absolute top-6 right-6 p-4 bg-white/90 rounded-full shadow-lg hover:scale-110 transition-transform"
+          className="absolute top-6 right-6 p-4 bg-white/90 rounded-full shadow-lg ios-button mt-safe mr-safe"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          whileHover={{ rotate: [0, -10, 10, 0] }}
         >
           <Volume2 className="w-6 h-6 text-green-bright" />
         </motion.button>

@@ -86,30 +86,31 @@ export function FloorSelection({
   onBack,
 }: FloorSelectionProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-bright/20 via-background to-green-bright/10">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm p-4 flex items-center gap-4 shadow-md">
-        <motion.button
-          onClick={onBack}
-          className="p-3 bg-green-bright text-white rounded-2xl shadow-lg"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </motion.button>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Tower {towerName}
-          </h1>
-          <p className="text-sm text-muted-foreground">Choose a Floor</p>
-        </div>
-        <div className="ml-auto">
-          <Mascot size="sm" emotion="thinking" />
+    <div className="h-screen flex flex-col bg-linear-to-b from-orange-bright/20 via-background to-green-bright/10 overflow-hidden">
+      {/* Header - iOS safe area */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
+        <div className="p-4 flex items-center gap-4">
+          <motion.button
+            onClick={onBack}
+            className="p-3 bg-green-bright text-white rounded-2xl shadow-lg ios-button"
+            whileTap={{ scale: 0.95 }}
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </motion.button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Tower {towerName}
+            </h1>
+            <p className="text-sm text-muted-foreground">Choose a Floor</p>
+          </div>
+          <div className="ml-auto">
+            <Mascot size="sm" emotion="thinking" />
+          </div>
         </div>
       </div>
 
-      {/* Tower cutaway view */}
-      <div className="p-6 md:p-12 max-w-lg mx-auto">
+      {/* Tower cutaway view - Scrollable area */}
+      <div className="flex-1 p-6 md:p-12 max-w-lg mx-auto app-scroll pb-safe">
         {/* Tower frame */}
         <div className="relative">
           {/* Left wall */}
@@ -124,12 +125,11 @@ export function FloorSelection({
                 key={floor.id}
                 onClick={() => floor.unlocked && onSelectFloor(floor.id)}
                 disabled={!floor.unlocked}
-                className={`relative group ${!floor.unlocked ? "cursor-not-allowed" : ""}`}
+                className={`relative group ios-button ${!floor.unlocked ? "cursor-not-allowed" : ""}`}
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.15 }}
-                whileHover={floor.unlocked ? { scale: 1.03, x: 5 } : {}}
-                whileTap={floor.unlocked ? { scale: 0.98 } : {}}
+                whileTap={floor.unlocked ? { scale: 0.95 } : {}}
               >
                 {/* Floor number indicator */}
                 <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center font-bold text-foreground">

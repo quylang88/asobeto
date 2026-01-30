@@ -80,7 +80,7 @@ export function LessonInterface({
     const stars = Math.ceil((score / lessonContent.length) * 3);
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6">
+      <div className="h-screen bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -134,14 +134,13 @@ export function LessonInterface({
 
           <motion.button
             onClick={onComplete}
-            className="mt-8 relative group"
+            className="mt-8 relative group ios-button"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 1.5 }}
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 group-hover:translate-y-3 transition-transform" />
+            <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 transition-transform" />
             <div className="relative bg-green-bright text-white text-xl font-bold px-12 py-4 rounded-3xl">
               Continue
             </div>
@@ -152,13 +151,12 @@ export function LessonInterface({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col">
-      {/* Header */}
-      <div className="p-4 flex items-center gap-4">
+    <div className="h-screen bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
+      {/* Header - iOS safe area */}
+      <div className="p-4 flex items-center gap-4 pt-safe">
         <motion.button
           onClick={onBack}
-          className="p-3 bg-white rounded-2xl shadow-lg text-muted-foreground hover:text-foreground"
-          whileHover={{ scale: 1.1 }}
+          className="p-3 bg-white rounded-2xl shadow-lg text-muted-foreground ios-button"
           whileTap={{ scale: 0.95 }}
         >
           <X className="w-6 h-6" />
@@ -179,8 +177,8 @@ export function LessonInterface({
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
+      {/* Main content - Scrollable area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 app-scroll pb-safe">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -248,11 +246,10 @@ export function LessonInterface({
                     key={option}
                     onClick={() => handleAnswer(option)}
                     disabled={selectedAnswer !== null}
-                    className={`w-20 h-20 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg`}
+                    className={`w-20 h-20 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg ios-button`}
                     initial={{ y: 30, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: index * 0.1 }}
-                    whileHover={!selectedAnswer ? { scale: 1.1, y: -5 } : {}}
                     whileTap={!selectedAnswer ? { scale: 0.95 } : {}}
                   >
                     {option}

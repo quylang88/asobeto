@@ -1,5 +1,5 @@
 import React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito, Varela_Round } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -11,10 +11,27 @@ const _varelaRound = Varela_Round({
   variable: "--font-varela",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#4ADE80",
+};
+
 export const metadata: Metadata = {
   title: "Asobeto - Learn Vietnamese",
   description: "A fun language learning app for kids to learn Vietnamese",
   generator: "v0.app",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Asobeto",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       {
