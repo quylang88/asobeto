@@ -44,5 +44,6 @@ export const tower1Floors: Floor[] = [
     completed: false,
     unlocked: true,
     stars: 0,
+    isBoss: true,
   },
 ];

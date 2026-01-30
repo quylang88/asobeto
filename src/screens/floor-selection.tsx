@@ -11,6 +11,7 @@ import {
   Gamepad2,
   Star,
   Lock,
+  Crown,
 } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { getWorldData } from "../data/game-config";
@@ -32,7 +33,8 @@ export function FloorSelection({
   const currentTower = worldData.towers.find((t) => t.id === towerId);
   const floors = currentTower?.floors || [];
 
-  const getIcon = (type: string) => {
+  const getIcon = (type: string, isBoss?: boolean) => {
+    if (isBoss) return <Crown className="w-8 h-8" />;
     switch (type) {
       case "listening":
         return <Ear className="w-8 h-8" />;
@@ -89,37 +91,67 @@ export function FloorSelection({
                 disabled={!floor.unlocked}
                 className={`relative group ios-button ${!floor.unlocked ? "cursor-not-allowed" : ""}`}
                 initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
+                animate={
+                  floor.isBoss
+                    ? {
+                        opacity: 1,
+                        x: 0,
+                        scale: [1, 1.02, 1],
+                        transition: {
+                          scale: {
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          },
+                          opacity: { duration: 0.3 }, // Standard fade-in on mount
+                        },
+                      }
+                    : { opacity: 1, x: 0 }
+                }
                 transition={{ delay: index * 0.15 }}
                 whileTap={floor.unlocked ? { scale: 0.95 } : {}}
               >
                 {/* Floor number indicator */}
-                <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center font-bold text-foreground">
+                <div
+                  className={`absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center font-bold text-foreground ${
+                    floor.isBoss ? "border-2 border-purple-500 text-purple-600" : ""
+                  }`}
+                >
                   {floor.id}
                 </div>
 
                 {/* Floor card */}
                 <div
                   className={`relative rounded-3xl p-5 shadow-lg ${
-                    floor.unlocked ? "bg-white" : "bg-gray-100"
-                  } border-4 ${
-                    floor.completed
-                      ? "border-green-bright"
+                    floor.isBoss
+                      ? "bg-amber-50"
                       : floor.unlocked
-                        ? "border-orange-bright/50"
-                        : "border-gray-300"
+                        ? "bg-white"
+                        : "bg-gray-100"
+                  } border-4 ${
+                    floor.isBoss
+                      ? "border-purple-500 ring-2 ring-amber-400 ring-offset-2 ring-offset-amber-50"
+                      : floor.completed
+                        ? "border-green-bright"
+                        : floor.unlocked
+                          ? "border-orange-bright/50"
+                          : "border-gray-300"
                   }`}
                 >
                   <div className="flex items-center gap-4">
                     {/* Icon */}
                     <div
                       className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                        floor.unlocked ? floor.bgColor : "bg-gray-300"
+                        floor.isBoss
+                          ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-md"
+                          : floor.unlocked
+                            ? floor.bgColor
+                            : "bg-gray-300"
                       }`}
                     >
                       {floor.unlocked ? (
                         <div className="text-white">
-                          {getIcon(floor.iconType)}
+                          {getIcon(floor.iconType, floor.isBoss)}
                         </div>
                       ) : (
                         <Lock className="w-8 h-8 text-gray-500" />

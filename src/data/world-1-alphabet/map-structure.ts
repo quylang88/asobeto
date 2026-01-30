@@ -15,6 +15,7 @@ export interface Floor {
   completed: boolean;
   unlocked: boolean;
   stars: number;
+  isBoss?: boolean;
 }
 
 export interface Tower {
