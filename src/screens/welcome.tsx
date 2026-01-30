@@ -96,7 +96,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          Learn Vietnamese with Fun!
+          Học Tiếng Việt Thật Vui!
         </motion.p>
 
         {/* Start Button */}
@@ -110,7 +110,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         >
           <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 transition-transform" />
           <div className="relative bg-green-bright text-white text-3xl md:text-4xl font-bold px-16 py-6 rounded-3xl shadow-lg">
-            START
+            BẮT ĐẦU
           </div>
         </motion.button>
 

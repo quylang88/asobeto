@@ -229,7 +229,7 @@ function TowerNode({
                 : "bg-gray-200 text-gray-600"
             }`}
           >
-            {canUnlock ? "NHẤN ĐỂ MỞ" : `Cần ${requiredStars} Sao`}
+            {canUnlock ? "MỞ NGAY" : `Cần ${requiredStars} Ngôi Sao`}
           </div>
 
           {/* Hiển thị số sao hiện tại */}
@@ -534,7 +534,7 @@ export function TowerSelection({
             <h1 className="text-xl md:text-2xl font-bold text-foreground">
               {worldName}
             </h1>
-            <p className="text-xs text-muted-foreground">Choose a Tower</p>
+            <p className="text-xs text-muted-foreground">Chọn Tháp Để Học Nhé</p>
           </div>
           {/* Bộ đếm tổng số sao */}
           <div

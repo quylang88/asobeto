@@ -22,10 +22,10 @@ interface GameState {
 }
 
 const worldNames: Record<number, string> = {
-  1: "Alphabet Island",
-  2: "Tone Valley",
-  3: "Rhyme Forest",
-  4: "Word Wonderland",
+  1: "Đảo Chữ Cái",
+  2: "Thung Lũng Thanh Điệu",
+  3: "Rừng Vần Điệu",
+  4: "Xứ Sở Từ Vựng",
 };
 
 const towerNames: Record<number, string> = {
@@ -37,10 +37,10 @@ const towerNames: Record<number, string> = {
 };
 
 const floorNames: Record<number, string> = {
-  1: "Listening & Phonics",
-  2: "Tracing & Writing",
-  3: "Combining Rhymes",
-  4: "Mini-Game Boss",
+  1: "Nghe & Phát Âm",
+  2: "Tập Viết",
+  3: "Ghép Vần",
+  4: "Trò Chơi Trùm",
 };
 
 export default function AsobetoApp() {

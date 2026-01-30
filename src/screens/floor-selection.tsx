@@ -145,7 +145,7 @@ function StandardFloorCard({
               >
                 {floor.unlocked
                   ? floor.nameUnlocked
-                  : (floor.nameLocked ?? "Locked")}
+                  : (floor.nameLocked ?? "Bí Ẩn")}
               </h3>
               <p
                 className={`text-xs ${
@@ -154,7 +154,7 @@ function StandardFloorCard({
               >
                 {floor.unlocked
                   ? floor.descriptionUnlocked
-                  : (floor.descriptionLocked ?? "???")}
+                  : (floor.descriptionLocked ?? "Bí mật")}
               </p>
 
               {/* Stars */}
@@ -427,14 +427,14 @@ function BossFloorCard({
               <h3
                 className={`text-xl font-bold ${isLocked ? "text-slate-300" : "text-white"}`}
               >
-                {isLocked ? (floor.nameLocked ?? "Locked") : floor.nameUnlocked}
+                {isLocked ? (floor.nameLocked ?? "Bí Ẩn") : floor.nameUnlocked}
               </h3>
               <p
                 className={`text-sm ${isLocked ? "text-slate-400" : "text-amber-100"}`}
               >
                 {isLocked
                   ? (floor.descriptionLocked ??
-                    "Complete all floors to unlock!")
+                    "Hoàn thành các tầng để mở khóa!")
                   : floor.descriptionUnlocked}
               </p>
 
@@ -565,9 +565,9 @@ export function FloorSelection({
           </motion.button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">
-              Tower {towerName}
+              Tháp {towerName}
             </h1>
-            <p className="text-xs text-muted-foreground">Climb to the top!</p>
+            <p className="text-xs text-muted-foreground">Leo lên đỉnh tháp nào!</p>
           </div>
           <Mascot size="sm" emotion="thinking" />
         </div>

@@ -10,6 +10,13 @@ interface WorldMapProps {
   onBack: () => void;
 }
 
+const themeNames: Record<string, string> = {
+  "Forest": "Rừng Xanh",
+  "Sky": "Bầu Trời",
+  "Magical": "Phép Thuật",
+  "Fantasy": "Cổ Tích"
+};
+
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   return (
     <div className="fixed inset-0 flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
@@ -24,7 +31,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
             <ChevronLeft className="w-6 h-6" />
           </motion.button>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            Bản Đồ Thế Giới
+            Thế Giới Diệu Kỳ
           </h1>
           <div className="ml-auto">
             <Mascot size="sm" emotion="happy" />
@@ -173,7 +180,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                       <p
                         className={`text-sm ${world.unlocked ? "text-white/80" : "text-gray-400"}`}
                       >
-                        Chủ đề {world.theme}
+                        Chủ đề {themeNames[world.theme] || world.theme}
                       </p>
 
                       {/* Thanh tiến trình */}
