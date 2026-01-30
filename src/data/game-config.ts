@@ -3,7 +3,7 @@ import * as World1 from "./world-1-alphabet";
 
 // Export lại các kiểu và hàm hỗ trợ từ triển khai world chính
 // để đảm bảo tính nhất quán trên toàn ứng dụng
-export type { Tower, TowerConnection, TowerPosition } from "./world-1-alphabet";
+export type { Tower, TowerConnection, TowerPosition, Floor } from "./world-1-alphabet";
 export {
   getTotalStars,
   getMaxStars,
@@ -78,4 +78,13 @@ export function getWorldData(worldId: number): WorldData {
   // Mặc định là World 1 nếu world yêu cầu không tìm thấy
   // Điều này đảm bảo ứng dụng không bị crash khi chúng ta đang xây dựng các world khác
   return worldDataMap[worldId] || worldDataMap[1];
+}
+
+export function getTowerFloors(towerId: number): World1.Floor[] {
+  // For now, we only have data for Tower 1 in World 1
+  if (towerId === 1) {
+    return World1.tower1Floors;
+  }
+  // Fallback for development/testing
+  return [];
 }

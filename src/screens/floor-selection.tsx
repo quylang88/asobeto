@@ -4,13 +4,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
-import { FloorCard, FloorCardProps } from "../components/floor-card";
+import { FloorCard } from "../components/floor-card";
 import {
   getFloorProgress,
-  updateFloorProgress,
   initializeFloorProgress,
-  FloorProgress,
-} from "../lib/supabase";
+} from "../lib/local-progress";
+import { getTowerFloors } from "../data/game-config";
 
 interface FloorSelectionProps {
   towerId: number;
@@ -35,47 +34,52 @@ export function FloorSelection({
   onSelectFloor,
   onBack,
 }: FloorSelectionProps) {
-  const [floors, setFloors] = useState<FloorData[]>([
-    {
-      id: 1,
-      type: "letter",
-      label: "A",
-      subLabel: "Con Cá",
-      stars: 0,
-      maxStars: 4,
-      isLocked: false,
-    },
-    {
-      id: 2,
-      type: "letter",
-      label: "Ă",
-      subLabel: "Mặt Trăng",
-      stars: 0,
-      maxStars: 4,
-      isLocked: true,
-    },
-    {
-      id: 3,
-      type: "letter",
-      label: "Â",
-      subLabel: "Cái Cân",
-      stars: 0,
-      maxStars: 4,
-      isLocked: true,
-    },
-    {
-      id: 4,
-      type: "boss",
-      label: "BOSS",
-      subLabel: "Tổng hợp A-Ă-Â",
-      stars: 0,
-      maxStars: 4,
-      isLocked: true,
-    },
-  ]);
-
+  const [floors, setFloors] = useState<FloorData[]>([]);
   const [showMagicUnlock, setShowMagicUnlock] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const loadFloorProgress = useCallback(() => {
+    try {
+      setIsLoading(true);
+
+      const staticFloors = getTowerFloors(towerId);
+
+      if (staticFloors.length === 0) {
+        setFloors([]);
+        return;
+      }
+
+      let progress = getFloorProgress(towerId);
+
+      if (progress.length === 0) {
+        initializeFloorProgress(towerId, staticFloors);
+        progress = getFloorProgress(towerId);
+      }
+
+      const mergedFloors: FloorData[] = staticFloors.map(sf => {
+        const p = progress.find(prog => prog.floor_id === sf.id);
+        return {
+          id: sf.id,
+          type: sf.type,
+          label: sf.label,
+          subLabel: sf.subLabel,
+          maxStars: sf.maxStars,
+          stars: p ? p.stars : 0,
+          isLocked: p ? !p.unlocked : sf.defaultLocked
+        };
+      });
+
+      setFloors(mergedFloors);
+    } catch (error) {
+      console.error("Error loading floor progress:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [towerId]);
+
+  useEffect(() => {
+    loadFloorProgress();
+  }, [towerId, loadFloorProgress]);
 
   const getTotalStars = useCallback((): number => {
     return floors
@@ -87,38 +91,6 @@ export function FloorSelection({
     const totalStars = getTotalStars();
     return totalStars >= 10;
   }, [getTotalStars]);
-
-  const loadFloorProgress = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      let progress = await getFloorProgress(towerId);
-
-      if (progress.length === 0) {
-        await initializeFloorProgress(towerId);
-        progress = await getFloorProgress(towerId);
-      }
-
-      const updatedFloors = [...floors];
-
-      progress.forEach((p: FloorProgress) => {
-        const floorIndex = updatedFloors.findIndex((f) => f.id === p.floor_id);
-        if (floorIndex !== -1) {
-          updatedFloors[floorIndex].stars = p.stars;
-          updatedFloors[floorIndex].isLocked = p.unlocked ? false : true;
-        }
-      });
-
-      setFloors(updatedFloors);
-    } catch (error) {
-      console.error("Error loading floor progress:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [towerId, floors]);
-
-  useEffect(() => {
-    loadFloorProgress();
-  }, [towerId]);
 
   const handleFloorClick = useCallback(
     async (floorId: number) => {
@@ -139,43 +111,6 @@ export function FloorSelection({
       onSelectFloor(floorId);
     },
     [floors, canUnlockBoss, onSelectFloor]
-  );
-
-  const handleFloorComplete = useCallback(
-    async (floorId: number, earnedStars: number) => {
-      const floorIndex = floors.findIndex((f) => f.id === floorId);
-      if (floorIndex === -1) return;
-
-      const updatedFloors = [...floors];
-      updatedFloors[floorIndex].stars = Math.max(
-        updatedFloors[floorIndex].stars,
-        earnedStars
-      );
-
-      if (floorId < 4) {
-        updatedFloors[floorIndex + 1].isLocked = false;
-      }
-
-      setFloors(updatedFloors);
-
-      await updateFloorProgress(towerId, floorId, {
-        stars: earnedStars,
-        completed: earnedStars === 4,
-      });
-
-      if (floorId < 4) {
-        await updateFloorProgress(towerId, floorId + 1, {
-          unlocked: true,
-        });
-      }
-
-      if (canUnlockBoss()) {
-        await updateFloorProgress(towerId, 4, {
-          unlocked: true,
-        });
-      }
-    },
-    [floors, towerId, canUnlockBoss]
   );
 
   const totalStars = getTotalStars();

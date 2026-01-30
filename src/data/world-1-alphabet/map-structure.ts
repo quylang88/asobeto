@@ -23,6 +23,15 @@ export interface TowerConnection {
   to: number;
 }
 
+export interface Floor {
+  id: number;
+  type: "letter" | "boss";
+  label: string;
+  subLabel: string;
+  maxStars: number;
+  defaultLocked: boolean;
+}
+
 // Cấu trúc cây tháp:
 //          T1 (gốc)
 //         /  \
