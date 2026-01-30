@@ -1,8 +1,8 @@
-// Central game configuration and data management
+// Cấu hình trò chơi trung tâm và quản lý dữ liệu
 import * as World1 from "./world-1-alphabet";
 
-// Re-export types and helpers from the primary world implementation
-// to ensure consistency across the application
+// Export lại các kiểu và hàm hỗ trợ từ triển khai world chính
+// để đảm bảo tính nhất quán trên toàn ứng dụng
 export type { Tower, TowerConnection, TowerPosition } from "./world-1-alphabet";
 export {
   getTotalStars,
@@ -65,17 +65,17 @@ interface WorldData {
   towerConnections: World1.TowerConnection[];
 }
 
-// Map of world IDs to their data modules
+// Map ID của world với các module dữ liệu của chúng
 const worldDataMap: Record<number, WorldData> = {
   1: {
     towers: World1.towers,
     towerConnections: World1.towerConnections,
   },
-  // Future worlds will be added here
+  // Các world trong tương lai sẽ được thêm vào đây
 };
 
 export function getWorldData(worldId: number): WorldData {
-  // Default to World 1 if the requested world is not found
-  // This ensures the app doesn't crash while we're building out other worlds
+  // Mặc định là World 1 nếu world yêu cầu không tìm thấy
+  // Điều này đảm bảo ứng dụng không bị crash khi chúng ta đang xây dựng các world khác
   return worldDataMap[worldId] || worldDataMap[1];
 }

@@ -13,7 +13,7 @@ interface WorldMapProps {
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   return (
     <div className="fixed inset-0 flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
-      {/* Header - iOS safe area */}
+      {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="p-4 flex items-center gap-4">
           <motion.button
@@ -24,7 +24,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
             <ChevronLeft className="w-6 h-6" />
           </motion.button>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            World Map
+            Bản Đồ Thế Giới
           </h1>
           <div className="ml-auto">
             <Mascot size="sm" emotion="happy" />
@@ -32,9 +32,9 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
         </div>
       </div>
 
-      {/* Map Path - Scrollable area */}
+      {/* Đường dẫn bản đồ - Khu vực cuộn */}
       <div className="flex-1 relative py-12 px-4 app-scroll pb-safe overflow-y-auto">
-        {/* Dotted path connecting worlds */}
+        {/* Đường nối nét đứt giữa các world */}
         <svg
           className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-4 pointer-events-none"
           style={{ zIndex: 0 }}
@@ -71,14 +71,14 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                 }}
                 whileTap={world.unlocked ? { scale: 0.95 } : {}}
               >
-                {/* Card shadow */}
+                {/* Bóng thẻ */}
                 <div
                   className={`absolute inset-0 rounded-3xl translate-y-2 ${
                     world.unlocked ? world.color : "bg-gray-400"
                   } opacity-50`}
                 />
 
-                {/* Main card */}
+                {/* Thẻ chính */}
                 <div
                   className={`relative rounded-3xl p-6 overflow-hidden ${
                     world.unlocked
@@ -86,10 +86,10 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                       : "bg-gray-300"
                   } shadow-xl`}
                 >
-                  {/* Island illustration */}
+                  {/* Minh họa đảo */}
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20 shrink-0">
-                      {/* Island shape */}
+                      {/* Hình dạng đảo */}
                       <svg viewBox="0 0 80 80" className="w-full h-full">
                         <ellipse
                           cx="40"
@@ -173,10 +173,10 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                       <p
                         className={`text-sm ${world.unlocked ? "text-white/80" : "text-gray-400"}`}
                       >
-                        {world.theme} Theme
+                        Chủ đề {world.theme}
                       </p>
 
-                      {/* Progress bar */}
+                      {/* Thanh tiến trình */}
                       {world.unlocked && (
                         <div className="mt-2 h-3 bg-white/30 rounded-full overflow-hidden">
                           <motion.div
@@ -193,7 +193,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                     </div>
                   </div>
 
-                  {/* World number badge */}
+                  {/* Huy hiệu số thứ tự world */}
                   <div
                     className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
                       world.unlocked

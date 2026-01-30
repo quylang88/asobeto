@@ -1,8 +1,8 @@
-// Game content data with tower positions for the branching tree map
+// Dữ liệu nội dung game với vị trí tháp cho bản đồ dạng cây phân nhánh
 
 export interface TowerPosition {
-  x: number; // percentage 0-100
-  y: number; // percentage 0-100
+  x: number; // tỷ lệ phần trăm 0-100
+  y: number; // tỷ lệ phần trăm 0-100
 }
 
 export interface Tower {
@@ -14,7 +14,7 @@ export interface Tower {
   completed: boolean;
   unlocked: boolean;
   position: TowerPosition;
-  parentIds: number[]; // IDs of towers that unlock this one
+  parentIds: number[]; // ID của các tháp mở khóa tháp này
   isBoss?: boolean;
 }
 
@@ -23,14 +23,14 @@ export interface TowerConnection {
   to: number;
 }
 
-// Tower tree structure:
-//          T1 (root)
+// Cấu trúc cây tháp:
+//          T1 (gốc)
 //         /  \
 //       T2    T3
 //       |      |
 //      T4     T5
 //        \   /
-//       Boss Tower
+//       Tháp Boss
 
 export const towers: Tower[] = [
   {
@@ -102,7 +102,7 @@ export const towers: Tower[] = [
   },
 ];
 
-// Define connections between towers
+// Định nghĩa các kết nối giữa các tháp
 export const towerConnections: TowerConnection[] = [
   { from: 1, to: 2 },
   { from: 1, to: 3 },
@@ -112,17 +112,17 @@ export const towerConnections: TowerConnection[] = [
   { from: 5, to: 6 },
 ];
 
-// Calculate total stars earned
+// Tính tổng số sao đạt được
 export function getTotalStars(towerList: Tower[]): number {
   return towerList.reduce((sum, tower) => sum + tower.stars, 0);
 }
 
-// Calculate total possible stars
+// Tính tổng số sao tối đa
 export function getMaxStars(towerList: Tower[]): number {
   return towerList.reduce((sum, tower) => sum + tower.maxStars, 0);
 }
 
-// Check if boss tower can be unlocked
+// Kiểm tra xem tháp boss có thể mở khóa không
 export function canUnlockBoss(
   towerList: Tower[],
   requiredStars: number = 15,
@@ -133,22 +133,22 @@ export function canUnlockBoss(
   return allCompleted && totalStars >= requiredStars;
 }
 
-// Check if a tower should be unlocked based on parent completion
+// Kiểm tra xem một tháp có nên được mở khóa dựa trên việc hoàn thành tháp cha
 export function shouldTowerBeUnlocked(
   tower: Tower,
   allTowers: Tower[],
 ): boolean {
-  if (tower.parentIds.length === 0) return true; // Root tower is always unlocked
+  if (tower.parentIds.length === 0) return true; // Tháp gốc luôn mở
 
   if (tower.isBoss) {
-    // Boss requires ALL parents completed
+    // Boss yêu cầu TẤT CẢ các tháp cha phải hoàn thành
     return tower.parentIds.every((parentId) => {
       const parent = allTowers.find((t) => t.id === parentId);
       return parent?.completed;
     });
   }
 
-  // Regular towers unlock when ANY parent is completed
+  // Tháp thường mở khi BẤT KỲ tháp cha nào hoàn thành
   return tower.parentIds.some((parentId) => {
     const parent = allTowers.find((t) => t.id === parentId);
     return parent?.completed;

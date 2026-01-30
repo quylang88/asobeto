@@ -19,13 +19,13 @@ interface TowerSelectionProps {
   onBack: () => void;
 }
 
-// SVG Path helper for curved connections
+// Helper tạo đường cong SVG cho các kết nối
 function getCurvedPath(x1: number, y1: number, x2: number, y2: number): string {
   const midY = (y1 + y2) / 2;
   return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
 }
 
-// Flying Star component for unlock animation
+// Component Sao bay cho hiệu ứng mở khóa
 function FlyingStar({
   startX,
   startY,
@@ -63,7 +63,7 @@ function FlyingStar({
   );
 }
 
-// Tower Node Component
+// Component Node Tháp
 function TowerNode({
   tower,
   totalStars,
@@ -108,9 +108,9 @@ function TowerNode({
         transition={{ delay: 0.5, type: "spring" }}
         whileTap={canUnlock ? { scale: 0.95 } : {}}
       >
-        {/* Boss Tower - Special Golden Gate Design */}
+        {/* Boss Tower - Thiết kế cổng vàng đặc biệt */}
         <div className="relative">
-          {/* Glow effect */}
+          {/* Hiệu ứng phát sáng */}
           {canUnlock && (
             <motion.div
               className="absolute inset-0 rounded-full bg-yellow-bright/50 blur-xl"
@@ -124,7 +124,7 @@ function TowerNode({
           )}
 
           <svg viewBox="0 0 100 120" className="w-24 h-28 md:w-28 md:h-32">
-            {/* Gate base */}
+            {/* Chân cổng */}
             <rect
               x="10"
               y="30"
@@ -134,7 +134,7 @@ function TowerNode({
               fill={canUnlock ? "#F59E0B" : "#6B7280"}
             />
 
-            {/* Gate pillars */}
+            {/* Cột cổng */}
             <rect
               x="10"
               y="30"
@@ -150,13 +150,13 @@ function TowerNode({
               fill={canUnlock ? "#D97706" : "#4B5563"}
             />
 
-            {/* Gate arch */}
+            {/* Vòm cổng */}
             <path
               d="M 10 30 Q 50 0 90 30"
               fill={canUnlock ? "#FBBF24" : "#9CA3AF"}
             />
 
-            {/* Decorative top */}
+            {/* Trang trí đỉnh */}
             <circle
               cx="50"
               cy="15"
@@ -168,7 +168,7 @@ function TowerNode({
               style={{ left: 38, top: 3, width: 24, height: 24 }}
             />
 
-            {/* Gate doors */}
+            {/* Cánh cổng */}
             <rect
               x="30"
               y="55"
@@ -186,7 +186,7 @@ function TowerNode({
               strokeWidth="2"
             />
 
-            {/* Lock or Stars indicator */}
+            {/* Chỉ báo khóa hoặc sao */}
             {!canUnlock && (
               <g>
                 <circle cx="50" cy="80" r="15" fill="#4B5563" />
@@ -221,7 +221,7 @@ function TowerNode({
             )}
           </svg>
 
-          {/* Star requirement label */}
+          {/* Nhãn yêu cầu sao */}
           <div
             className={`absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold ${
               canUnlock
@@ -229,10 +229,10 @@ function TowerNode({
                 : "bg-gray-200 text-gray-600"
             }`}
           >
-            {canUnlock ? "TAP TO UNLOCK" : `${requiredStars} Stars Needed`}
+            {canUnlock ? "NHẤN ĐỂ MỞ" : `Cần ${requiredStars} Sao`}
           </div>
 
-          {/* Current stars display */}
+          {/* Hiển thị số sao hiện tại */}
           <div className="absolute -top-3 -right-3 flex items-center gap-1 bg-white rounded-full px-2 py-1 shadow-lg">
             <Star className="w-4 h-4 text-yellow-bright fill-yellow-bright" />
             <span className="text-xs font-bold text-foreground">
@@ -244,7 +244,7 @@ function TowerNode({
     );
   }
 
-  // Regular Tower
+  // Tháp thường
   return (
     <motion.button
       onClick={handleTap}
@@ -258,7 +258,7 @@ function TowerNode({
       transition={{ delay: tower.id * 0.1 }}
       whileTap={tower.unlocked ? { scale: 0.95 } : {}}
     >
-      {/* Stars above tower */}
+      {/* Sao trên tháp */}
       <div className="flex justify-center gap-0.5 mb-1">
         {[...Array(tower.maxStars)].map((_, i) => (
           <motion.div
@@ -278,10 +278,10 @@ function TowerNode({
         ))}
       </div>
 
-      {/* Tower SVG */}
+      {/* SVG Tháp */}
       <div className="relative">
         <svg viewBox="0 0 80 100" className="w-16 h-20 md:w-20 md:h-24">
-          {/* Tower shadow */}
+          {/* Bóng tháp */}
           <ellipse
             cx="40"
             cy="95"
@@ -294,7 +294,7 @@ function TowerNode({
             }
           />
 
-          {/* Tower body */}
+          {/* Thân tháp */}
           <rect
             x="15"
             y="25"
@@ -304,7 +304,7 @@ function TowerNode({
             fill={tower.unlocked ? "#4ADE80" : "#9CA3AF"}
           />
 
-          {/* Tower floors */}
+          {/* Các tầng tháp */}
           {[0, 1, 2].map((floor) => (
             <rect
               key={floor}
@@ -317,13 +317,13 @@ function TowerNode({
             />
           ))}
 
-          {/* Tower roof */}
+          {/* Mái tháp */}
           <polygon
             points="40,5 15,25 65,25"
             fill={tower.unlocked ? "#FB923C" : "#6B7280"}
           />
 
-          {/* Flag on completed towers */}
+          {/* Cờ trên các tháp đã hoàn thành */}
           {tower.completed && tower.unlocked && (
             <>
               <line
@@ -338,7 +338,7 @@ function TowerNode({
             </>
           )}
 
-          {/* Windows */}
+          {/* Cửa sổ */}
           {[0, 1, 2].map((floor) => (
             <g key={floor}>
               <rect
@@ -360,7 +360,7 @@ function TowerNode({
             </g>
           ))}
 
-          {/* Door */}
+          {/* Cửa chính */}
           <rect
             x="32"
             y="80"
@@ -370,7 +370,7 @@ function TowerNode({
             fill={tower.unlocked ? "#8B5A2B" : "#4B5563"}
           />
 
-          {/* Lock overlay */}
+          {/* Lớp phủ khóa */}
           {!tower.unlocked && (
             <g>
               <circle cx="40" cy="55" r="15" fill="#4B5563" opacity="0.9" />
@@ -386,7 +386,7 @@ function TowerNode({
         </svg>
       </div>
 
-      {/* Tower label */}
+      {/* Nhãn tháp */}
       <div
         className={`mt-1 px-3 py-1 rounded-xl text-center ${
           tower.unlocked ? "bg-white" : "bg-gray-100"
@@ -404,7 +404,7 @@ function TowerNode({
   );
 }
 
-// Percentage-based SVG connections
+// Kết nối SVG dựa trên phần trăm
 function ConnectionLinesSVG({
   towers,
   connections,
@@ -477,7 +477,7 @@ export function TowerSelection({
     if (isUnlocking) return;
     setIsUnlocking(true);
 
-    // Get positions for animation
+    // Lấy vị trí cho hoạt ảnh
     const starCounterRect = document
       .getElementById("star-counter")
       ?.getBoundingClientRect();
@@ -486,7 +486,7 @@ export function TowerSelection({
       ?.getBoundingClientRect();
 
     if (!starCounterRect || !bossTowerRect) {
-      // Fallback: just navigate
+      // Dự phòng: chỉ điều hướng
       setTimeout(() => {
         onSelectTower(6);
       }, 500);
@@ -496,7 +496,7 @@ export function TowerSelection({
     const endX = bossTowerRect.left + bossTowerRect.width / 2 - 16;
     const endY = bossTowerRect.top + bossTowerRect.height / 2 - 16;
 
-    // Create flying stars
+    // Tạo sao bay
     const stars = Array.from({ length: 8 }, (_, i) => ({
       id: i,
       startX: starCounterRect.left + Math.random() * 40,
@@ -507,12 +507,12 @@ export function TowerSelection({
 
     setFlyingStars(stars);
 
-    // Show flash after stars arrive
+    // Hiển thị chớp sáng sau khi sao đến nơi
     setTimeout(() => {
       setShowFlash(true);
     }, 900);
 
-    // Navigate after animation completes
+    // Điều hướng sau khi hoạt ảnh hoàn tất
     setTimeout(() => {
       onSelectTower(6);
     }, 1500);
@@ -520,7 +520,7 @@ export function TowerSelection({
 
   return (
     <div className="fixed inset-0 flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
-      {/* Header - iOS safe area */}
+      {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="flex items-center gap-3 p-4">
           <motion.button
@@ -536,7 +536,7 @@ export function TowerSelection({
             </h1>
             <p className="text-xs text-muted-foreground">Choose a Tower</p>
           </div>
-          {/* Total Stars Counter */}
+          {/* Bộ đếm tổng số sao */}
           <div
             id="star-counter"
             className="flex items-center gap-2 bg-yellow-bright/20 px-3 py-2 rounded-2xl"
@@ -548,16 +548,16 @@ export function TowerSelection({
         </div>
       </div>
 
-      {/* Tower Map - Scrollable area */}
+      {/* Bản đồ tháp - Khu vực cuộn */}
       <div className="flex-1 relative app-scroll pb-safe overflow-y-auto">
         <div className="relative w-full min-h-200 h-full mb-22">
-          {/* Connection Lines */}
+          {/* Đường kết nối */}
           <ConnectionLinesSVG
             towers={towerState}
             connections={worldData.towerConnections}
           />
 
-          {/* Tower Nodes */}
+          {/* Các node tháp */}
           {towerState.map((tower) => (
             <div
               key={tower.id}
@@ -577,7 +577,7 @@ export function TowerSelection({
         </div>
       </div>
 
-      {/* Flying Stars Animation */}
+      {/* Hoạt ảnh sao bay */}
       <AnimatePresence>
         {flyingStars.map((star, index) => (
           <FlyingStar
@@ -591,7 +591,7 @@ export function TowerSelection({
         ))}
       </AnimatePresence>
 
-      {/* Flash Effect */}
+      {/* Hiệu ứng chớp sáng */}
       <AnimatePresence>
         {showFlash && (
           <motion.div
