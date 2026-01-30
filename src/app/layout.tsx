@@ -1,11 +1,16 @@
 import React from "react";
 import type { Metadata, Viewport } from "next";
-import { Nunito, Varela_Round } from "next/font/google";
+import { Mali, Varela_Round } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const _nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito" });
-const _varelaRound = Varela_Round({
+const mali = Mali({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-mali",
+});
+
+const varelaRound = Varela_Round({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-varela",
@@ -58,7 +63,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body
+        className={`font-sans antialiased ${mali.variable} ${varelaRound.variable}`}
+      >
         {children}
         <Analytics />
       </body>
