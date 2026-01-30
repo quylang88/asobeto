@@ -10,7 +10,7 @@ import {
   getTotalStars,
   canUnlockBoss,
   type Tower,
-} from "../data/game-content";
+} from "../data/world-1-alphabet/map-structure";
 
 interface TowerSelectionProps {
   worldId: number;
@@ -373,8 +373,11 @@ function TowerNode({
             <g>
               <circle cx="40" cy="55" r="15" fill="#4B5563" opacity="0.9" />
               <Lock
-                className="w-6 h-6 text-gray-400"
-                style={{ x: 32, y: 47 }}
+                x={30}
+                y={45}
+                width={20}
+                height={20}
+                className="text-gray-400"
               />
             </g>
           )}
@@ -396,61 +399,6 @@ function TowerNode({
         </p>
       </div>
     </motion.button>
-  );
-}
-
-// Connection Lines Component
-function ConnectionLines({
-  towers,
-  connections,
-}: {
-  towers: Tower[];
-  connections: typeof towerConnections;
-}) {
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 0 }}
-    >
-      {connections.map((conn, index) => {
-        const fromTower = towers.find((t) => t.id === conn.from);
-        const toTower = towers.find((t) => t.id === conn.to);
-
-        if (!fromTower || !toTower) return null;
-
-        const x1 = fromTower.position.x;
-        const y1 = fromTower.position.y + 8; // Offset from tower center
-        const x2 = toTower.position.x;
-        const y2 = toTower.position.y - 8;
-
-        const isUnlocked = fromTower.completed;
-
-        return (
-          <motion.path
-            key={index}
-            d={getCurvedPath(
-              (x1 / 100) * 100 + "%",
-              (y1 / 100) * 100 + "%",
-              (x2 / 100) * 100 + "%",
-              (y2 / 100) * 100 + "%",
-            ).replace(/%/g, "")}
-            stroke={isUnlocked ? "#4ADE80" : "#9CA3AF"}
-            strokeWidth="4"
-            strokeDasharray={isUnlocked ? "0" : "8 8"}
-            fill="none"
-            strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-            style={{
-              filter: isUnlocked
-                ? "drop-shadow(0 2px 4px rgba(74, 222, 128, 0.4))"
-                : "none",
-            }}
-          />
-        );
-      })}
-    </svg>
   );
 }
 
@@ -561,7 +509,7 @@ export function TowerSelection({
   }, [isUnlocking, onSelectTower]);
 
   return (
-    <div className="h-screen flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
       {/* Header - iOS safe area */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="flex items-center gap-3 p-4">
@@ -591,11 +539,8 @@ export function TowerSelection({
       </div>
 
       {/* Tower Map - Scrollable area */}
-      <div className="flex-1 relative app-scroll pb-safe">
-        <div
-          className="relative w-full min-h-150 h-full"
-          style={{ maxHeight: "calc(100vh - 120px)" }}
-        >
+      <div className="flex-1 relative app-scroll pb-safe overflow-y-auto">
+        <div className="relative w-full min-h-200 h-full mb-22">
           {/* Connection Lines */}
           <ConnectionLinesSVG towers={towerState} />
 

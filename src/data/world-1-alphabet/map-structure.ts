@@ -41,7 +41,7 @@ export const towers: Tower[] = [
     maxStars: 3,
     completed: true,
     unlocked: true,
-    position: { x: 50, y: 8 },
+    position: { x: 50, y: 12 },
     parentIds: [],
   },
   {
@@ -52,7 +52,7 @@ export const towers: Tower[] = [
     maxStars: 3,
     completed: true,
     unlocked: true,
-    position: { x: 25, y: 28 },
+    position: { x: 25, y: 36 },
     parentIds: [1],
   },
   {
@@ -63,7 +63,7 @@ export const towers: Tower[] = [
     maxStars: 3,
     completed: true,
     unlocked: true,
-    position: { x: 75, y: 28 },
+    position: { x: 75, y: 36 },
     parentIds: [1],
   },
   {
@@ -74,7 +74,7 @@ export const towers: Tower[] = [
     maxStars: 3,
     completed: false,
     unlocked: true,
-    position: { x: 20, y: 50 },
+    position: { x: 20, y: 60 },
     parentIds: [2],
   },
   {
@@ -85,7 +85,7 @@ export const towers: Tower[] = [
     maxStars: 3,
     completed: false,
     unlocked: false,
-    position: { x: 80, y: 50 },
+    position: { x: 80, y: 60 },
     parentIds: [3],
   },
   {
@@ -96,7 +96,7 @@ export const towers: Tower[] = [
     maxStars: 5,
     completed: false,
     unlocked: false,
-    position: { x: 50, y: 78 },
+    position: { x: 50, y: 90 },
     parentIds: [4, 5],
     isBoss: true,
   },

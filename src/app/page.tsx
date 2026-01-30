@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { WelcomeScreen } from "@/screens/welcome";
 import { WorldMap } from "@/screens/world-map";
-import { TowerSelection } from "@/screens/towel-selection";
+import { TowerSelection } from "@/screens/tower-map";
 import { FloorSelection } from "@/screens/floor-selection";
 import { LessonInterface } from "@/screens/lesson-interface";
 

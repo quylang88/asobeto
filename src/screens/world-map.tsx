@@ -60,7 +60,7 @@ interface WorldMapProps {
 
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   return (
-    <div className="h-screen flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
       {/* Header - iOS safe area */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="p-4 flex items-center gap-4">
@@ -81,7 +81,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
       </div>
 
       {/* Map Path - Scrollable area */}
-      <div className="flex-1 relative py-12 px-4 app-scroll pb-safe">
+      <div className="flex-1 relative py-12 px-4 app-scroll pb-safe overflow-y-auto">
         {/* Dotted path connecting worlds */}
         <svg
           className="absolute left-1/2 -translate-x-1/2 top-0 h-full w-4 pointer-events-none"
@@ -98,7 +98,7 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
           />
         </svg>
 
-        <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg mx-auto">
+        <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg mx-auto pb-20">
           {worlds.map((world, index) => (
             <motion.div
               key={world.id}
