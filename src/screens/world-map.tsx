@@ -12,7 +12,7 @@ interface WorldMapProps {
 
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   return (
-    <div className="fixed inset-0 h-[100dvh] flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
       {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="p-4 flex items-center gap-4">

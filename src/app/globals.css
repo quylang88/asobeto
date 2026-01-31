@@ -108,8 +108,8 @@ html {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
   overflow: hidden;
-  height: 100dvh;
-  /* Set dark background to prevent white gaps in PWA */
+  height: 100%;
+  /* Fallback background color to prevent white gaps */
   background-color: #000;
 }
 
@@ -117,7 +117,13 @@ body {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
   overflow: hidden;
-  height: 100dvh;
+  /* Fix body to viewport to ensure full coverage on iOS PWA */
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Fallback background color */
+  background-color: #000;
   /* Disable text selection for native feel */
   -webkit-user-select: none;
   user-select: none;
