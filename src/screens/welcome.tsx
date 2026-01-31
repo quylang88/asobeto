@@ -64,7 +64,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-app px-4">
         {/* Mascot */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}

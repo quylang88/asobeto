@@ -46,6 +46,22 @@
   --yellow-bright: oklch(0.85 0.15 90);
 }
 
+:root {
+  --app-height: 100%;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
+}
+
+@supports (height: -webkit-fill-available) {
+  :root {
+    --app-height: -webkit-fill-available;
+  }
+}
+
 @theme inline {
   --font-sans: var(--font-mali), sans-serif;
   --font-mono: var(--font-varela), sans-serif;
@@ -109,6 +125,8 @@ html {
   overscroll-behavior-y: none;
   overflow: hidden;
   height: 100%;
+  min-height: var(--app-height);
+  background-color: var(--background);
 }
 
 body {
@@ -116,6 +134,8 @@ body {
   overscroll-behavior-y: none;
   overflow: hidden;
   height: 100%;
+  min-height: var(--app-height);
+  background-color: var(--background);
   /* Disable text selection for native feel */
   -webkit-user-select: none;
   user-select: none;
@@ -133,6 +153,14 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+}
+
+.min-h-app {
+  min-height: var(--app-height);
+}
+
+.h-app {
+  height: var(--app-height);
 }
 
 /* Safe area padding utilities */
