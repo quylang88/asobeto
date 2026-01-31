@@ -8,6 +8,7 @@ export type {
   TowerConnection,
   TowerPosition,
   Floor,
+  LessonContent,
 } from "./world-1-alphabet";
 export {
   getTotalStars,

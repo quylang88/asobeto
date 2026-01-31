@@ -5,6 +5,15 @@ export interface TowerPosition {
   y: number; // tỷ lệ phần trăm 0-100
 }
 
+export interface LessonContent {
+  type: string;
+  letter: string;
+  pronunciation: string;
+  instruction: string;
+  options: string[];
+  correct: string;
+}
+
 export interface Floor {
   id: number;
   nameUnlocked: string;
@@ -18,6 +27,7 @@ export interface Floor {
   completed: boolean;
   unlocked: boolean;
   stars: number;
+  content?: LessonContent[];
 }
 
 export interface Tower {
@@ -34,7 +44,7 @@ export interface Tower {
   floors?: Floor[];
 }
 
-import { tower1Floors } from "./towers/tower-1";
+import { tower1Floors } from "./tower-1";
 
 export interface TowerConnection {
   from: number;
