@@ -4,43 +4,19 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, X, Star } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
+import { LessonContent } from "../data/game-config";
 
 interface LessonInterfaceProps {
   floorId: number;
   floorName: string;
+  lessons: LessonContent[];
   onComplete: () => void;
   onBack: () => void;
 }
 
-const lessonContent = [
-  {
-    type: "listen",
-    letter: "A",
-    pronunciation: "Ah",
-    instruction: "Nghe và nhắc lại nào!",
-    options: ["A", "B", "C"],
-    correct: "A",
-  },
-  {
-    type: "listen",
-    letter: "B",
-    pronunciation: "Buh",
-    instruction: "Chữ cái nào có âm này nhỉ?",
-    options: ["D", "B", "P"],
-    correct: "B",
-  },
-  {
-    type: "listen",
-    letter: "C",
-    pronunciation: "Kuh",
-    instruction: "Chọn chữ cái đúng nhé!",
-    options: ["C", "G", "K"],
-    correct: "C",
-  },
-];
-
 export function LessonInterface({
   floorName,
+  lessons,
   onComplete,
   onBack,
 }: LessonInterfaceProps) {
@@ -50,8 +26,18 @@ export function LessonInterface({
   const [score, setScore] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
 
-  const progress = ((currentStep + 1) / lessonContent.length) * 100;
-  const currentLesson = lessonContent[currentStep];
+  // Guard against empty lessons
+  if (!lessons || lessons.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>No lessons available.</p>
+        <button onClick={onBack}>Back</button>
+      </div>
+    );
+  }
+
+  const progress = ((currentStep + 1) / lessons.length) * 100;
+  const currentLesson = lessons[currentStep];
 
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;
@@ -66,7 +52,7 @@ export function LessonInterface({
 
     // Auto advance after delay
     setTimeout(() => {
-      if (currentStep < lessonContent.length - 1) {
+      if (currentStep < lessons.length - 1) {
         setCurrentStep(currentStep + 1);
         setSelectedAnswer(null);
         setIsCorrect(null);
@@ -77,7 +63,7 @@ export function LessonInterface({
   };
 
   if (showCompletion) {
-    const stars = Math.ceil((score / lessonContent.length) * 3);
+    const stars = Math.ceil((score / lessons.length) * 3);
 
     return (
       <div className="fixed inset-0 bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
@@ -129,7 +115,7 @@ export function LessonInterface({
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3 }}
           >
-            Bạn đã làm đúng {score}/{lessonContent.length} câu!
+            Bạn đã làm đúng {score}/{lessons.length} câu!
           </motion.p>
 
           <motion.button
@@ -173,7 +159,7 @@ export function LessonInterface({
         </div>
 
         <div className="text-lg font-bold text-foreground">
-          {currentStep + 1}/{lessonContent.length}
+          {currentStep + 1}/{lessons.length}
         </div>
       </div>
 

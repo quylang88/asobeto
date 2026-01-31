@@ -136,6 +136,7 @@ export default function AsobetoApp() {
         <LessonInterface
           floorId={gameState.selectedFloor!}
           floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
+          lessons={selectedFloor?.content || []}
           onComplete={handleLessonComplete}
           onBack={() => handleBack("floorSelection")}
         />
