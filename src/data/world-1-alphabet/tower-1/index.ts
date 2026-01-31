@@ -1,10 +1,8 @@
 import { Floor } from "../map-structure";
-import {
-  floor1Lessons,
-  floor2Lessons,
-  floor3Lessons,
-  floor4Lessons,
-} from "../lessons/tower-1";
+import { floor1Lessons } from "./floor-1";
+import { floor2Lessons } from "./floor-2";
+import { floor3Lessons } from "./floor-3";
+import { bossFloorLessons } from "./boss-floor";
 
 export const tower1Floors: Floor[] = [
   {
@@ -60,6 +58,6 @@ export const tower1Floors: Floor[] = [
     completed: false,
     unlocked: true,
     stars: 0,
-    content: floor4Lessons,
+    content: bossFloorLessons,
   },
 ];

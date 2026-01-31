@@ -44,7 +44,7 @@ export interface Tower {
   floors?: Floor[];
 }
 
-import { tower1Floors } from "./towers/tower-1";
+import { tower1Floors } from "./tower-1";
 
 export interface TowerConnection {
   from: number;

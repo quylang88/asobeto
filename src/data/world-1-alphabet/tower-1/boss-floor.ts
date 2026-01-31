@@ -1,0 +1,86 @@
+import { LessonContent } from "../map-structure";
+
+// Lesson content for Boss Floor (Floor 4)
+export const bossFloorLessons: LessonContent[] = [
+  // Placeholder Boss Content
+  {
+    type: "listen",
+    letter: "A",
+    pronunciation: "Ah",
+    instruction: "BOSS: Nghe và nhắc lại nào!",
+    options: ["A", "B", "C"],
+    correct: "A",
+  },
+  {
+    type: "listen",
+    letter: "B",
+    pronunciation: "Buh",
+    instruction: "BOSS: Chữ cái nào có âm này nhỉ?",
+    options: ["D", "B", "P"],
+    correct: "B",
+  },
+  {
+    type: "listen",
+    letter: "C",
+    pronunciation: "Kuh",
+    instruction: "BOSS: Chọn chữ cái đúng nhé!",
+    options: ["C", "G", "K"],
+    correct: "C",
+  },
+  {
+    type: "listen",
+    letter: "A",
+    pronunciation: "Ah",
+    instruction: "BOSS: Nghe và nhắc lại nào! (Lần 2)",
+    options: ["A", "B", "C"],
+    correct: "A",
+  },
+  {
+    type: "listen",
+    letter: "A",
+    pronunciation: "Ah",
+    instruction: "BOSS: Nghe và nhắc lại nào! (Lần 3)",
+    options: ["A", "B", "C"],
+    correct: "A",
+  },
+  {
+    type: "listen",
+    letter: "B",
+    pronunciation: "Buh",
+    instruction: "BOSS: Chữ cái nào có âm này nhỉ? (Lần 2)",
+    options: ["D", "B", "P"],
+    correct: "B",
+  },
+  {
+    type: "listen",
+    letter: "C",
+    pronunciation: "Kuh",
+    instruction: "BOSS: Chọn chữ cái đúng nhé! (Lần 2)",
+    options: ["C", "G", "K"],
+    correct: "C",
+  },
+  {
+    type: "listen",
+    letter: "A",
+    pronunciation: "Ah",
+    instruction: "BOSS: Nghe và nhắc lại nào! (Lần 4)",
+    options: ["A", "B", "C"],
+    correct: "A",
+  },
+  {
+    type: "listen",
+    letter: "B",
+    pronunciation: "Buh",
+    instruction: "BOSS: Chữ cái nào có âm này nhỉ? (Lần 3)",
+    options: ["D", "B", "P"],
+    correct: "B",
+  },
+  {
+    type: "listen",
+    letter: "C",
+    pronunciation: "Kuh",
+    instruction: "BOSS: Chọn chữ cái đúng nhé! (Lần 3)",
+    options: ["C", "G", "K"],
+    correct: "C",
+  },
+];
