@@ -1,60 +1,10 @@
-import { Floor, LessonContent } from "../map-structure";
-
-const standardLessons: LessonContent[] = [
-  {
-    type: "listen",
-    letter: "A",
-    pronunciation: "Ah",
-    instruction: "Nghe và nhắc lại nào!",
-    options: ["A", "B", "C"],
-    correct: "A",
-  },
-  {
-    type: "listen",
-    letter: "B",
-    pronunciation: "Buh",
-    instruction: "Chữ cái nào có âm này nhỉ?",
-    options: ["D", "B", "P"],
-    correct: "B",
-  },
-  {
-    type: "listen",
-    letter: "C",
-    pronunciation: "Kuh",
-    instruction: "Chọn chữ cái đúng nhé!",
-    options: ["C", "G", "K"],
-    correct: "C",
-  },
-  {
-    type: "listen",
-    letter: "A",
-    pronunciation: "Ah",
-    instruction: "Nghe và nhắc lại nào! (Lần 2)",
-    options: ["A", "B", "C"],
-    correct: "A",
-  },
-];
-
-const bossLessons: LessonContent[] = [
-  ...standardLessons,
-  ...standardLessons,
-  {
-    type: "listen",
-    letter: "B",
-    pronunciation: "Buh",
-    instruction: "BOSS: Chữ cái nào có âm này nhỉ?",
-    options: ["D", "B", "P"],
-    correct: "B",
-  },
-  {
-    type: "listen",
-    letter: "C",
-    pronunciation: "Kuh",
-    instruction: "BOSS: Chọn chữ cái đúng nhé!",
-    options: ["C", "G", "K"],
-    correct: "C",
-  },
-];
+import { Floor } from "../map-structure";
+import {
+  floor1Lessons,
+  floor2Lessons,
+  floor3Lessons,
+  floor4Lessons,
+} from "../lessons/tower-1";
 
 export const tower1Floors: Floor[] = [
   {
@@ -68,7 +18,7 @@ export const tower1Floors: Floor[] = [
     completed: true,
     unlocked: true,
     stars: 3,
-    content: standardLessons,
+    content: floor1Lessons,
   },
   {
     id: 2,
@@ -83,7 +33,7 @@ export const tower1Floors: Floor[] = [
     completed: true,
     unlocked: true,
     stars: 2,
-    content: standardLessons,
+    content: floor2Lessons,
   },
   {
     id: 3,
@@ -98,7 +48,7 @@ export const tower1Floors: Floor[] = [
     completed: false,
     unlocked: true,
     stars: 0,
-    content: standardLessons,
+    content: floor3Lessons,
   },
   {
     id: 4,
@@ -110,6 +60,6 @@ export const tower1Floors: Floor[] = [
     completed: false,
     unlocked: true,
     stars: 0,
-    content: bossLessons,
+    content: floor4Lessons,
   },
 ];
