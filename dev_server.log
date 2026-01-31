@@ -2,29 +2,22 @@
 > asobeto@0.1.0 dev /app
 > next dev
 
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.1.6 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.0.2:3000
+- Local:         http://localhost:3001
+- Network:       http://192.168.0.2:3001
 
 ✓ Starting...
-✓ Ready in 1063ms
+✓ Ready in 1272ms
 ○ Compiling / ...
- GET / 200 in 6.6s (compile: 5.9s, render: 647ms)
- GET / 200 in 118ms (compile: 8ms, render: 110ms)
- GET / 200 in 82ms (compile: 5ms, render: 77ms)
- GET / 200 in 72ms (compile: 6ms, render: 67ms)
- GET / 200 in 90ms (compile: 6ms, render: 84ms)
- GET / 200 in 93ms (compile: 7ms, render: 86ms)
- GET / 200 in 469ms (compile: 136ms, render: 333ms)
- GET / 200 in 93ms (compile: 7ms, render: 86ms)
- GET / 200 in 73ms (compile: 7ms, render: 66ms)
- GET / 200 in 69ms (compile: 5ms, render: 63ms)
- GET /assets/alphabet/intro-a.mp3 404 in 751ms (compile: 564ms, render: 186ms)
- GET /assets/alphabet/a.png 404 in 917ms (compile: 713ms, render: 204ms)
- GET /assets/alphabet/intro-a.mp3 404 in 66ms (compile: 10ms, render: 56ms)
- GET /assets/alphabet/quiz-find-a.mp3 404 in 120ms (compile: 15ms, render: 105ms)
- GET / 200 in 119ms (compile: 8ms, render: 111ms)
- GET /assets/alphabet/a.png 404 in 74ms (compile: 10ms, render: 64ms)
- GET /assets/alphabet/intro-a.mp3 404 in 71ms (compile: 9ms, render: 63ms)
- GET /assets/alphabet/intro-a.mp3 404 in 55ms (compile: 7ms, render: 49ms)
- GET /assets/alphabet/quiz-find-a.mp3 404 in 64ms (compile: 13ms, render: 51ms)
+ GET / 200 in 5.5s (compile: 5.1s, render: 486ms)
+ GET / 200 in 98ms (compile: 7ms, render: 90ms)
+ GET / 200 in 335ms (compile: 74ms, render: 261ms)
+ GET / 200 in 81ms (compile: 6ms, render: 75ms)
+ GET / 200 in 68ms (compile: 5ms, render: 63ms)
+ GET / 200 in 267ms (compile: 71ms, render: 196ms)
+ GET /assets/alphabet/intro-a.mp3 416 in 1470ms (compile: 1425ms, render: 45ms)
+ GET /assets/alphabet/intro-a.mp3 416 in 21ms (compile: 5ms, render: 16ms)
+ GET / 200 in 267ms (compile: 69ms, render: 197ms)
+ GET /assets/alphabet/intro-a.mp3 416 in 27ms (compile: 10ms, render: 17ms)
+ GET /assets/alphabet/intro-a.mp3 416 in 18ms (compile: 4ms, render: 14ms)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, X, Star, ArrowRight, Play } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
@@ -231,11 +232,14 @@ export function LessonInterface({
               onClick={() => currentLesson.mainAudio && playAudio(currentLesson.mainAudio)}
             >
               {currentLesson.mainImage ? (
-                <img
-                  src={currentLesson.mainImage}
-                  alt={currentLesson.title}
-                  className="w-full h-full object-contain p-4"
-                />
+                <div className="relative w-full h-full p-4">
+                  <Image
+                    src={currentLesson.mainImage}
+                    alt={currentLesson.title || "Lesson Image"}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               ) : (
                 <span className="text-6xl font-bold text-green-bright">
                   {currentLesson.title || "?"}
@@ -245,7 +249,7 @@ export function LessonInterface({
               {/* Sound indicator/button */}
               {currentLesson.mainAudio && (
                 <motion.button
-                  className="absolute bottom-2 right-2 w-10 h-10 bg-orange-bright rounded-full shadow-lg flex items-center justify-center"
+                  className="absolute bottom-2 right-2 w-10 h-10 bg-orange-bright rounded-full shadow-lg flex items-center justify-center z-10"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => {
@@ -318,16 +322,23 @@ export function LessonInterface({
                       key={answer.id}
                       onClick={() => handleAnswer(answer)}
                       disabled={selectedAnswer !== null}
-                      className={`min-w-[5rem] min-h-[5rem] px-4 py-2 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg ios-button flex items-center justify-center`}
+                      className={`min-w-[5rem] min-h-[5rem] px-4 py-2 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg ios-button flex items-center justify-center relative overflow-hidden`}
                       initial={{ y: 30, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: index * 0.1 }}
                       whileTap={!selectedAnswer ? { scale: 0.95 } : {}}
                     >
                       {answer.image ? (
-                         <img src={answer.image} alt={answer.text} className="w-12 h-12 object-contain" />
+                        <div className="w-12 h-12 relative">
+                         <Image
+                           src={answer.image}
+                           alt={answer.text || "Answer"}
+                           fill
+                           className="object-contain"
+                         />
+                        </div>
                       ) : (
-                         answer.text
+                         <span className="relative z-10">{answer.text}</span>
                       )}
                     </motion.button>
                   );

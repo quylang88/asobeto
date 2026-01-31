@@ -6,7 +6,7 @@ export const floor1Lessons: LessonContent[] = [
     id: "f1-l1",
     type: "passive",
     title: "Làm Quen Chữ A",
-    mainImage: "/assets/alphabet/a.png",
+    mainImage: "/assets/alphabet/a.svg",
     mainAudio: "/assets/alphabet/intro-a.mp3",
     instruction: "Bé hãy nghe và nhìn chữ A nhé!",
     pronunciation: "A"
