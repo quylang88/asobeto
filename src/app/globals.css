@@ -108,14 +108,15 @@ html {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
   overflow: hidden;
-  height: 100%;
+  height: 100dvh; /* Use dvh for iOS PWA */
+  background-color: black; /* Prevent white gap */
 }
 
 body {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
   overflow: hidden;
-  height: 100%;
+  height: 100dvh; /* Use dvh for iOS PWA */
   /* Disable text selection for native feel */
   -webkit-user-select: none;
   user-select: none;

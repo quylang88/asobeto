@@ -80,7 +80,7 @@ export function LessonInterface({
     const stars = Math.ceil((score / lessonContent.length) * 3);
 
     return (
-      <div className="fixed inset-0 bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
+      <div className="fixed inset-0 h-[100dvh] bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -151,7 +151,7 @@ export function LessonInterface({
   }
 
   return (
-    <div className="fixed inset-0 bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
       {/* Header - iOS safe area */}
       <div className="p-4 flex items-center gap-4 pt-safe">
         <motion.button

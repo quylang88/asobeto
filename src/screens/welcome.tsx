@@ -10,7 +10,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   return (
-    <div className="fixed inset-0 touch-none overflow-hidden bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30 pt-safe pb-safe">
+    <div className="fixed inset-0 h-[100dvh] touch-none overflow-hidden bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30 pt-safe pb-safe">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Floating clouds */}
