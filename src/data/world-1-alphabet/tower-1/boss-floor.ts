@@ -2,85 +2,134 @@ import { LessonContent } from "../map-structure";
 
 // Lesson content for Boss Floor (Floor 4)
 export const bossFloorLessons: LessonContent[] = [
-  // Placeholder Boss Content
   {
-    type: "listen",
-    letter: "A",
-    pronunciation: "Ah",
+    id: "boss-l1",
+    type: "active",
+    title: "Thử Thách Boss",
     instruction: "BOSS: Nghe và nhắc lại nào!",
-    options: ["A", "B", "C"],
-    correct: "A",
+    pronunciation: "Ah",
+    question: "BOSS: Chữ A ở đâu?",
+    answers: [
+      { id: "1", text: "A", isCorrect: true },
+      { id: "2", text: "B", isCorrect: false },
+      { id: "3", text: "C", isCorrect: false }
+    ]
   },
   {
-    type: "listen",
-    letter: "B",
-    pronunciation: "Buh",
+    id: "boss-l2",
+    type: "active",
+    title: "Thử Thách Boss",
     instruction: "BOSS: Chữ cái nào có âm này nhỉ?",
-    options: ["D", "B", "P"],
-    correct: "B",
+    pronunciation: "Buh",
+    question: "BOSS: Chọn chữ B",
+    answers: [
+      { id: "1", text: "D", isCorrect: false },
+      { id: "2", text: "B", isCorrect: true },
+      { id: "3", text: "P", isCorrect: false }
+    ]
   },
   {
-    type: "listen",
-    letter: "C",
-    pronunciation: "Kuh",
+    id: "boss-l3",
+    type: "active",
+    title: "Thử Thách Boss",
     instruction: "BOSS: Chọn chữ cái đúng nhé!",
-    options: ["C", "G", "K"],
-    correct: "C",
+    pronunciation: "Kuh",
+    question: "BOSS: Chọn chữ C",
+    answers: [
+      { id: "1", text: "C", isCorrect: true },
+      { id: "2", text: "G", isCorrect: false },
+      { id: "3", text: "K", isCorrect: false }
+    ]
   },
   {
-    type: "listen",
-    letter: "A",
-    pronunciation: "Ah",
+    id: "boss-l4",
+    type: "active",
+    title: "Thử Thách Boss",
     instruction: "BOSS: Nghe và nhắc lại nào! (Lần 2)",
-    options: ["A", "B", "C"],
-    correct: "A",
+    pronunciation: "Ah",
+    question: "BOSS: Chữ A",
+    answers: [
+      { id: "1", text: "A", isCorrect: true },
+      { id: "2", text: "B", isCorrect: false },
+      { id: "3", text: "C", isCorrect: false }
+    ]
   },
   {
-    type: "listen",
-    letter: "A",
-    pronunciation: "Ah",
+    id: "boss-l5",
+    type: "active",
+    title: "Thử Thách Boss",
     instruction: "BOSS: Nghe và nhắc lại nào! (Lần 3)",
-    options: ["A", "B", "C"],
-    correct: "A",
-  },
-  {
-    type: "listen",
-    letter: "B",
-    pronunciation: "Buh",
-    instruction: "BOSS: Chữ cái nào có âm này nhỉ? (Lần 2)",
-    options: ["D", "B", "P"],
-    correct: "B",
-  },
-  {
-    type: "listen",
-    letter: "C",
-    pronunciation: "Kuh",
-    instruction: "BOSS: Chọn chữ cái đúng nhé! (Lần 2)",
-    options: ["C", "G", "K"],
-    correct: "C",
-  },
-  {
-    type: "listen",
-    letter: "A",
     pronunciation: "Ah",
-    instruction: "BOSS: Nghe và nhắc lại nào! (Lần 4)",
-    options: ["A", "B", "C"],
-    correct: "A",
+    question: "BOSS: Chữ A nữa",
+    answers: [
+      { id: "1", text: "A", isCorrect: true },
+      { id: "2", text: "B", isCorrect: false },
+      { id: "3", text: "C", isCorrect: false }
+    ]
   },
   {
-    type: "listen",
-    letter: "B",
+    id: "boss-l6",
+    type: "active",
+    title: "Thử Thách Boss",
+    instruction: "BOSS: Chữ cái nào có âm này nhỉ? (Lần 2)",
     pronunciation: "Buh",
-    instruction: "BOSS: Chữ cái nào có âm này nhỉ? (Lần 3)",
-    options: ["D", "B", "P"],
-    correct: "B",
+    question: "BOSS: Chữ B",
+    answers: [
+      { id: "1", text: "D", isCorrect: false },
+      { id: "2", text: "B", isCorrect: true },
+      { id: "3", text: "P", isCorrect: false }
+    ]
   },
   {
-    type: "listen",
-    letter: "C",
+    id: "boss-l7",
+    type: "active",
+    title: "Thử Thách Boss",
+    instruction: "BOSS: Chọn chữ cái đúng nhé! (Lần 2)",
     pronunciation: "Kuh",
+    question: "BOSS: Chữ C",
+    answers: [
+      { id: "1", text: "C", isCorrect: true },
+      { id: "2", text: "G", isCorrect: false },
+      { id: "3", text: "K", isCorrect: false }
+    ]
+  },
+  {
+    id: "boss-l8",
+    type: "active",
+    title: "Thử Thách Boss",
+    instruction: "BOSS: Nghe và nhắc lại nào! (Lần 4)",
+    pronunciation: "Ah",
+    question: "BOSS: Chữ A cuối",
+    answers: [
+      { id: "1", text: "A", isCorrect: true },
+      { id: "2", text: "B", isCorrect: false },
+      { id: "3", text: "C", isCorrect: false }
+    ]
+  },
+  {
+    id: "boss-l9",
+    type: "active",
+    title: "Thử Thách Boss",
+    instruction: "BOSS: Chữ cái nào có âm này nhỉ? (Lần 3)",
+    pronunciation: "Buh",
+    question: "BOSS: Chữ B cuối",
+    answers: [
+      { id: "1", text: "D", isCorrect: false },
+      { id: "2", text: "B", isCorrect: true },
+      { id: "3", text: "P", isCorrect: false }
+    ]
+  },
+  {
+    id: "boss-l10",
+    type: "active",
+    title: "Thử Thách Boss",
     instruction: "BOSS: Chọn chữ cái đúng nhé! (Lần 3)",
-    options: ["C", "G", "K"],
-    correct: "C",
+    pronunciation: "Kuh",
+    question: "BOSS: Chữ C cuối",
+    answers: [
+      { id: "1", text: "C", isCorrect: true },
+      { id: "2", text: "G", isCorrect: false },
+      { id: "3", text: "K", isCorrect: false }
+    ]
   },
 ];
