@@ -552,7 +552,7 @@ export function FloorSelection({
   const floors = currentTower?.floors || [];
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden safe-bottom-bleed">
       {/* Header - iOS safe area */}
       <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md shadow-sm pt-safe">
         <div className="p-4 flex items-center gap-4">
