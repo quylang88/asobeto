@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/asobeto-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
