@@ -10,9 +10,11 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   return (
-    <div className="relative w-full h-[100dvh] touch-none overflow-hidden bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30 pt-safe pb-safe flex flex-col">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
+    <>
+      <div className="fixed inset-0 -z-20 bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30" />
+      <div className="relative w-full h-[100dvh] touch-none overflow-hidden pt-safe pb-safe flex flex-col">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
         {/* Floating clouds */}
         {[...Array(5)].map((_, i) => (
           <motion.div
@@ -125,8 +127,9 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         </motion.button>
       </div>
 
-      {/* Bottom grass decoration */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-green-bright/30 rounded-t-[100%]" />
-    </div>
+        {/* Bottom grass decoration */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-green-bright/30 rounded-t-[100%]" />
+      </div>
+    </>
   );
 }

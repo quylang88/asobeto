@@ -528,9 +528,11 @@ export function FloorSelection({
   const floors = currentTower?.floors || [];
 
   return (
-    <div className="relative w-full h-[100dvh] flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
-      {/* Header - iOS safe area */}
-      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md shadow-sm pt-safe">
+    <>
+      <div className="fixed inset-0 -z-10 bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50" />
+      <div className="relative w-full h-[100dvh] flex flex-col overflow-hidden">
+        {/* Header - iOS safe area */}
+        <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md shadow-sm pt-safe">
         <div className="p-4 flex items-center gap-4">
           <motion.button
             onClick={onBack}
@@ -685,6 +687,7 @@ export function FloorSelection({
           </motion.div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

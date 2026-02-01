@@ -109,9 +109,11 @@ export function LessonInterface({
       activeLessonsCount > 0 ? Math.ceil((score / activeLessonsCount) * 3) : 3;
 
     return (
-      <div className="relative w-full h-[100dvh] bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
-        <motion.div
-          initial={{ scale: 0 }}
+      <>
+        <div className="fixed inset-0 -z-10 bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20" />
+        <div className="relative w-full h-[100dvh] flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
+          <motion.div
+            initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", duration: 0.8 }}
           className="text-center"
@@ -177,14 +179,17 @@ export function LessonInterface({
             </div>
           </motion.button>
         </motion.div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="relative w-full h-[100dvh] bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
-      {/* Header - iOS safe area */}
-      <div className="p-4 flex items-center gap-4 pt-safe">
+    <>
+      <div className="fixed inset-0 -z-10 bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10" />
+      <div className="relative w-full h-[100dvh] flex flex-col overflow-hidden">
+        {/* Header - iOS safe area */}
+        <div className="p-4 flex items-center gap-4 pt-safe">
         <motion.button
           onClick={onBack}
           className="p-3 bg-white rounded-2xl shadow-lg text-muted-foreground ios-button"
@@ -370,24 +375,25 @@ export function LessonInterface({
         </AnimatePresence>
       </div>
 
-      {/* Mascot helper */}
-      <motion.div
-        className="fixed bottom-4 left-4"
-        initial={{ x: -100 }}
-        animate={{ x: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Mascot
-          size="sm"
-          emotion={
-            isCorrect === true
-              ? "excited"
-              : isCorrect === false
-                ? "thinking"
-                : "happy"
-          }
-        />
-      </motion.div>
-    </div>
+        {/* Mascot helper */}
+        <motion.div
+          className="fixed bottom-4 left-4"
+          initial={{ x: -100 }}
+          animate={{ x: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Mascot
+            size="sm"
+            emotion={
+              isCorrect === true
+                ? "excited"
+                : isCorrect === false
+                  ? "thinking"
+                  : "happy"
+            }
+          />
+        </motion.div>
+      </div>
+    </>
   );
 }
