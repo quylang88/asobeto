@@ -173,30 +173,6 @@ function StandardFloorCard({
                 </div>
               )}
             </div>
-
-            {/* Completion badge */}
-            {floor.completed && (
-              <motion.div
-                className="w-9 h-9 bg-green-bright rounded-full flex items-center justify-center shadow-md"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.3 }}
-              >
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </motion.div>
-            )}
           </div>
         </div>
       </motion.div>
