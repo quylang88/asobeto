@@ -34,9 +34,9 @@ export function LessonInterface({
   // Guard against empty lessons
   if (!lessons || lessons.length === 0) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background">
         <p>No lessons available.</p>
-        <button onClick={onBack}>Back</button>
+        <button onClick={onBack} className="mt-4 p-2 bg-gray-200 rounded">Back</button>
       </div>
     );
   }
