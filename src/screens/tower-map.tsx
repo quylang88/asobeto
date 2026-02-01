@@ -417,6 +417,7 @@ function ConnectionLinesSVG({
       className="absolute inset-0 w-full h-full pointer-events-none"
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
+      style={{ overflow: "visible" }}
     >
       {connections.map((conn, index) => {
         const fromTower = towers.find((t) => t.id === conn.from);
