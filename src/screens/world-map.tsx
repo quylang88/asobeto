@@ -192,17 +192,6 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
                       )}
                     </div>
                   </div>
-
-                  {/* Huy hiệu số thứ tự world */}
-                  <div
-                    className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${
-                      world.unlocked
-                        ? "bg-white text-foreground"
-                        : "bg-gray-400 text-gray-600"
-                    }`}
-                  >
-                    {world.id}
-                  </div>
                 </div>
               </motion.button>
             </motion.div>

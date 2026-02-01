@@ -108,14 +108,15 @@ html {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
   overflow: hidden;
-  height: 100%;
+  height: 100dvh;
+  background: var(--background);
 }
 
 body {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
   overflow: hidden;
-  height: 100%;
+  height: 100dvh;
   /* Disable text selection for native feel */
   -webkit-user-select: none;
   user-select: none;
@@ -126,6 +127,7 @@ body {
   /* Smooth fonts */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--background);
 }
 
 /* Allow scrolling inside app container */
@@ -133,6 +135,7 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  height: 100dvh;
 }
 
 /* Safe area padding utilities */
@@ -167,4 +170,11 @@ button, a, [role="button"] {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* Make the app always cover the real viewport on iOS */
+#__next, #root {
+  min-height: 100dvh;
+  height: 100dvh;
+  background: var(--background);
 }
