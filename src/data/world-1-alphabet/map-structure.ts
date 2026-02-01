@@ -5,13 +5,33 @@ export interface TowerPosition {
   y: number; // tỷ lệ phần trăm 0-100
 }
 
+export type LessonType = "passive" | "active";
+
+export interface LessonAnswer {
+  id: string;
+  text?: string;
+  image?: string;
+  audio?: string;
+  isCorrect: boolean;
+}
+
 export interface LessonContent {
-  type: string;
-  letter: string;
-  pronunciation: string;
-  instruction: string;
-  options: string[];
-  correct: string;
+  id: string;
+  type: LessonType;
+
+  // Display Data
+  mainImage?: string;
+  mainAudio?: string;
+  title?: string;
+  instruction?: string;
+
+  // Active Data
+  question?: string;
+  answers?: LessonAnswer[];
+
+  // Legacy support/Optional extra fields if needed
+  pronunciation?: string;
+  // Deprecated fields kept for reference during migration if strictly needed, but I will remove them as per plan.
 }
 
 export interface Floor {

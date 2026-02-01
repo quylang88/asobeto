@@ -586,10 +586,11 @@ export function FloorSelection({
           {/* Tower structure with slight tilt */}
           <motion.div
             className="relative"
-            style={{
-              transformStyle: "preserve-3d",
-              transform: "rotateX(2deg)",
-            }}
+            // 3D transform removed to fix clickability issues on some devices/tests
+            // style={{
+            //   transformStyle: "preserve-3d",
+            //   transform: "rotateX(2deg)",
+            // }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
