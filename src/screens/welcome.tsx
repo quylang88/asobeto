@@ -10,7 +10,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   return (
-    <div className="fixed inset-0 touch-none overflow-hidden bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30 pt-safe pb-safe">
+    <div className="relative w-full h-dvh touch-none overflow-hidden bg-linear-to-b from-blue-soft via-green-bright/20 to-orange-bright/30 pt-safe pb-safe flex flex-col">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Floating clouds */}
@@ -64,7 +64,7 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-4">
         {/* Mascot */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}

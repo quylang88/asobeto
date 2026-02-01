@@ -34,9 +34,11 @@ export function LessonInterface({
   // Guard against empty lessons
   if (!lessons || lessons.length === 0) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="relative w-full h-[100dvh] flex flex-col items-center justify-center bg-background">
         <p>No lessons available.</p>
-        <button onClick={onBack}>Back</button>
+        <button onClick={onBack} className="mt-4 p-2 bg-gray-200 rounded">
+          Back
+        </button>
       </div>
     );
   }
@@ -109,7 +111,7 @@ export function LessonInterface({
       activeLessonsCount > 0 ? Math.ceil((score / activeLessonsCount) * 3) : 3;
 
     return (
-      <div className="fixed inset-0 bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
+      <div className="relative w-full h-dvh bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -182,7 +184,7 @@ export function LessonInterface({
   }
 
   return (
-    <div className="fixed inset-0 bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
+    <div className="relative w-full h-dvh bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
       {/* Header - iOS safe area */}
       <div className="p-4 flex items-center gap-4 pt-safe">
         <motion.button
@@ -325,7 +327,7 @@ export function LessonInterface({
                       key={answer.id}
                       onClick={() => handleAnswer(answer)}
                       disabled={selectedAnswer !== null}
-                      className={`min-w-[5rem] min-h-[5rem] px-4 py-2 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg ios-button flex items-center justify-center relative overflow-hidden`}
+                      className={`min-w-20 min-h-20 px-4 py-2 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg ios-button flex items-center justify-center relative overflow-hidden`}
                       initial={{ y: 30, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: index * 0.1 }}

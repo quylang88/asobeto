@@ -98,25 +98,22 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
 }
 
 /* iOS Native PWA Optimizations */
 html {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
-  overflow: hidden;
-  height: 100dvh;
-  background: var(--background);
+  height: 100%;
+  /* Set a neutral background that matches the app theme base to minimize contrast of any gaps */
+  background-color: var(--background);
 }
 
 body {
   /* Prevent elastic overscroll */
   overscroll-behavior-y: none;
-  overflow: hidden;
-  height: 100dvh;
+  min-height: 100%;
+  
   /* Disable text selection for native feel */
   -webkit-user-select: none;
   user-select: none;
@@ -127,7 +124,6 @@ body {
   /* Smooth fonts */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--background);
 }
 
 /* Allow scrolling inside app container */
@@ -135,7 +131,7 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  height: 100dvh;
+  height: 100%;
 }
 
 /* Safe area padding utilities */
@@ -170,11 +166,4 @@ button, a, [role="button"] {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-}
-
-/* Make the app always cover the real viewport on iOS */
-#__next, #root {
-  min-height: 100dvh;
-  height: 100dvh;
-  background: var(--background);
 }
