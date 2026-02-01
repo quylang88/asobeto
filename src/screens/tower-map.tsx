@@ -437,7 +437,6 @@ function ConnectionLinesSVG({
             d={getCurvedPath(x1, y1, x2, y2)}
             stroke={isUnlocked ? "#4ADE80" : "#9CA3AF"}
             strokeWidth="3"
-            strokeDasharray={isUnlocked ? "0" : "8 8"}
             fill="none"
             vectorEffect="non-scaling-stroke"
             strokeLinecap="round"
