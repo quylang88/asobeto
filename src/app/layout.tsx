@@ -64,7 +64,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`font-sans antialiased ${mali.variable} ${varelaRound.variable}`}
+        className={`font-sans antialiased ${mali.variable} ${varelaRound.variable} min-h-[100dvh]`}
       >
         {children}
         <Analytics />

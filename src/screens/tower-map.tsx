@@ -519,7 +519,7 @@ export function TowerSelection({
   }, [isUnlocking, onSelectTower]);
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
+    <div className="relative w-full h-[100dvh] flex flex-col bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20 overflow-hidden">
       {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="flex items-center gap-3 p-4">
