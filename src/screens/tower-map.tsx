@@ -425,9 +425,9 @@ function ConnectionLinesSVG({
         if (!fromTower || !toTower) return null;
 
         const x1 = fromTower.position.x;
-        const y1 = fromTower.position.y + 6;
+        const y1 = fromTower.position.y + 8;
         const x2 = toTower.position.x;
-        const y2 = toTower.position.y - 6;
+        const y2 = toTower.position.y - 8;
 
         const isUnlocked = fromTower.completed;
 
@@ -551,8 +551,8 @@ export function TowerSelection({
       </div>
 
       {/* Bản đồ tháp - Khu vực cuộn */}
-      <div className="flex-1 relative app-scroll pb-safe overflow-y-auto">
-        <div className="relative w-full min-h-200 h-full mb-22">
+      <div className="flex-1 relative pb-safe overflow-hidden">
+        <div className="relative w-full h-full">
           {/* Đường kết nối */}
           <ConnectionLinesSVG
             towers={towerState}
