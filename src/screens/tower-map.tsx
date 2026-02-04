@@ -231,14 +231,6 @@ function TowerNode({
           >
             {canUnlock ? "MỞ NGAY" : `Cần ${requiredStars} Ngôi Sao`}
           </div>
-
-          {/* Hiển thị số sao hiện tại */}
-          <div className="absolute -top-3 -right-3 flex items-center gap-1 bg-white rounded-full px-2 py-1 shadow-lg">
-            <Star className="w-4 h-4 text-yellow-bright fill-yellow-bright" />
-            <span className="text-xs font-bold text-foreground">
-              {totalStars}/{requiredStars}
-            </span>
-          </div>
         </div>
       </motion.button>
     );
@@ -258,25 +250,27 @@ function TowerNode({
       transition={{ delay: tower.id * 0.1 }}
       whileTap={tower.unlocked ? { scale: 0.95 } : {}}
     >
-      {/* Sao trên tháp */}
-      <div className="flex justify-center gap-0.5 mb-1">
-        {[...Array(tower.maxStars)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.3 + tower.id * 0.1 + i * 0.1 }}
-          >
-            <Star
-              className={`w-4 h-4 md:w-5 md:h-5 ${
-                i < tower.stars
-                  ? "text-yellow-bright fill-yellow-bright"
-                  : "text-gray-300 fill-gray-200"
-              }`}
-            />
-          </motion.div>
-        ))}
-      </div>
+      {/* Sao trên tháp - Chỉ hiện khi mở khóa */}
+      {tower.unlocked && (
+        <div className="flex justify-center gap-0.5 mb-1">
+          {[...Array(tower.maxStars)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.3 + tower.id * 0.1 + i * 0.1 }}
+            >
+              <Star
+                className={`w-4 h-4 md:w-5 md:h-5 ${
+                  i < tower.stars
+                    ? "text-yellow-bright fill-yellow-bright"
+                    : "text-gray-300 fill-gray-200"
+                }`}
+              />
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* SVG Tháp */}
       <div className="relative">
@@ -323,19 +317,19 @@ function TowerNode({
             fill={tower.unlocked ? "#FB923C" : "#6B7280"}
           />
 
+          {/* Cột cờ luôn hiện cho đồng bộ */}
+          <line
+            x1="40"
+            y1="5"
+            x2="40"
+            y2="-8"
+            stroke={tower.unlocked ? "#8B5A2B" : "#6B7280"}
+            strokeWidth="2"
+          />
+
           {/* Cờ trên các tháp đã hoàn thành */}
           {tower.completed && tower.unlocked && (
-            <>
-              <line
-                x1="40"
-                y1="5"
-                x2="40"
-                y2="-8"
-                stroke="#8B5A2B"
-                strokeWidth="2"
-              />
-              <polygon points="40,-8 40,2 55,-3" fill="#EF4444" />
-            </>
+            <polygon points="40,-8 40,2 55,-3" fill="#EF4444" />
           )}
 
           {/* Cửa sổ */}
@@ -386,20 +380,15 @@ function TowerNode({
         </svg>
       </div>
 
-      {/* Nhãn tháp */}
-      <div
-        className={`mt-1 px-3 py-1 rounded-xl text-center ${
-          tower.unlocked ? "bg-white" : "bg-gray-100"
-        } shadow-md`}
-      >
-        <p
-          className={`text-sm font-bold ${
-            tower.unlocked ? "text-foreground" : "text-gray-400"
-          }`}
+      {/* Nhãn tháp - Chỉ hiện khi mở khóa */}
+      {tower.unlocked && (
+        <div
+          className="mt-1 px-3 py-1 rounded-xl text-center bg-white shadow-md z-10 relative"
+          style={{ minWidth: "60px" }}
         >
-          {tower.name}
-        </p>
-      </div>
+          <p className="text-sm font-bold text-foreground">{tower.name}</p>
+        </div>
+      )}
     </motion.button>
   );
 }
@@ -425,9 +414,9 @@ function ConnectionLinesSVG({
         if (!fromTower || !toTower) return null;
 
         const x1 = fromTower.position.x;
-        const y1 = fromTower.position.y + 8;
+        const y1 = fromTower.position.y;
         const x2 = toTower.position.x;
-        const y2 = toTower.position.y - 8;
+        const y2 = toTower.position.y;
 
         const isUnlocked = fromTower.completed;
 
