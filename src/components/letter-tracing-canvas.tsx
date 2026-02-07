@@ -25,8 +25,8 @@ function toCanvasPoint(
   canvas: HTMLCanvasElement,
 ) {
   const rect = canvas.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
-  const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
+  const x = ((event.clientX - rect.left) / rect.width) * CANVAS_SIZE;
+  const y = ((event.clientY - rect.top) / rect.height) * CANVAS_SIZE;
   return { x, y };
 }
 
@@ -51,6 +51,20 @@ function getTraceLineWidth(targetText: string): number {
   return LINE_WIDTH;
 }
 
+function drawGuideGlyph(
+  ctx: CanvasRenderingContext2D,
+  targetText: string,
+  guideFontSize: number,
+  fillStyle: string = "rgba(17, 24, 39, 0.15)",
+) {
+  ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  ctx.fillStyle = fillStyle;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
+  ctx.fillText(targetText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+}
+
 export function LetterTracingCanvas({
   targetText,
   disabled,
@@ -58,6 +72,7 @@ export function LetterTracingCanvas({
   twoStarThreshold = 0.85,
   onEvaluate,
 }: LetterTracingCanvasProps) {
+  const guideCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasStroke, setHasStroke] = useState(false);
@@ -76,7 +91,8 @@ export function LetterTracingCanvas({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const guideCanvas = guideCanvasRef.current;
+    if (!canvas || !guideCanvas) return;
 
     const ratio = window.devicePixelRatio || 1;
     canvas.width = Math.floor(CANVAS_SIZE * ratio);
@@ -84,16 +100,25 @@ export function LetterTracingCanvas({
     canvas.style.width = `${CANVAS_SIZE}px`;
     canvas.style.height = `${CANVAS_SIZE}px`;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    guideCanvas.width = Math.floor(CANVAS_SIZE * ratio);
+    guideCanvas.height = Math.floor(CANVAS_SIZE * ratio);
+    guideCanvas.style.width = `${CANVAS_SIZE}px`;
+    guideCanvas.style.height = `${CANVAS_SIZE}px`;
 
-    ctx.scale(ratio, ratio);
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = "#16a34a";
-    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  }, [normalizedTarget, lineWidth]);
+    const drawCtx = canvas.getContext("2d");
+    const guideCtx = guideCanvas.getContext("2d");
+    if (!drawCtx || !guideCtx) return;
+
+    drawCtx.scale(ratio, ratio);
+    drawCtx.lineJoin = "round";
+    drawCtx.lineCap = "round";
+    drawCtx.lineWidth = lineWidth;
+    drawCtx.strokeStyle = "#16a34a";
+    drawCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    guideCtx.scale(ratio, ratio);
+    drawGuideGlyph(guideCtx, normalizedTarget || "a", guideFontSize);
+  }, [guideFontSize, normalizedTarget, lineWidth]);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -107,6 +132,7 @@ export function LetterTracingCanvas({
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (disabled) return;
+    event.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -122,6 +148,7 @@ export function LetterTracingCanvas({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing || disabled) return;
+    event.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -158,17 +185,9 @@ export function LetterTracingCanvas({
       return;
     }
 
-    targetCtx.fillStyle = "#111111";
     const ratio = window.devicePixelRatio || 1;
     targetCtx.scale(ratio, ratio);
-    targetCtx.textAlign = "center";
-    targetCtx.textBaseline = "middle";
-    targetCtx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
-    targetCtx.fillText(
-      normalizedTarget,
-      CANVAS_SIZE / 2,
-      CANVAS_SIZE / 2 + guideFontSize * 0.05,
-    );
+    drawGuideGlyph(targetCtx, normalizedTarget, guideFontSize, "#111111");
 
     const drawnData = drawCtx.getImageData(0, 0, canvas.width, canvas.height).data;
     const targetData = targetCtx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -196,16 +215,15 @@ export function LetterTracingCanvas({
 
   return (
     <div className="mt-2 flex flex-col items-center gap-3">
-      <div className="relative h-[280px] w-[280px] rounded-3xl border-2 border-dashed border-green-bright/40 bg-white shadow-lg">
-        <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center font-bold text-foreground/15 leading-none select-none"
-          style={{ fontSize: `${guideFontSize}px` }}
-        >
-          {normalizedTarget || "a"}
-        </div>
+      <div className="relative h-70 w-70 rounded-3xl border-2 border-dashed border-green-bright/40 bg-white shadow-lg">
+        <canvas
+          ref={guideCanvasRef}
+          className="pointer-events-none absolute inset-0 rounded-3xl"
+          aria-hidden
+        />
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 rounded-3xl touch-none ${
+          className={`absolute inset-0 z-10 rounded-3xl touch-none ${
             disabled ? "pointer-events-none opacity-80" : ""
           }`}
           onPointerDown={handlePointerDown}

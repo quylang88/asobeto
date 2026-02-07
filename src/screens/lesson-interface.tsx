@@ -22,6 +22,7 @@ interface LessonInterfaceProps {
 const FEEDBACK_ADVANCE_DELAY_MS = 2600;
 const FEEDBACK_SUCCESS_AUDIO = "/assets/audio/feedback/gioi-qua.mp3";
 const FEEDBACK_FAIL_AUDIO = "/assets/audio/feedback/tiec-qua.mp3";
+const FEEDBACK_CHEER_AUDIO = "/assets/audio/feedback/applause-cheer.mp3";
 const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
 
 const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
@@ -40,9 +41,16 @@ function getSpeedLabel(speed: string): string {
   return "Thường";
 }
 
-function SuccessCelebration() {
+function FullScreenSuccessCelebration() {
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+    <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+      <motion.div
+        className="absolute inset-0 bg-radial-[circle_at_center] from-yellow-bright/35 via-transparent to-transparent"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.35 }}
+      />
       {CONFETTI_PIECES.map((piece) => (
         <motion.div
           key={piece.id}
@@ -54,7 +62,7 @@ function SuccessCelebration() {
           }}
           initial={{ y: -16, opacity: 0, scale: 0.85 }}
           animate={{
-            y: 360,
+            y: "110vh",
             opacity: [0, 1, 1, 0],
             x: [0, piece.xDrift, piece.xDrift * 0.4],
             rotate: [piece.rotate, piece.rotate + 180],
@@ -131,6 +139,11 @@ export function LessonInterface({
     audio.play().catch((err) => console.log("Audio play failed:", err));
   };
 
+  const playOneShotAudio = (src: string) => {
+    const audio = new Audio(src);
+    audio.play().catch((err) => console.log("Audio play failed:", err));
+  };
+
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
@@ -165,7 +178,12 @@ export function LessonInterface({
       setScore((prev) => prev + 1);
     }
 
-    playAudio(correct ? FEEDBACK_SUCCESS_AUDIO : FEEDBACK_FAIL_AUDIO);
+    if (correct) {
+      playOneShotAudio(FEEDBACK_SUCCESS_AUDIO);
+      playOneShotAudio(FEEDBACK_CHEER_AUDIO);
+    } else {
+      playOneShotAudio(FEEDBACK_FAIL_AUDIO);
+    }
 
     setTimeout(() => {
       handleNext();
@@ -318,6 +336,10 @@ export function LessonInterface({
 
   return (
     <div className="relative w-full h-dvh bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
+      <AnimatePresence>
+        {isCorrect === true && <FullScreenSuccessCelebration />}
+      </AnimatePresence>
+
       <div className="p-4 flex items-center gap-4 pt-safe">
         <motion.button
           onClick={onBack}
@@ -555,10 +577,6 @@ export function LessonInterface({
                   </div>
                 </motion.button>
               )}
-
-            <AnimatePresence>
-              {isCorrect === true && <SuccessCelebration />}
-            </AnimatePresence>
 
             <AnimatePresence>
               {isCorrect !== null && (
