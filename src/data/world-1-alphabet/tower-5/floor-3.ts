@@ -2,20 +2,20 @@ import { LessonContent } from "../map-structure";
 import { createVocabFloorLessons } from "../lesson-templates";
 
 export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
-  lessonPrefix: "t1-f3",
-  word: "cá",
-  wordAssetKey: "ca",
+  lessonPrefix: "t5-f3",
+  word: "bố",
+  wordAssetKey: "bo-father",
   wordTokens: [
-    { id: "c", text: "c", kind: "letter" },
-    { id: "a", text: "a", kind: "letter" },
+    { id: "b", text: "b", kind: "letter" },
+    { id: "oo", text: "ô", kind: "letter" },
     { id: "tone-sac", text: "dấu sắc", kind: "tone" },
   ],
   wordTokenPool: [
-    { id: "c", text: "c", kind: "letter" },
-    { id: "a", text: "a", kind: "letter" },
+    { id: "b", text: "b", kind: "letter" },
+    { id: "oo", text: "ô", kind: "letter" },
     { id: "tone-sac", text: "dấu sắc", kind: "tone" },
-    { id: "n", text: "n", kind: "letter" },
     { id: "o", text: "o", kind: "letter" },
+    { id: "tone-huyen", text: "dấu huyền", kind: "tone" },
   ],
-  reviewLetters: ["A", "C"],
+  reviewLetters: ["Ô", "B", "O"],
 });

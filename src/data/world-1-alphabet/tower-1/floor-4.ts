@@ -1,8 +1,8 @@
 import { LessonContent } from "../map-structure";
 import { createVocabFloorLessons } from "../lesson-templates";
 
-export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
-  lessonPrefix: "t1-f3",
+export const floor4Lessons: LessonContent[] = createVocabFloorLessons({
+  lessonPrefix: "t1-f4",
   word: "cá",
   wordAssetKey: "ca",
   wordTokens: [
@@ -18,4 +18,5 @@ export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
     { id: "o", text: "o", kind: "letter" },
   ],
   reviewLetters: ["A", "C"],
+  reviewMode: true,
 });

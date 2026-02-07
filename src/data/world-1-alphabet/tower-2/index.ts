@@ -4,14 +4,14 @@ import { floor2Lessons } from "./floor-2";
 import { floor3Lessons } from "./floor-3";
 import { floor4Lessons } from "./floor-4";
 
-export const tower1Floors: Floor[] = [
+export const tower2Floors: Floor[] = [
   {
     id: 1,
-    nameUnlocked: "Chữ A",
+    nameUnlocked: "Chữ Ă",
     nameLocked: "Điều Bí Ẩn",
-    descriptionUnlocked: "Giới thiệu chữ cái A",
+    descriptionUnlocked: "Giới thiệu chữ cái Ă",
     descriptionLocked: "Chờ bạn tới khám phá!",
-    letter: "A",
+    letter: "Ă",
     color: "text-blue-soft",
     bgColor: "bg-blue-soft",
     borderColor: "border-blue-soft",
@@ -23,11 +23,11 @@ export const tower1Floors: Floor[] = [
   },
   {
     id: 2,
-    nameUnlocked: "Chữ C",
+    nameUnlocked: "Chữ N",
     nameLocked: "Điều Bí Ẩn",
-    descriptionUnlocked: "Giới thiệu chữ cái C",
+    descriptionUnlocked: "Giới thiệu chữ cái N",
     descriptionLocked: "Chờ bạn tới khám phá!",
-    letter: "C",
+    letter: "N",
     color: "text-green-bright",
     bgColor: "bg-green-bright",
     borderColor: "border-green-bright",
@@ -39,11 +39,11 @@ export const tower1Floors: Floor[] = [
   },
   {
     id: 3,
-    nameUnlocked: "Từ cá",
+    nameUnlocked: "Từ ăn",
     nameLocked: "Điều Bí Ẩn",
-    descriptionUnlocked: "Ghép và luyện viết từ cá",
+    descriptionUnlocked: "Ghép và luyện viết từ ăn",
     descriptionLocked: "Chờ bạn tới khám phá!",
-    letter: "C",
+    letter: "Ă",
     color: "text-orange-bright",
     bgColor: "bg-orange-bright",
     borderColor: "border-orange-bright",
@@ -55,9 +55,9 @@ export const tower1Floors: Floor[] = [
   },
   {
     id: 4,
-    nameUnlocked: "Ôn tập cá",
+    nameUnlocked: "Ôn tập ăn",
     nameLocked: "Điều Bí Ẩn",
-    descriptionUnlocked: "Ôn nhẹ và chơi vui với từ cá",
+    descriptionUnlocked: "Ôn nhẹ và chơi vui với từ ăn",
     descriptionLocked: "Chờ bạn tới khám phá!",
     letter: "?",
     color: "text-yellow-bright",

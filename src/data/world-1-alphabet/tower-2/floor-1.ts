@@ -2,8 +2,8 @@ import { LessonContent } from "../map-structure";
 import { createLetterFloorLessons } from "../lesson-templates";
 
 export const floor1Lessons: LessonContent[] = createLetterFloorLessons({
-  lessonPrefix: "t1-f1",
-  letter: "A",
-  letterAssetKey: "a",
-  distractors: ["Ă", "O"],
+  lessonPrefix: "t2-f1",
+  letter: "Ă",
+  letterAssetKey: "aw",
+  distractors: ["A", "Â"],
 });

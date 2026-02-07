@@ -6,6 +6,50 @@ export interface TowerPosition {
 }
 
 export type LessonType = "passive" | "active";
+export type LessonKind =
+  | "letter_listen"
+  | "letter_quiz"
+  | "letter_trace_demo"
+  | "letter_trace_practice"
+  | "vocab_listen_look"
+  | "vocab_listen_repeat"
+  | "vocab_word_build"
+  | "vocab_trace_practice";
+export type AudioPlaybackSpeed = "slow" | "normal" | "fast";
+export type ScoringMetric =
+  | "none"
+  | "correct_answer"
+  | "speech_similarity"
+  | "trace_accuracy"
+  | "word_assembly_accuracy";
+
+export interface LessonAudioVariant {
+  speed: AudioPlaybackSpeed;
+  audio: string;
+}
+
+export interface LessonGating {
+  requiredAudioPlays?: number;
+  requiredPlaybackSpeeds?: AudioPlaybackSpeed[];
+  requireAnimationComplete?: boolean;
+}
+
+export interface LessonScoring {
+  metric: ScoringMetric;
+  passPolicy: "always" | "threshold";
+  passThreshold?: number;
+  starThresholds?: {
+    oneStar?: number;
+    twoStars?: number;
+  };
+  maxStars: number;
+}
+
+export interface WordToken {
+  id: string;
+  text: string;
+  kind: "letter" | "tone";
+}
 
 export interface LessonAnswer {
   id: string;
@@ -18,16 +62,26 @@ export interface LessonAnswer {
 export interface LessonContent {
   id: string;
   type: LessonType;
+  lessonKind?: LessonKind;
 
   // Display Data
   mainImage?: string;
   mainAudio?: string;
+  audioVariants?: LessonAudioVariant[];
   title?: string;
   instruction?: string;
+  introVoice?: string;
 
   // Active Data
   question?: string;
   answers?: LessonAnswer[];
+  targetText?: string;
+  targetLetter?: string;
+  targetTokens?: WordToken[];
+  tokenPool?: WordToken[];
+  relatedLetters?: string[];
+  gating?: LessonGating;
+  scoring?: LessonScoring;
 
   // Legacy support/Optional extra fields if needed
   pronunciation?: string;
@@ -47,6 +101,7 @@ export interface Floor {
   completed: boolean;
   unlocked: boolean;
   stars: number;
+  maxStars?: number;
   content?: LessonContent[];
 }
 
@@ -65,6 +120,10 @@ export interface Tower {
 }
 
 import { tower1Floors } from "./tower-1";
+import { tower2Floors } from "./tower-2";
+import { tower3Floors } from "./tower-3";
+import { tower4Floors } from "./tower-4";
+import { tower5Floors } from "./tower-5";
 
 export interface TowerConnection {
   from: number;
@@ -83,10 +142,10 @@ export interface TowerConnection {
 export const towers: Tower[] = [
   {
     id: 1,
-    name: "A-D",
-    letters: "A, B, C, D",
+    name: "A-C",
+    letters: "A, C",
     stars: 3,
-    maxStars: 3,
+    maxStars: 12,
     completed: true,
     unlocked: true,
     position: { x: 50, y: 15 },
@@ -95,47 +154,51 @@ export const towers: Tower[] = [
   },
   {
     id: 2,
-    name: "E-H",
-    letters: "E, F, G, H",
+    name: "Ă-N",
+    letters: "Ă, N",
     stars: 2,
-    maxStars: 3,
+    maxStars: 12,
     completed: true,
     unlocked: true,
     position: { x: 25, y: 38 },
     parentIds: [1],
+    floors: tower2Floors,
   },
   {
     id: 3,
-    name: "I-L",
-    letters: "I, K, L",
+    name: "E-M",
+    letters: "E, M",
     stars: 3,
-    maxStars: 3,
+    maxStars: 12,
     completed: true,
     unlocked: true,
     position: { x: 75, y: 38 },
     parentIds: [1],
+    floors: tower3Floors,
   },
   {
     id: 4,
-    name: "M-P",
-    letters: "M, N, O, P",
+    name: "O-B",
+    letters: "O, B",
     stars: 0,
-    maxStars: 3,
+    maxStars: 12,
     completed: false,
     unlocked: true,
     position: { x: 25, y: 62 },
     parentIds: [2],
+    floors: tower4Floors,
   },
   {
     id: 5,
-    name: "Q-T",
-    letters: "Q, R, S, T",
+    name: "Ô-B",
+    letters: "Ô, B",
     stars: 0,
-    maxStars: 3,
+    maxStars: 12,
     completed: false,
     unlocked: false,
     position: { x: 75, y: 62 },
     parentIds: [3],
+    floors: tower5Floors,
   },
   {
     id: 6,
