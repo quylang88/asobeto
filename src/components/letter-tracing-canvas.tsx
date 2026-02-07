@@ -1,6 +1,7 @@
 "use client";
 
 import { type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { LessonButton } from "./lesson-button";
 
 export interface TraceEvaluation {
   score: number;
@@ -11,10 +12,12 @@ export interface TraceEvaluation {
 
 interface LetterTracingCanvasProps {
   targetText: string;
+  mode?: "practice" | "demo";
   disabled?: boolean;
   oneStarThreshold?: number;
   twoStarThreshold?: number;
-  onEvaluate: (result: TraceEvaluation) => void;
+  onEvaluate?: (result: TraceEvaluation) => void;
+  onAutoTraceComplete?: () => void;
 }
 
 const CANVAS_SIZE = 280;
@@ -67,15 +70,19 @@ function drawGuideGlyph(
 
 export function LetterTracingCanvas({
   targetText,
+  mode = "practice",
   disabled,
   oneStarThreshold = 0.5,
   twoStarThreshold = 0.85,
   onEvaluate,
+  onAutoTraceComplete,
 }: LetterTracingCanvasProps) {
   const guideCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasStroke, setHasStroke] = useState(false);
+  const autoTraceDoneRef = useRef(false);
+  const isDemoMode = mode === "demo";
   const normalizedTarget = useMemo(
     () => targetText.trim().toLocaleLowerCase(),
     [targetText],
@@ -118,8 +125,76 @@ export function LetterTracingCanvas({
 
     guideCtx.scale(ratio, ratio);
     drawGuideGlyph(guideCtx, normalizedTarget || "a", guideFontSize);
-  }, [guideFontSize, normalizedTarget, lineWidth]);
+  }, [guideFontSize, normalizedTarget, lineWidth, isDemoMode]);
 
+  useEffect(() => {
+    if (!isDemoMode) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const drawCtx = canvas.getContext("2d");
+    if (!drawCtx) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    const traceText = normalizedTarget || "a";
+    const traceLineWidth = Math.max(12, lineWidth * 0.56);
+    const traceDurationMs = 2600;
+    const dashLength = CANVAS_SIZE * 9;
+    autoTraceDoneRef.current = false;
+
+    // Vẽ hoạt ảnh auto-tô cho lesson demo và bật nút tiếp tục khi hoàn tất
+    const drawAutoTraceFrame = (progress: number) => {
+      drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+      drawCtx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCtx.scale(ratio, ratio);
+      drawCtx.lineJoin = "round";
+      drawCtx.lineCap = "round";
+      drawCtx.lineWidth = traceLineWidth;
+      drawCtx.strokeStyle = "#16a34a";
+      drawCtx.textAlign = "center";
+      drawCtx.textBaseline = "middle";
+      drawCtx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
+      drawCtx.setLineDash([dashLength]);
+      drawCtx.lineDashOffset = dashLength * (1 - progress);
+      drawCtx.strokeText(traceText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+      drawCtx.setLineDash([]);
+      drawCtx.fillStyle = `rgba(22, 163, 74, ${0.08 + progress * 0.2})`;
+      drawCtx.fillText(traceText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+    };
+
+    let rafId = 0;
+    let startTime = 0;
+
+    const tick = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = clamp01(elapsed / traceDurationMs);
+      drawAutoTraceFrame(progress);
+
+      if (progress < 1) {
+        rafId = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      if (!autoTraceDoneRef.current) {
+        autoTraceDoneRef.current = true;
+        onAutoTraceComplete?.();
+      }
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [
+    isDemoMode,
+    normalizedTarget,
+    guideFontSize,
+    lineWidth,
+    onAutoTraceComplete,
+  ]);
+
+  // Xóa toàn bộ nét bé đã vẽ để bắt đầu lại lượt tô
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -131,7 +206,7 @@ export function LetterTracingCanvas({
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
+    if (disabled || isDemoMode) return;
     event.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -147,7 +222,7 @@ export function LetterTracingCanvas({
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || disabled) return;
+    if (!isDrawing || disabled || isDemoMode) return;
     event.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -163,7 +238,9 @@ export function LetterTracingCanvas({
     setIsDrawing(false);
   };
 
+  // Chấm điểm dựa trên độ phủ và độ chính xác so với chữ mẫu
   const evaluateTrace = () => {
+    if (!onEvaluate) return;
     const canvas = canvasRef.current;
     if (!canvas || !normalizedTarget) {
       onEvaluate({ score: 0, stars: 0, precision: 0, coverage: 0 });
@@ -224,7 +301,7 @@ export function LetterTracingCanvas({
         <canvas
           ref={canvasRef}
           className={`absolute inset-0 z-10 rounded-3xl touch-none ${
-            disabled ? "pointer-events-none opacity-80" : ""
+            disabled || isDemoMode ? "pointer-events-none opacity-80" : ""
           }`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -234,29 +311,26 @@ export function LetterTracingCanvas({
         />
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={clearCanvas}
-          disabled={disabled}
-          className={`rounded-2xl border-2 border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-foreground ios-button ${
-            disabled ? "pointer-events-none opacity-60" : ""
-          }`}
-        >
-          Xóa nét
-        </button>
-        <button
-          onClick={evaluateTrace}
-          disabled={disabled || !hasStroke}
-          className={`relative ios-button ${
-            disabled || !hasStroke ? "pointer-events-none opacity-60" : ""
-          }`}
-        >
-          <div className="absolute inset-0 rounded-2xl bg-orange-bright translate-y-1.5 transition-transform" />
-          <div className="relative rounded-2xl bg-green-bright px-6 py-2 text-sm font-bold text-white">
+      {mode === "practice" && (
+        <div className="flex items-center gap-3">
+          <LessonButton
+            onClick={clearCanvas}
+            disabled={disabled}
+            className="rounded-2xl"
+            frontClassName="px-5 py-2 text-sm"
+          >
+            Xóa nét
+          </LessonButton>
+          <LessonButton
+            onClick={evaluateTrace}
+            disabled={disabled || !hasStroke}
+            className="rounded-2xl"
+            frontClassName="px-6 py-2 text-sm"
+          >
             Chấm điểm
-          </div>
-        </button>
-      </div>
+          </LessonButton>
+        </div>
+      )}
     </div>
   );
 }

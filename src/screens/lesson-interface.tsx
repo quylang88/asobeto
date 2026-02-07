@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { type PointerEvent, useCallback, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, X, Star, ArrowRight } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
+import { LessonButton } from "../components/lesson-button";
 import {
   LetterTracingCanvas,
   type TraceEvaluation,
@@ -24,6 +25,15 @@ const FEEDBACK_SUCCESS_AUDIO = "/assets/audio/feedback/gioi-qua.mp3";
 const FEEDBACK_FAIL_AUDIO = "/assets/audio/feedback/tiec-qua.mp3";
 const FEEDBACK_CHEER_AUDIO = "/assets/audio/feedback/applause-cheer.mp3";
 const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
+// Khung preview chữ đã tăng lên 240px nên canvas sương cần phủ kín đúng kích thước này
+const FOG_CANVAS_SIZE = 240;
+const FOG_ERASE_RADIUS = 24;
+const LETTER_TOP_INSTRUCTION_KINDS = new Set([
+  "letter_listen",
+  "letter_quiz",
+  "letter_trace_demo",
+  "letter_trace_practice",
+]);
 
 const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
   id: index,
@@ -39,6 +49,103 @@ function getSpeedLabel(speed: string): string {
   if (speed === "slow") return "Chậm";
   if (speed === "fast") return "Nhanh";
   return "Thường";
+}
+
+function getPreviewTextSizeClass(value: string): string {
+  const charCount = [...value].length;
+  if (charCount <= 1) return "text-[10rem] md:text-[11rem]";
+  if (charCount === 2) return "text-[8.5rem] md:text-[9.5rem]";
+  return "text-7xl md:text-8xl";
+}
+
+interface FogRevealOverlayProps {
+  revealKey: string;
+}
+
+function FogRevealOverlay({ revealKey }: FogRevealOverlayProps) {
+  const fogCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isErasingFog, setIsErasingFog] = useState(false);
+
+  // Vẽ lớp sương mờ mới mỗi khi đổi lesson để bé cào/xóa lại từ đầu
+  useEffect(() => {
+    const fogCanvas = fogCanvasRef.current;
+    if (!fogCanvas) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    fogCanvas.width = Math.floor(FOG_CANVAS_SIZE * ratio);
+    fogCanvas.height = Math.floor(FOG_CANVAS_SIZE * ratio);
+    fogCanvas.style.width = `${FOG_CANVAS_SIZE}px`;
+    fogCanvas.style.height = `${FOG_CANVAS_SIZE}px`;
+
+    const fogCtx = fogCanvas.getContext("2d");
+    if (!fogCtx) return;
+    fogCtx.setTransform(1, 0, 0, 1, 0, 0);
+    fogCtx.scale(ratio, ratio);
+    fogCtx.clearRect(0, 0, FOG_CANVAS_SIZE, FOG_CANVAS_SIZE);
+
+    // Tăng độ đậm của sương để không nhìn rõ nét chữ bên dưới trước khi bé xóa
+    const fogGradient = fogCtx.createLinearGradient(
+      0,
+      0,
+      FOG_CANVAS_SIZE,
+      FOG_CANVAS_SIZE,
+    );
+    fogGradient.addColorStop(0, "rgba(217, 240, 223, 1)");
+    fogGradient.addColorStop(1, "rgba(188, 224, 199, 1)");
+    fogCtx.fillStyle = fogGradient;
+    fogCtx.fillRect(0, 0, FOG_CANVAS_SIZE, FOG_CANVAS_SIZE);
+
+    fogCtx.fillStyle = "rgba(236, 249, 239, 0.72)";
+    for (let i = 0; i < 28; i += 1) {
+      const x = (i * 29 + 12) % FOG_CANVAS_SIZE;
+      const y = (i * 47 + 18) % FOG_CANVAS_SIZE;
+      const radius = 15 + (i % 5) * 5;
+      fogCtx.beginPath();
+      fogCtx.arc(x, y, radius, 0, Math.PI * 2);
+      fogCtx.fill();
+    }
+  }, [revealKey]);
+
+  // Xóa sương đúng vị trí ngón tay khi bé chạm/di trên canvas
+  const eraseFogAtPoint = (event: PointerEvent<HTMLCanvasElement>) => {
+    const fogCanvas = fogCanvasRef.current;
+    if (!fogCanvas) return;
+    const fogCtx = fogCanvas.getContext("2d");
+    if (!fogCtx) return;
+
+    const rect = fogCanvas.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * FOG_CANVAS_SIZE;
+    const y = ((event.clientY - rect.top) / rect.height) * FOG_CANVAS_SIZE;
+
+    fogCtx.save();
+    fogCtx.globalCompositeOperation = "destination-out";
+    fogCtx.beginPath();
+    fogCtx.arc(x, y, FOG_ERASE_RADIUS, 0, Math.PI * 2);
+    fogCtx.fill();
+    fogCtx.restore();
+  };
+
+  return (
+    <canvas
+      ref={fogCanvasRef}
+      className="absolute inset-0 z-10 rounded-3xl touch-none"
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setIsErasingFog(true);
+        eraseFogAtPoint(event);
+      }}
+      onPointerMove={(event) => {
+        if (!isErasingFog) return;
+        event.preventDefault();
+        eraseFogAtPoint(event);
+      }}
+      onPointerUp={() => setIsErasingFog(false)}
+      onPointerCancel={() => setIsErasingFog(false)}
+      onPointerLeave={() => setIsErasingFog(false)}
+      aria-label="Lớp sương mờ để bé chạm và xóa"
+    />
+  );
 }
 
 function FullScreenSuccessCelebration() {
@@ -78,6 +185,53 @@ function FullScreenSuccessCelebration() {
   );
 }
 
+interface TraceStarsPopupProps {
+  stars: number;
+}
+
+function TraceStarsPopup({ stars }: TraceStarsPopupProps) {
+  return (
+    <motion.div
+      className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="absolute h-40 w-40 rounded-full bg-yellow-bright/30 blur-2xl"
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1.05, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ duration: 0.35 }}
+      />
+      {Array.from({ length: stars }).map((_, index) => (
+        <motion.div
+          key={`trace-star-${index}`}
+          className="absolute"
+          initial={{
+            opacity: 0,
+            x: index % 2 === 0 ? -30 : 30,
+            y: 34,
+            scale: 0.4,
+            rotate: index % 2 === 0 ? -20 : 20,
+          }}
+          animate={{
+            opacity: [0, 1, 1, 0],
+            x: index % 2 === 0 ? -74 : 74,
+            y: -108 - index * 16,
+            scale: [0.4, 1.2, 1],
+            rotate: index % 2 === 0 ? -18 : 18,
+          }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          transition={{ duration: 1.2, delay: index * 0.12, ease: "easeOut" }}
+        >
+          <Star className="h-16 w-16 fill-yellow-bright text-yellow-bright drop-shadow-[0_0_18px_rgba(250,204,21,0.65)]" />
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
 export function LessonInterface({
   lessons,
   onComplete,
@@ -89,6 +243,9 @@ export function LessonInterface({
   const [score, setScore] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [traceResult, setTraceResult] = useState<TraceEvaluation | null>(null);
+  const [traceStarBurstCount, setTraceStarBurstCount] = useState<number | null>(
+    null,
+  );
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -101,12 +258,30 @@ export function LessonInterface({
   const hasLessons = lessons.length > 0;
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
-  const isQuizLesson = currentLesson?.lessonKind === "letter_quiz";
   const isTracePracticeLesson =
     currentLesson?.lessonKind === "letter_trace_practice" ||
     currentLesson?.lessonKind === "vocab_trace_practice";
   const isLetterTracePracticeLesson =
     currentLesson?.lessonKind === "letter_trace_practice";
+  const isVocabTracePracticeLesson =
+    currentLesson?.lessonKind === "vocab_trace_practice";
+  const isLetterTraceDemoLesson = currentLesson?.lessonKind === "letter_trace_demo";
+  // Gom nhóm 4 lesson chữ cái để dùng chung cách hiển thị instruction trên cùng
+  const shouldPromoteTitleToInstruction = Boolean(
+    currentLesson?.lessonKind &&
+      LETTER_TOP_INSTRUCTION_KINDS.has(currentLesson.lessonKind),
+  );
+  const topInstructionText = shouldPromoteTitleToInstruction
+    ? currentLesson?.title
+    : currentLesson?.instruction;
+  const topInstructionClassName = shouldPromoteTitleToInstruction
+    ? "text-xl md:text-2xl text-foreground font-bold mb-5"
+    : "text-lg text-muted-foreground mb-2";
+  const secondaryQuestionText = shouldPromoteTitleToInstruction
+    ? undefined
+    : currentLesson?.question;
+  const showTitleBelowPreview =
+    Boolean(currentLesson?.title) && !shouldPromoteTitleToInstruction;
   const hasAnswerOptions = Boolean(currentLesson?.answers?.length);
   const targetText =
     currentLesson?.targetText ?? currentLesson?.targetLetter ?? "";
@@ -114,16 +289,17 @@ export function LessonInterface({
     currentLesson?.scoring?.starThresholds?.oneStar ?? 0.5;
   const traceTwoStarThreshold =
     currentLesson?.scoring?.starThresholds?.twoStars ?? 0.85;
-  const showPreviewCard = !isTracePracticeLesson;
+  const showPreviewCard = !isTracePracticeLesson && !isLetterTraceDemoLesson;
   const requiresAnimationComplete =
     currentLesson?.type === "passive" &&
     Boolean(currentLesson.gating?.requireAnimationComplete);
-  const displayText = isQuizLesson
-    ? "?"
-    : currentLesson?.targetText ??
-      currentLesson?.targetLetter ??
-      currentLesson?.title ??
-      "?";
+  // Lesson quiz hiển thị chữ cái thật dưới lớp sương, không còn dấu hỏi
+  const isFogRevealLesson = currentLesson?.lessonKind === "letter_quiz";
+  const displayText =
+    currentLesson?.targetText ??
+    currentLesson?.targetLetter ??
+    currentLesson?.title ??
+    "?";
 
   // Filter active lessons for scoring context
   const activeLessonsCount = lessons.filter((l) => l.type === "active").length;
@@ -160,8 +336,25 @@ export function LessonInterface({
     playAudio(currentLesson.mainAudio);
   }, [currentStep, currentLesson?.mainAudio]);
 
+  const handleTraceDemoComplete = useCallback(() => {
+    setPassiveReady(true);
+  }, []);
+
   useEffect(() => {
-    if (!requiresAnimationComplete || passiveReady) return;
+    if (!traceStarBurstCount) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setTraceStarBurstCount(null);
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [traceStarBurstCount]);
+
+  useEffect(() => {
+    if (!requiresAnimationComplete || passiveReady || isLetterTraceDemoLesson)
+      return;
 
     const timeoutId = window.setTimeout(() => {
       setPassiveReady(true);
@@ -170,7 +363,7 @@ export function LessonInterface({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [requiresAnimationComplete, passiveReady, currentStep]);
+  }, [requiresAnimationComplete, passiveReady, currentStep, isLetterTraceDemoLesson]);
 
   const handleScoringResult = (correct: boolean) => {
     setIsCorrect(correct);
@@ -209,6 +402,10 @@ export function LessonInterface({
     }
 
     setTraceResult(result);
+    // Lesson 4 hiển thị popup sao bay lên thay vì hiện điểm %
+    if (currentLesson.lessonKind === "letter_trace_practice" && result.stars > 0) {
+      setTraceStarBurstCount(Math.min(2, result.stars));
+    }
     const correct = result.score >= traceOneStarThreshold;
     handleScoringResult(correct);
   };
@@ -217,6 +414,7 @@ export function LessonInterface({
     setSelectedAnswer(null);
     setIsCorrect(null);
     setTraceResult(null);
+    setTraceStarBurstCount(null);
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -249,9 +447,13 @@ export function LessonInterface({
     return (
       <div className="relative w-full h-dvh flex flex-col items-center justify-center bg-background">
         <p>No lessons available.</p>
-        <button onClick={onBack} className="mt-4 p-2 bg-gray-200 rounded">
+        <LessonButton
+          onClick={onBack}
+          className="mt-4 rounded-2xl"
+          frontClassName="px-5 py-2 text-sm"
+        >
           Back
-        </button>
+        </LessonButton>
       </div>
     );
   }
@@ -316,19 +518,21 @@ export function LessonInterface({
               : "Bạn đã hoàn thành bài học!"}
           </motion.p>
 
-          <motion.button
-            onClick={onComplete}
-            className="mt-8 relative group ios-button"
+          <motion.div
+            className="mt-8 inline-block"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 1.5 }}
             whileTap={{ scale: 0.95 }}
           >
-            <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 transition-transform" />
-            <div className="relative bg-green-bright text-white text-xl font-bold px-12 py-4 rounded-3xl">
+            <LessonButton
+              onClick={onComplete}
+              className="rounded-3xl"
+              frontClassName="px-12 py-4 text-xl"
+            >
               Tiếp Tục
-            </div>
-          </motion.button>
+            </LessonButton>
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -339,15 +543,23 @@ export function LessonInterface({
       <AnimatePresence>
         {isCorrect === true && <FullScreenSuccessCelebration />}
       </AnimatePresence>
+      <AnimatePresence>
+        {traceStarBurstCount && isLetterTracePracticeLesson && (
+          <TraceStarsPopup stars={traceStarBurstCount} />
+        )}
+      </AnimatePresence>
 
       <div className="p-4 flex items-center gap-4 pt-safe">
-        <motion.button
-          onClick={onBack}
-          className="p-3 bg-white rounded-2xl shadow-lg text-muted-foreground ios-button"
-          whileTap={{ scale: 0.95 }}
-        >
-          <X className="w-6 h-6" />
-        </motion.button>
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <LessonButton
+            onClick={onBack}
+            className="rounded-2xl"
+            frontClassName="h-12 w-12"
+            aria-label="Thoát bài học"
+          >
+            <X className="w-6 h-6" />
+          </LessonButton>
+        </motion.div>
 
         <div className="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden">
           <motion.div
@@ -372,20 +584,21 @@ export function LessonInterface({
             exit={{ opacity: 0, x: -50 }}
             className="relative w-full max-w-md text-center"
           >
-            {currentLesson.instruction && (
-              <p className="text-lg text-muted-foreground mb-2">
-                {currentLesson.instruction}
+            {/* Ưu tiên đưa tiêu đề lesson chữ cái lên đầu màn hình như instruction */}
+            {topInstructionText && (
+              <p className={topInstructionClassName}>
+                {topInstructionText}
               </p>
             )}
-            {currentLesson.question && (
+            {secondaryQuestionText && (
               <p className="text-xl text-foreground font-semibold mb-4">
-                {currentLesson.question}
+                {secondaryQuestionText}
               </p>
             )}
 
             {showPreviewCard && (
               <motion.div
-                className="relative mx-auto w-48 h-48 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-6 overflow-hidden"
+                className="relative mx-auto h-60 w-60 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
                 animate={
                   currentLesson.type === "passive"
                     ? { scale: [1, 1.02, 1] }
@@ -406,23 +619,36 @@ export function LessonInterface({
                     />
                   </div>
                 ) : (
-                  <span className="text-6xl font-bold text-green-bright">
+                  <span
+                    className={`absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap font-bold leading-none text-green-bright ${getPreviewTextSizeClass(displayText)}`}
+                  >
                     {displayText}
                   </span>
                 )}
 
+                {/* Lesson nghe-chọn hiển thị chữ cái dưới lớp sương để bé chạm và mở dần */}
+                {isFogRevealLesson && !currentLesson.mainImage && (
+                  <FogRevealOverlay revealKey={currentLesson.id} />
+                )}
+
                 {currentLesson.mainAudio && (
-                  <motion.button
-                    className="absolute bottom-2 right-2 w-10 h-10 bg-orange-bright rounded-full shadow-lg flex items-center justify-center z-10"
-                    whileHover={{ scale: 1.1 }}
+                  <motion.div
+                    className="absolute bottom-2 right-2 z-20"
+                    whileHover={{ scale: 1.08 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(currentLesson.mainAudio!);
-                    }}
                   >
-                    <Volume2 className="w-5 h-5 text-white" />
-                  </motion.button>
+                    <LessonButton
+                      className="rounded-full"
+                      frontClassName="h-10 w-10"
+                      aria-label="Phát lại âm thanh"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(currentLesson.mainAudio!);
+                      }}
+                    >
+                      <Volume2 className="w-5 h-5 text-white" />
+                    </LessonButton>
+                  </motion.div>
                 )}
               </motion.div>
             )}
@@ -430,18 +656,22 @@ export function LessonInterface({
             {currentLesson.audioVariants && currentLesson.audioVariants.length > 0 && (
               <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
                 {currentLesson.audioVariants.map((variant) => (
-                  <button
+                  <LessonButton
                     key={variant.speed}
-                    onClick={() => playAudio(variant.audio)}
-                    className="rounded-xl border-2 border-green-bright/30 bg-white px-4 py-2 text-sm font-semibold text-foreground ios-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(variant.audio);
+                    }}
+                    className="rounded-xl"
+                    frontClassName="px-4 py-2 text-sm"
                   >
                     {getSpeedLabel(variant.speed)}
-                  </button>
+                  </LessonButton>
                 ))}
               </div>
             )}
 
-            {currentLesson.title && (
+            {showTitleBelowPreview && (
               <h2 className="text-2xl font-bold text-foreground mb-4">
                 {currentLesson.title}
               </h2>
@@ -455,19 +685,31 @@ export function LessonInterface({
               </p>
             )}
 
+            {currentLesson.type === "passive" && isLetterTraceDemoLesson && (
+              <div className="mt-2 flex flex-col items-center gap-3">
+                {/* Dùng lại khung tô chữ và cho hệ thống tự chạy nét mẫu */}
+                <LetterTracingCanvas
+                  key={`${currentLesson.id}-demo`}
+                  mode="demo"
+                  targetText={targetText}
+                  onAutoTraceComplete={handleTraceDemoComplete}
+                />
+              </div>
+            )}
+
             {currentLesson.type === "passive" && (
-              <motion.button
-                onClick={handleNext}
-                disabled={!passiveReady}
-                className={`mt-4 relative group ios-button inline-block ${
-                  !passiveReady ? "pointer-events-none opacity-70" : ""
-                }`}
+              <motion.div
+                className="mt-4 inline-block"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 whileTap={passiveReady ? { scale: 0.95 } : {}}
               >
-                <div className="absolute inset-0 bg-blue-500 rounded-3xl translate-y-2 transition-transform" />
-                <div className="relative bg-blue-400 text-white text-xl font-bold px-12 py-4 rounded-3xl flex items-center gap-2">
+                <LessonButton
+                  onClick={handleNext}
+                  disabled={!passiveReady}
+                  className="rounded-3xl"
+                  frontClassName="px-12 py-4 text-xl flex items-center gap-2"
+                >
                   {passiveReady ? (
                     <>
                       Tiếp Tục <ArrowRight className="w-6 h-6" />
@@ -475,8 +717,8 @@ export function LessonInterface({
                   ) : (
                     "Đang xem mẫu..."
                   )}
-                </div>
-              </motion.button>
+                </LessonButton>
+              </motion.div>
             )}
 
             {currentLesson.type === "active" && hasAnswerOptions && (
@@ -486,46 +728,46 @@ export function LessonInterface({
                   const isCorrectAnswer = answer.isCorrect;
                   const showResult = selectedAnswer !== null;
 
-                  let bgColor = "bg-white";
-                  let borderColor = "border-gray-200";
-                  let textColor = "text-foreground";
-
-                  if (showResult) {
-                    if (isCorrectAnswer) {
-                      bgColor = "bg-green-bright";
-                      borderColor = "border-green-bright";
-                      textColor = "text-white";
-                    } else if (isSelected && !isCorrectAnswer) {
-                      bgColor = "bg-red-500";
-                      borderColor = "border-red-500";
-                      textColor = "text-white";
-                    }
-                  }
+                  // Giữ tone xanh-cam cho đáp án, chỉ đổi đỏ khi bé chọn sai
+                  const answerTone =
+                    showResult && isSelected && !isCorrectAnswer
+                      ? "danger"
+                      : "brand";
+                  const fadeUnselectedWrong =
+                    showResult && !isCorrectAnswer && !isSelected
+                      ? "opacity-80"
+                      : "";
+                  const highlightCorrect = showResult && isCorrectAnswer;
 
                   return (
-                    <motion.button
+                    <motion.div
                       key={answer.id}
-                      onClick={() => handleAnswer(answer)}
-                      disabled={selectedAnswer !== null}
-                      className={`min-w-20 min-h-20 px-4 py-2 ${bgColor} ${textColor} text-3xl font-bold rounded-2xl border-4 ${borderColor} shadow-lg ios-button flex items-center justify-center relative overflow-hidden`}
                       initial={{ y: 30, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: index * 0.1 }}
                       whileTap={!selectedAnswer ? { scale: 0.95 } : {}}
                     >
-                      {answer.image ? (
-                        <div className="w-12 h-12 relative">
-                          <Image
-                            src={answer.image}
-                            alt={answer.text || "Answer"}
-                            fill
-                            className="object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <span className="relative z-10">{answer.text}</span>
-                      )}
-                    </motion.button>
+                      <LessonButton
+                        tone={answerTone}
+                        onClick={() => handleAnswer(answer)}
+                        disabled={selectedAnswer !== null}
+                        className={`rounded-2xl ${highlightCorrect ? "ring-4 ring-green-bright/30" : ""}`}
+                        frontClassName={`min-w-24 min-h-24 px-4 py-2 text-5xl leading-none ${fadeUnselectedWrong}`}
+                      >
+                        {answer.image ? (
+                          <div className="w-12 h-12 relative">
+                            <Image
+                              src={answer.image}
+                              alt={answer.text || "Answer"}
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <span className="relative z-10">{answer.text}</span>
+                        )}
+                      </LessonButton>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -533,14 +775,15 @@ export function LessonInterface({
 
             {currentLesson.type === "active" && isTracePracticeLesson && (
               <div className="mt-2 flex flex-col items-center gap-3">
-                <p className="text-sm text-muted-foreground">
-                  {isLetterTracePracticeLesson
-                    ? "Bé tô theo chữ cái mờ bên dưới nhé."
-                    : `Bé tô theo mẫu từ "${targetText}".`}
-                </p>
+                {!isLetterTracePracticeLesson && (
+                  <p className="text-sm text-muted-foreground">
+                    {`Bé tô theo mẫu từ "${targetText}".`}
+                  </p>
+                )}
 
                 <LetterTracingCanvas
                   key={currentLesson.id}
+                  mode="practice"
                   targetText={targetText}
                   disabled={isCorrect !== null}
                   oneStarThreshold={traceOneStarThreshold}
@@ -548,7 +791,7 @@ export function LessonInterface({
                   onEvaluate={handleTraceEvaluate}
                 />
 
-                {traceResult && (
+                {traceResult && isVocabTracePracticeLesson && (
                   <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-md">
                     <p className="text-sm font-semibold text-foreground">
                       Điểm tô: {(traceResult.score * 100).toFixed(0)}%
@@ -564,18 +807,20 @@ export function LessonInterface({
             {currentLesson.type === "active" &&
               !hasAnswerOptions &&
               !isTracePracticeLesson && (
-                <motion.button
-                  onClick={handleNext}
-                  className="mt-4 relative group ios-button inline-block"
+                <motion.div
+                  className="mt-4 inline-block"
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <div className="absolute inset-0 bg-blue-500 rounded-3xl translate-y-2 transition-transform" />
-                  <div className="relative bg-blue-400 text-white text-xl font-bold px-12 py-4 rounded-3xl flex items-center gap-2">
+                  <LessonButton
+                    onClick={handleNext}
+                    className="rounded-3xl"
+                    frontClassName="px-12 py-4 text-xl flex items-center gap-2"
+                  >
                     Tiếp Tục <ArrowRight className="w-6 h-6" />
-                  </div>
-                </motion.button>
+                  </LessonButton>
+                </motion.div>
               )}
 
             <AnimatePresence>

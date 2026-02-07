@@ -39,10 +39,25 @@ function createLetterAnswers(
   letter: string,
   distractors: LetterDistractors,
 ): LessonAnswer[] {
+  // Chuẩn hóa đáp án về chữ thường để UI hiển thị đồng bộ giữa các floor
+  const normalizedLetter = letter.toLocaleLowerCase();
+  const normalizedDistractors: LetterDistractors = [
+    distractors[0].toLocaleLowerCase(),
+    distractors[1].toLocaleLowerCase(),
+  ];
+
   return [
-    { id: "correct", text: letter, isCorrect: true },
-    { id: "distractor-1", text: distractors[0], isCorrect: false },
-    { id: "distractor-2", text: distractors[1], isCorrect: false },
+    { id: "correct", text: normalizedLetter, isCorrect: true },
+    {
+      id: "distractor-1",
+      text: normalizedDistractors[0],
+      isCorrect: false,
+    },
+    {
+      id: "distractor-2",
+      text: normalizedDistractors[1],
+      isCorrect: false,
+    },
   ];
 }
 
@@ -50,18 +65,19 @@ export function createLetterFloorLessons(
   config: LetterFloorLessonConfig,
 ): LessonContent[] {
   const { lessonPrefix, letter, letterAssetKey, distractors } = config;
+  // Chuẩn hóa chữ cái mục tiêu sang chữ thường để áp dụng cho toàn bộ lesson 1-4
+  const normalizedLetter = letter.toLocaleLowerCase();
 
   return [
     {
       id: `${lessonPrefix}-l1`,
       type: "passive",
       lessonKind: "letter_listen",
-      title: `Làm quen chữ ${letter}`,
-      instruction: `Bé hãy lắng nghe thật kỹ cách phát âm chữ cái "${letter}".`,
+      title: `Làm quen chữ cái "${normalizedLetter}"`,
       introVoice: `/assets/audio/intro/${letter}.mp3`,
       mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
       audioVariants: createLetterAudioVariants(letterAssetKey),
-      targetLetter: letter,
+      targetLetter: normalizedLetter,
       gating: {
         requiredAudioPlays: 3,
         requiredPlaybackSpeeds: ["slow", "normal", "fast"],
@@ -76,13 +92,11 @@ export function createLetterFloorLessons(
       id: `${lessonPrefix}-l2`,
       type: "active",
       lessonKind: "letter_quiz",
-      title: `Nghe và chọn chữ ${letter}`,
-      instruction: "Bé hãy nghe thật kỹ rồi chọn chữ cái đúng nha.",
+      title: "Nghe và chọn chữ cái",
       introVoice: `/assets/audio/intro/${letter}.mp3`,
-      question: `Chữ "${letter}" ở đâu nhỉ?`,
       mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
       answers: createLetterAnswers(letter, distractors),
-      targetLetter: letter,
+      targetLetter: normalizedLetter,
       scoring: {
         metric: "correct_answer",
         passPolicy: "always",
@@ -96,11 +110,10 @@ export function createLetterFloorLessons(
       id: `${lessonPrefix}-l3`,
       type: "passive",
       lessonKind: "letter_trace_demo",
-      title: `Xem viết chữ ${letter}`,
-      instruction: `Bé hãy nhìn kỹ cách viết chữ cái "${letter}".`,
+      title: `Xem cách viết chữ cái "${normalizedLetter}"`,
       introVoice: `/assets/audio/intro/${letter}.mp3`,
-      mainImage: `/assets/tracing/letters/${letterAssetKey}-demo.gif`,
-      targetLetter: letter,
+      targetLetter: normalizedLetter,
+      targetText: normalizedLetter,
       gating: {
         requireAnimationComplete: true,
       },
@@ -114,11 +127,10 @@ export function createLetterFloorLessons(
       id: `${lessonPrefix}-l4`,
       type: "active",
       lessonKind: "letter_trace_practice",
-      title: `Viết lại chữ ${letter}`,
-      instruction: `Bé hãy viết lại chữ cái "${letter}" theo nét mờ nhé.`,
+      title: `Viết lại chữ cái "${normalizedLetter}"`,
       introVoice: `/assets/audio/intro/${letter}.mp3`,
-      targetLetter: letter,
-      targetText: letter.toLocaleLowerCase(),
+      targetLetter: normalizedLetter,
+      targetText: normalizedLetter,
       scoring: {
         metric: "trace_accuracy",
         passPolicy: "always",
