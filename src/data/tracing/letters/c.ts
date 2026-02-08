@@ -6,23 +6,25 @@ export const letterStrokeC: LetterStrokeAnimation = {
   strokes: [
     {
       // Nét 1: cong trái, đặt bút dưới đường kẻ 3 một chút
-      start: { x: 188, y: 148 },
+      start: { x: 182, y: 160 },
       curves: [
         {
-          control1: { x: 176, y: 134 },
-          control2: { x: 128, y: 124 },
-          end: { x: 96, y: 164 },
+          control1: { x: 172, y: 134 },
+          control2: { x: 120, y: 134 },
+          // Vòng lên chạm đường kẻ 3
+          end: { x: 98, y: 170 },
         },
         {
-          control1: { x: 70, y: 196 },
-          control2: { x: 72, y: 264 },
-          end: { x: 126, y: 278 },
+          control1: { x: 78, y: 210 },
+          control2: { x: 84, y: 274 },
+          // Vòng xuống chạm đường kẻ 1 (đáy)
+          end: { x: 134, y: 276 },
         },
         {
-          control1: { x: 166, y: 286 },
-          control2: { x: 202, y: 262 },
-          // Dừng ở khoảng giữa đường kẻ 1 và đường kẻ 2
-          end: { x: 186, y: 244 },
+          control1: { x: 174, y: 278 },
+          control2: { x: 188, y: 260 },
+          // Kết thúc lưng chừng đường kẻ 1-2
+          end: { x: 182, y: 230 },
         },
       ],
       // Nét đơn liền mạch chạy chậm để bé quan sát rõ hướng tô
