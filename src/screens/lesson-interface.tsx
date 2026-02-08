@@ -1,6 +1,12 @@
 "use client";
 
-import { type PointerEvent, useCallback, useState, useEffect, useRef } from "react";
+import {
+  type PointerEvent,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, RotateCcw, X, Star, ArrowRight } from "lucide-react";
@@ -43,7 +49,7 @@ const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
   left: (index * 17) % 100,
   delay: (index % 7) * 0.07,
   duration: 1.2 + (index % 5) * 0.28,
-  xDrift: ((index % 2 === 0 ? 1 : -1) * (10 + (index % 4) * 8)),
+  xDrift: (index % 2 === 0 ? 1 : -1) * (10 + (index % 4) * 8),
   rotate: (index * 43) % 360,
   color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
 }));
@@ -225,12 +231,13 @@ export function LessonInterface({
     currentLesson?.lessonKind === "letter_trace_practice";
   const isVocabTracePracticeLesson =
     currentLesson?.lessonKind === "vocab_trace_practice";
-  const isLetterTraceDemoLesson = currentLesson?.lessonKind === "letter_trace_demo";
+  const isLetterTraceDemoLesson =
+    currentLesson?.lessonKind === "letter_trace_demo";
   const isLetterListenLesson = currentLesson?.lessonKind === "letter_listen";
   // Gom nhóm 4 lesson chữ cái để dùng chung cách hiển thị instruction trên cùng
   const shouldPromoteTitleToInstruction = Boolean(
     currentLesson?.lessonKind &&
-      LETTER_TOP_INSTRUCTION_KINDS.has(currentLesson.lessonKind),
+    LETTER_TOP_INSTRUCTION_KINDS.has(currentLesson.lessonKind),
   );
   const topInstructionText = shouldPromoteTitleToInstruction
     ? currentLesson?.title
@@ -327,7 +334,12 @@ export function LessonInterface({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [requiresAnimationComplete, passiveReady, currentStep, isLetterTraceDemoLesson]);
+  }, [
+    requiresAnimationComplete,
+    passiveReady,
+    currentStep,
+    isLetterTraceDemoLesson,
+  ]);
 
   const handleScoringResult = (
     correct: boolean,
@@ -366,7 +378,11 @@ export function LessonInterface({
       answer.isCorrect && currentLesson.scoring?.maxStars
         ? currentLesson.scoring.maxStars
         : 0;
-    handleScoringResult(answer.isCorrect, FEEDBACK_ADVANCE_DELAY_MS, earnedStars);
+    handleScoringResult(
+      answer.isCorrect,
+      FEEDBACK_ADVANCE_DELAY_MS,
+      earnedStars,
+    );
   };
 
   const handleTraceEvaluate = (result: TraceEvaluation) => {
@@ -566,9 +582,7 @@ export function LessonInterface({
           >
             {/* Ưu tiên đưa tiêu đề lesson chữ cái lên đầu màn hình như instruction */}
             {topInstructionText && (
-              <p className={topInstructionClassName}>
-                {topInstructionText}
-              </p>
+              <p className={topInstructionClassName}>{topInstructionText}</p>
             )}
             {secondaryQuestionText && (
               <p className="text-xl text-foreground font-semibold mb-4">
@@ -576,124 +590,129 @@ export function LessonInterface({
               </p>
             )}
 
-            {showPreviewCard && isLetterGridPreviewLesson && !currentLesson.mainImage && (
-              <motion.div
-                className="relative mx-auto mb-6 inline-block"
-                animate={
-                  currentLesson.type === "passive"
-                    ? { scale: [1, 1.02, 1] }
-                    : {}
-                }
-                transition={{ duration: 2, repeat: Infinity }}
-                onClick={() =>
-                  currentLesson.mainAudio && playAudio(currentLesson.mainAudio)
-                }
-              >
-                <LetterTracingCanvas
-                  key={`${currentLesson.id}-filled-preview`}
-                  mode="preview"
-                  targetText={targetText || displayText}
-                />
-                {isFogRevealLesson && (
-                  <FogRevealOverlay
-                    revealKey={currentLesson.id}
-                    width={LETTER_TRACING_CANVAS_WIDTH}
-                    height={LETTER_TRACING_CANVAS_HEIGHT}
-                    roundedClassName="rounded-md"
+            {showPreviewCard &&
+              isLetterGridPreviewLesson &&
+              !currentLesson.mainImage && (
+                <motion.div
+                  className="relative mx-auto mb-6 inline-block"
+                  animate={
+                    currentLesson.type === "passive"
+                      ? { scale: [1, 1.02, 1] }
+                      : {}
+                  }
+                  transition={{ duration: 2, repeat: Infinity }}
+                  onClick={() =>
+                    currentLesson.mainAudio &&
+                    playAudio(currentLesson.mainAudio)
+                  }
+                >
+                  <LetterTracingCanvas
+                    key={`${currentLesson.id}-filled-preview`}
+                    mode="preview"
+                    targetText={targetText || displayText}
                   />
-                )}
-                {currentLesson.mainAudio && (
-                  <motion.div
-                    className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <LessonButton
-                      className="rounded-full"
-                      frontClassName="h-10 w-10"
-                      aria-label="Phát lại âm thanh"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        playAudio(currentLesson.mainAudio!);
-                      }}
+                  {isFogRevealLesson && (
+                    <FogRevealOverlay
+                      revealKey={currentLesson.id}
+                      width={LETTER_TRACING_CANVAS_WIDTH}
+                      height={LETTER_TRACING_CANVAS_HEIGHT}
+                      roundedClassName="rounded-md"
+                    />
+                  )}
+                  {currentLesson.mainAudio && (
+                    <motion.div
+                      className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <Volume2 className="w-5 h-5 text-white" />
-                    </LessonButton>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
+                      <LessonButton
+                        className="rounded-full"
+                        frontClassName="h-10 w-10"
+                        aria-label="Phát lại âm thanh"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playAudio(currentLesson.mainAudio!);
+                        }}
+                      >
+                        <Volume2 className="w-5 h-5 text-white" />
+                      </LessonButton>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
 
             {showPreviewCard &&
               !(isLetterGridPreviewLesson && !currentLesson.mainImage) && (
-              <motion.div
-                className="relative mx-auto h-60 w-60 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
-                animate={
-                  currentLesson.type === "passive"
-                    ? { scale: [1, 1.02, 1] }
-                    : {}
-                }
-                transition={{ duration: 2, repeat: Infinity }}
-                onClick={() =>
-                  currentLesson.mainAudio && playAudio(currentLesson.mainAudio)
-                }
-              >
-                {currentLesson.mainImage ? (
-                  <div className="relative w-full h-full p-4">
-                    <Image
-                      src={currentLesson.mainImage}
-                      alt={currentLesson.title || "Lesson Image"}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <span
-                    className={`absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap font-bold leading-none text-green-bright ${getPreviewTextSizeClass(displayText)}`}
-                  >
-                    {displayText}
-                  </span>
-                )}
+                <motion.div
+                  className="relative mx-auto h-60 w-60 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
+                  animate={
+                    currentLesson.type === "passive"
+                      ? { scale: [1, 1.02, 1] }
+                      : {}
+                  }
+                  transition={{ duration: 2, repeat: Infinity }}
+                  onClick={() =>
+                    currentLesson.mainAudio &&
+                    playAudio(currentLesson.mainAudio)
+                  }
+                >
+                  {currentLesson.mainImage ? (
+                    <div className="relative w-full h-full p-4">
+                      <Image
+                        src={currentLesson.mainImage}
+                        alt={currentLesson.title || "Lesson Image"}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <span
+                      className={`absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap font-bold leading-none text-green-bright ${getPreviewTextSizeClass(displayText)}`}
+                    >
+                      {displayText}
+                    </span>
+                  )}
 
-                {currentLesson.mainAudio && (
-                  <motion.div
-                    className="absolute bottom-2 right-2 z-20"
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
+                  {currentLesson.mainAudio && (
+                    <motion.div
+                      className="absolute bottom-2 right-2 z-20"
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <LessonButton
+                        className="rounded-full"
+                        frontClassName="h-10 w-10"
+                        aria-label="Phát lại âm thanh"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playAudio(currentLesson.mainAudio!);
+                        }}
+                      >
+                        <Volume2 className="w-5 h-5 text-white" />
+                      </LessonButton>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+
+            {currentLesson.audioVariants &&
+              currentLesson.audioVariants.length > 0 && (
+                <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+                  {currentLesson.audioVariants.map((variant) => (
                     <LessonButton
-                      className="rounded-full"
-                      frontClassName="h-10 w-10"
-                      aria-label="Phát lại âm thanh"
+                      key={variant.speed}
                       onClick={(e) => {
                         e.stopPropagation();
-                        playAudio(currentLesson.mainAudio!);
+                        playAudio(variant.audio);
                       }}
+                      className="rounded-xl"
+                      frontClassName="px-4 py-2 text-sm"
                     >
-                      <Volume2 className="w-5 h-5 text-white" />
+                      {getSpeedLabel(variant.speed)}
                     </LessonButton>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {currentLesson.audioVariants && currentLesson.audioVariants.length > 0 && (
-              <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-                {currentLesson.audioVariants.map((variant) => (
-                  <LessonButton
-                    key={variant.speed}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(variant.audio);
-                    }}
-                    className="rounded-xl"
-                    frontClassName="px-4 py-2 text-sm"
-                  >
-                    {getSpeedLabel(variant.speed)}
-                  </LessonButton>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
             {showTitleBelowPreview && (
               <h2 className="text-2xl font-bold text-foreground mb-4">
@@ -710,7 +729,7 @@ export function LessonInterface({
             )}
 
             {currentLesson.type === "passive" && isLetterTraceDemoLesson && (
-              <div className="relative mt-2 inline-block">
+              <div className="relative mt-2 w-fit mx-auto">
                 {/* Dùng lại khung tô chữ và cho hệ thống tự chạy nét mẫu */}
                 <LetterTracingCanvas
                   key={`${currentLesson.id}-demo-${traceDemoReplayKey}`}

@@ -37,7 +37,7 @@ export function LessonStarCelebration({ stars }: LessonStarCelebrationProps) {
       aria-hidden
     >
       <motion.div
-        className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/22 backdrop-blur-[4px]"
+        className="absolute left-1/2 top-[34%] h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/22 backdrop-blur-xs"
         initial={{ scale: 0.7, opacity: 0 }}
         animate={{ scale: [0.88, 1.02, 0.92], opacity: [0.36, 0.62, 0.44] }}
         exit={{ opacity: 0, scale: 0.82 }}
@@ -51,7 +51,7 @@ export function LessonStarCelebration({ stars }: LessonStarCelebrationProps) {
         transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute left-1/2 top-[34%] h-[328px] w-[328px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.32),rgba(254,249,195,0))]"
+        className="absolute left-1/2 top-[34%] h-82 w-82 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.32),rgba(254,249,195,0))]"
         initial={{ rotate: 0, opacity: 0 }}
         animate={{ rotate: 360, opacity: [0.2, 0.36, 0.2] }}
         exit={{ opacity: 0 }}
@@ -101,7 +101,7 @@ export function LessonStarCelebration({ stars }: LessonStarCelebrationProps) {
           }}
         >
           <motion.div
-            className="absolute left-1/2 top-1/2 h-[104px] w-[104px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100/72 blur-2xl"
+            className="absolute left-1/2 top-1/2 h-26 w-26 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100/72 blur-2xl"
             animate={{ opacity: [0.5, 0.88, 0.56], scale: [0.92, 1.08, 0.96] }}
             transition={{ duration: 1.32, repeat: Infinity, ease: "easeInOut" }}
           />

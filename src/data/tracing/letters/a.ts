@@ -5,52 +5,48 @@ export const letterStrokeA: LetterStrokeAnimation = {
   letter: "a",
   strokes: [
     {
-      // Nét 1: cong kín, đặt bút dưới đường kẻ 3 một chút rồi rê từ phải sang trái
-      start: { x: 188, y: 148 },
+      // Nét 1: cong kín, hạ thấp điểm bắt đầu (xấp xỉ giữa dòng 2)
+      start: { x: 184, y: 165 },
       curves: [
         {
-          control1: { x: 176, y: 134 },
-          control2: { x: 126, y: 126 },
-          end: { x: 96, y: 166 },
+          control1: { x: 168, y: 140 },
+          control2: { x: 100, y: 140 },
+          // Vòng sâu vào giữa cột 1 bên trái (x~46)
+          end: { x: 46, y: 200 },
         },
         {
-          control1: { x: 68, y: 202 },
-          control2: { x: 74, y: 270 },
-          end: { x: 126, y: 278 },
+          control1: { x: 30, y: 240 },
+          control2: { x: 60, y: 280 },
+          // Chạm đáy tại cột 2
+          end: { x: 134, y: 278 },
         },
         {
-          control1: { x: 166, y: 286 },
-          control2: { x: 214, y: 258 },
-          end: { x: 214, y: 214 },
-        },
-        {
-          control1: { x: 214, y: 182 },
-          control2: { x: 196, y: 160 },
-          // Dừng bút ở hông phải, gần đường kẻ 2 để nối logic sang nét 2
-          end: { x: 170, y: 194 },
+          control1: { x: 174, y: 276 },
+          control2: { x: 194, y: 230 },
+          // Khép kín vòng tròn, gặp lại điểm bắt đầu
+          end: { x: 182, y: 165 },
         },
       ],
-      // Nét cong kín chạy chậm để bé quan sát rõ hướng đi của bút
       durationMs: 4600,
-      // Dừng nhẹ 1s sau nét 1 trước khi bắt đầu nét 2
       pauseAfterMs: 1000,
     },
     {
-      // Nét 2: lia lên đường kẻ 3, viết móc ngược phải sát nét cong kín và dừng ở đường kẻ 2
-      start: { x: 188, y: 142 },
+      // Nét 2: nét móc ngược phải, từ đỉnh xuống đáy rồi móc rộng sang phải
+      start: { x: 184, y: 140 },
       curves: [
         {
-          control1: { x: 190, y: 156 },
-          control2: { x: 192, y: 186 },
-          end: { x: 194, y: 210 },
+          control1: { x: 184, y: 220 },
+          control2: { x: 186, y: 260 },
+          // Đi thẳng xuống đáy
+          end: { x: 190, y: 276 },
         },
         {
-          control1: { x: 198, y: 218 },
-          control2: { x: 208, y: 214 },
-          end: { x: 214, y: 208 },
+          control1: { x: 200, y: 284 },
+          control2: { x: 250, y: 280 },
+          // Móc rộng sang phải, chạm biên phải cột 3 (x~270)
+          end: { x: 270, y: 240 },
         },
       ],
-      // Nét móc ngược phải tiếp tục chạy chậm để bé dễ bắt chước theo
       durationMs: 2400,
     },
   ],
