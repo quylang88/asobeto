@@ -20,8 +20,14 @@ import {
   type TraceEvaluation,
 } from "../components/letter-tracing-canvas";
 import { LessonContent, LessonAnswer } from "../data/game-config";
+import {
+  getStoredLessonStars,
+  saveFloorProgress,
+} from "@/lib/floor-progress";
 
 interface LessonInterfaceProps {
+  worldId: number;
+  towerId: number;
   floorId: number;
   floorName: string;
   lessons: LessonContent[];
@@ -37,6 +43,7 @@ const FEEDBACK_CHEER_AUDIO = "/assets/audio/feedback/applause-cheer.mp3";
 const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
 const FOG_ERASE_RADIUS = 24;
 const LESSON_PREVIEW_CONTROL_OFFSET_CLASS = "-right-14";
+const FLOOR_MAX_STARS = 3;
 const LETTER_TOP_INSTRUCTION_KINDS = new Set([
   "letter_listen",
   "letter_quiz",
@@ -65,6 +72,39 @@ function getPreviewTextSizeClass(value: string): string {
   if (charCount <= 1) return "text-[10rem] md:text-[11rem]";
   if (charCount === 2) return "text-[8.5rem] md:text-[9.5rem]";
   return "text-7xl md:text-8xl";
+}
+
+function getLessonMaxStars(lesson: LessonContent): number {
+  if (lesson.type !== "active") return 0;
+  return lesson.scoring?.maxStars ?? 0;
+}
+
+function getAttemptFloorStars(
+  lessons: LessonContent[],
+  lessonStars: Record<string, number>,
+): number {
+  const totalPossibleStars = lessons.reduce(
+    (sum, lesson) => sum + getLessonMaxStars(lesson),
+    0,
+  );
+  const earnedStars = lessons.reduce((sum, lesson) => {
+    if (lesson.type !== "active") return sum;
+    return sum + (lessonStars[lesson.id] ?? 0);
+  }, 0);
+
+  if (totalPossibleStars <= 0) {
+    return FLOOR_MAX_STARS;
+  }
+
+  return Math.max(0, Math.min(FLOOR_MAX_STARS, Math.round(earnedStars)));
+}
+
+function getTracePracticeLessonIdFromDemoLessonId(
+  demoLessonId: string | undefined,
+): string | null {
+  if (!demoLessonId) return null;
+  const pairedLessonId = demoLessonId.replace(/-l3$/, "-l4");
+  return pairedLessonId === demoLessonId ? null : pairedLessonId;
 }
 
 interface FogRevealOverlayProps {
@@ -199,6 +239,9 @@ function FullScreenSuccessCelebration() {
 }
 
 export function LessonInterface({
+  worldId,
+  towerId,
+  floorId,
   lessons,
   onComplete,
   onBack,
@@ -207,9 +250,15 @@ export function LessonInterface({
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
+  const [lessonStarsThisAttempt, setLessonStarsThisAttempt] = useState<
+    Record<string, number>
+  >({});
+  const lessonStarsThisAttemptRef = useRef<Record<string, number>>({});
+  const [completionStars, setCompletionStars] = useState<number | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
   const [traceResult, setTraceResult] = useState<TraceEvaluation | null>(null);
   const [traceDemoReplayKey, setTraceDemoReplayKey] = useState(0);
+  const [traceDemoFastForwarded, setTraceDemoFastForwarded] = useState(false);
   const [celebrationStars, setCelebrationStars] = useState<number | null>(null);
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
@@ -272,6 +321,24 @@ export function LessonInterface({
 
   // Filter active lessons for scoring context
   const activeLessonsCount = lessons.filter((l) => l.type === "active").length;
+  const activeLessonsTotalStars = lessons.reduce(
+    (sum, lesson) => sum + getLessonMaxStars(lesson),
+    0,
+  );
+  const pairedTracePracticeLessonId = getTracePracticeLessonIdFromDemoLessonId(
+    currentLesson?.id,
+  );
+  const canFastForwardTraceDemo =
+    isLetterTraceDemoLesson &&
+    Boolean(
+      pairedTracePracticeLessonId &&
+        getStoredLessonStars({
+          worldId,
+          towerId,
+          floorId,
+          lessonId: pairedTracePracticeLessonId,
+        }) >= 1,
+    );
 
   const playAudio = (src: string) => {
     if (audioRef.current) {
@@ -288,6 +355,10 @@ export function LessonInterface({
     const audio = new Audio(src);
     audio.play().catch((err) => console.log("Audio play failed:", err));
   };
+
+  useEffect(() => {
+    lessonStarsThisAttemptRef.current = lessonStarsThisAttempt;
+  }, [lessonStarsThisAttempt]);
 
   // Dọn timeout chuyển lesson để tránh timer cũ "nhảy cóc" khi bé vào/ra màn nhiều lần
   const clearAdvanceTimeout = useCallback(() => {
@@ -320,8 +391,24 @@ export function LessonInterface({
   const handleReplayTraceDemo = () => {
     clearAdvanceTimeout();
     setPassiveReady(false);
+    setTraceDemoFastForwarded(false);
     setTraceDemoReplayKey((prev) => prev + 1);
   };
+
+  const handleFastForwardTraceDemo = useCallback(() => {
+    if (!canFastForwardTraceDemo || passiveReady || traceDemoFastForwarded) {
+      return;
+    }
+
+    clearAdvanceTimeout();
+    setTraceDemoFastForwarded(true);
+    setPassiveReady(true);
+  }, [
+    canFastForwardTraceDemo,
+    clearAdvanceTimeout,
+    passiveReady,
+    traceDemoFastForwarded,
+  ]);
 
   useEffect(() => {
     if (!requiresAnimationComplete || passiveReady || isLetterTraceDemoLesson)
@@ -346,6 +433,24 @@ export function LessonInterface({
     advanceDelayMs: number = FEEDBACK_ADVANCE_DELAY_MS,
     earnedStars: number = 0,
   ) => {
+    if (currentLesson?.type === "active") {
+      const normalizedStars = Math.max(
+        0,
+        Math.min(getLessonMaxStars(currentLesson), Math.round(earnedStars)),
+      );
+      setLessonStarsThisAttempt((prev) => {
+        const next = {
+          ...prev,
+          [currentLesson.id]: Math.max(
+            prev[currentLesson.id] ?? 0,
+            normalizedStars,
+          ),
+        };
+        lessonStarsThisAttemptRef.current = next;
+        return next;
+      });
+    }
+
     setIsCorrect(correct);
     if (correct) {
       setScore((prev) => prev + 1);
@@ -412,6 +517,7 @@ export function LessonInterface({
     setIsCorrect(null);
     setTraceResult(null);
     setTraceDemoReplayKey(0);
+    setTraceDemoFastForwarded(false);
     setCelebrationStars(null);
 
     if (audioRef.current) {
@@ -437,6 +543,17 @@ export function LessonInterface({
       return;
     }
 
+    const latestLessonStars = lessonStarsThisAttemptRef.current;
+    const attemptFloorStars = getAttemptFloorStars(lessons, latestLessonStars);
+    setCompletionStars(attemptFloorStars);
+    saveFloorProgress({
+      worldId,
+      towerId,
+      floorId,
+      floorStars: attemptFloorStars,
+      lessonStars: latestLessonStars,
+      maxStars: FLOOR_MAX_STARS,
+    });
     setShowCompletion(true);
   };
 
@@ -457,10 +574,8 @@ export function LessonInterface({
   }
 
   if (showCompletion) {
-    // If there were active lessons, calculate based on score.
-    // If purely passive, give full stars (3).
     const stars =
-      activeLessonsCount > 0 ? Math.ceil((score / activeLessonsCount) * 3) : 3;
+      completionStars ?? getAttemptFloorStars(lessons, lessonStarsThisAttempt);
 
     return (
       <div className="relative w-full h-dvh bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
@@ -470,7 +585,7 @@ export function LessonInterface({
           transition={{ type: "spring", duration: 0.8 }}
           className="text-center"
         >
-          <Mascot size="lg" emotion="excited" />
+          <Mascot size="lg" emotion="excited" className="mx-auto" />
 
           <motion.h1
             className="mt-8 text-4xl md:text-5xl font-bold text-foreground"
@@ -512,7 +627,7 @@ export function LessonInterface({
             transition={{ delay: 1.3 }}
           >
             {activeLessonsCount > 0
-              ? `Bạn đã làm đúng ${score}/${activeLessonsCount} câu!`
+              ? `Bạn đã làm đúng ${score}/${activeLessonsCount} câu và nhận ${stars}/${Math.min(FLOOR_MAX_STARS, activeLessonsTotalStars)} sao!`
               : "Bạn đã hoàn thành bài học!"}
           </motion.p>
 
@@ -732,11 +847,19 @@ export function LessonInterface({
               <div className="relative mt-2 w-fit mx-auto">
                 {/* Dùng lại khung tô chữ và cho hệ thống tự chạy nét mẫu */}
                 <LetterTracingCanvas
-                  key={`${currentLesson.id}-demo-${traceDemoReplayKey}`}
-                  mode="demo"
+                  key={`${currentLesson.id}-${traceDemoFastForwarded ? "preview" : "demo"}-${traceDemoReplayKey}`}
+                  mode={traceDemoFastForwarded ? "preview" : "demo"}
                   targetText={targetText}
-                  onAutoTraceComplete={handleTraceDemoComplete}
+                  onAutoTraceComplete={
+                    traceDemoFastForwarded ? undefined : handleTraceDemoComplete
+                  }
+                  onFrameTap={handleFastForwardTraceDemo}
                 />
+                {canFastForwardTraceDemo && !passiveReady && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Chạm vào khung chữ để tua nhanh.
+                  </p>
+                )}
                 <motion.div
                   className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}
                   whileHover={{ scale: 1.08 }}
@@ -842,7 +965,7 @@ export function LessonInterface({
                   key={currentLesson.id}
                   mode="practice"
                   targetText={targetText}
-                  disabled={isCorrect !== null}
+                  disabled={traceResult !== null}
                   oneStarThreshold={traceOneStarThreshold}
                   twoStarThreshold={traceTwoStarThreshold}
                   onEvaluate={handleTraceEvaluate}

@@ -25,6 +25,7 @@ interface LetterTracingCanvasProps {
   twoStarThreshold?: number;
   onEvaluate?: (result: TraceEvaluation) => void;
   onAutoTraceComplete?: () => void;
+  onFrameTap?: () => void;
 }
 
 interface SampledStroke {
@@ -333,6 +334,7 @@ export function LetterTracingCanvas({
   twoStarThreshold = 0.85,
   onEvaluate,
   onAutoTraceComplete,
+  onFrameTap,
 }: LetterTracingCanvasProps) {
   const guideCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -680,6 +682,10 @@ export function LetterTracingCanvas({
       <div
         className="relative overflow-hidden rounded-md border-2 border-sky-400 bg-white shadow-lg"
         style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+        onPointerDown={() => {
+          if (!onFrameTap || !isDemoMode) return;
+          onFrameTap();
+        }}
       >
         <WritingGridOverlay />
         <canvas

@@ -1,14 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 
 import { motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { getWorldData } from "../data/game-config";
 import type { Floor } from "../data/game-config";
+import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 
 interface FloorSelectionProps {
+  worldId: number;
   towerId: number;
   towerName: string;
   onSelectFloor: (floorId: number) => void;
@@ -518,14 +520,23 @@ function FloorConnector({ index }: { index: number }) {
 }
 
 export function FloorSelection({
+  worldId,
   towerId,
   towerName,
   onSelectFloor,
   onBack,
 }: FloorSelectionProps) {
-  const worldData = getWorldData(1); // Default to World 1
+  const worldData = getWorldData(worldId);
   const currentTower = worldData.towers.find((t) => t.id === towerId);
-  const floors = currentTower?.floors || [];
+  const floors = useMemo(
+    () =>
+      hydrateFloorsWithStoredProgress({
+        worldId,
+        towerId,
+        floors: currentTower?.floors ?? [],
+      }),
+    [currentTower?.floors, towerId, worldId],
+  );
 
   return (
     <div className="relative w-full h-dvh flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">

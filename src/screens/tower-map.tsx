@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Star, Lock } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
@@ -11,6 +11,7 @@ import {
   type Tower,
   type TowerConnection,
 } from "../data/game-config";
+import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
 
 interface TowerSelectionProps {
   worldId: number;
@@ -462,7 +463,14 @@ export function TowerSelection({
   onBack,
 }: TowerSelectionProps) {
   const worldData = getWorldData(worldId);
-  const [towerState] = useState<Tower[]>(worldData.towers);
+  const towerState = useMemo(
+    () =>
+      hydrateTowersWithStoredProgress({
+        worldId,
+        towers: worldData.towers,
+      }),
+    [worldId, worldData.towers],
+  );
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [flyingStars, setFlyingStars] = useState<
     { id: number; startX: number; startY: number; endX: number; endY: number }[]

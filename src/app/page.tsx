@@ -116,6 +116,7 @@ export default function AsobetoApp() {
       );
       return (
         <FloorSelection
+          worldId={gameState.selectedWorld!}
           towerId={gameState.selectedTower!}
           towerName={selectedTower?.name || "Unknown Tower"}
           onSelectFloor={handleSelectFloor}
@@ -134,6 +135,8 @@ export default function AsobetoApp() {
       );
       return (
         <LessonInterface
+          worldId={gameState.selectedWorld!}
+          towerId={gameState.selectedTower!}
           floorId={gameState.selectedFloor!}
           floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
           lessons={selectedFloor?.content || []}

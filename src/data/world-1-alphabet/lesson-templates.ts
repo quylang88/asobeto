@@ -24,14 +24,22 @@ interface VocabFloorLessonConfig {
   reviewMode?: boolean;
 }
 
-function createLetterAudioVariants(letterAssetKey: string): LessonAudioVariant[] {
+function createLetterAudioVariants(
+  letterAssetKey: string,
+): LessonAudioVariant[] {
   return [
-    { speed: "slow", audio: `/assets/audio/letters/${letterAssetKey}-slow.mp3` },
+    {
+      speed: "slow",
+      audio: `/assets/audio/letters/${letterAssetKey}-slow.mp3`,
+    },
     {
       speed: "normal",
       audio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
     },
-    { speed: "fast", audio: `/assets/audio/letters/${letterAssetKey}-fast.mp3` },
+    {
+      speed: "fast",
+      audio: `/assets/audio/letters/${letterAssetKey}-fast.mp3`,
+    },
   ];
 }
 
@@ -74,7 +82,7 @@ export function createLetterFloorLessons(
       type: "passive",
       lessonKind: "letter_listen",
       title: `Làm quen chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro/${letter}.mp3`,
+      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-1.mp3`,
       mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
       audioVariants: createLetterAudioVariants(letterAssetKey),
       targetLetter: normalizedLetter,
@@ -93,7 +101,7 @@ export function createLetterFloorLessons(
       type: "active",
       lessonKind: "letter_quiz",
       title: "Nghe và chọn chữ cái",
-      introVoice: `/assets/audio/intro/${letter}.mp3`,
+      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-2.mp3`,
       mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
       answers: createLetterAnswers(letter, distractors),
       targetLetter: normalizedLetter,
@@ -111,7 +119,7 @@ export function createLetterFloorLessons(
       type: "passive",
       lessonKind: "letter_trace_demo",
       title: `Xem cách viết chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro/${letter}.mp3`,
+      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-3.mp3`,
       targetLetter: normalizedLetter,
       targetText: normalizedLetter,
       gating: {
@@ -128,7 +136,7 @@ export function createLetterFloorLessons(
       type: "active",
       lessonKind: "letter_trace_practice",
       title: `Viết lại chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro/${letter}.mp3`,
+      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-4.mp3`,
       targetLetter: normalizedLetter,
       targetText: normalizedLetter,
       scoring: {
