@@ -74,6 +74,20 @@ function getPreviewTextSizeClass(value: string): string {
   return "text-7xl md:text-8xl";
 }
 
+function getIntroAudioSrc(introVoice?: string): string | undefined {
+  if (!introVoice) return undefined;
+  const normalized = introVoice.trim();
+  if (!normalized) return undefined;
+  if (
+    normalized.startsWith("/") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://")
+  ) {
+    return normalized;
+  }
+  return undefined;
+}
+
 function getLessonMaxStars(lesson: LessonContent): number {
   if (lesson.type !== "active") return 0;
   return lesson.scoring?.maxStars ?? 0;
@@ -272,6 +286,9 @@ export function LessonInterface({
 
   const hasLessons = lessons.length > 0;
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
+  const currentLessonId = currentLesson?.id;
+  const currentLessonIntroVoice = currentLesson?.introVoice;
+  const currentLessonMainAudio = currentLesson?.mainAudio;
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
   const isTracePracticeLesson =
     currentLesson?.lessonKind === "letter_trace_practice" ||
@@ -378,11 +395,65 @@ export function LessonInterface({
     };
   }, [clearAdvanceTimeout]);
 
-  // Auto-play audio when lesson changes
+  // Auto-play intro first, then main lesson audio (if present)
   useEffect(() => {
-    if (!currentLesson?.mainAudio) return;
-    playAudio(currentLesson.mainAudio);
-  }, [currentStep, currentLesson?.mainAudio]);
+    if (!currentLessonId) return;
+
+    const introAudio = getIntroAudioSrc(currentLessonIntroVoice);
+    const mainAudio = currentLessonMainAudio;
+    if (!introAudio && !mainAudio) return;
+
+    const primarySrc = introAudio ?? mainAudio;
+    if (!primarySrc) return;
+
+    let isCancelled = false;
+    let followUpAudio: HTMLAudioElement | null = null;
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    const primaryAudio = new Audio(primarySrc);
+    audioRef.current = primaryAudio;
+    const shouldChainMainAudio = Boolean(
+      introAudio && mainAudio && introAudio !== mainAudio,
+    );
+
+    const playFollowUpAudio = () => {
+      if (isCancelled || !mainAudio) return;
+      if (audioRef.current && audioRef.current !== primaryAudio) return;
+      followUpAudio = new Audio(mainAudio);
+      audioRef.current = followUpAudio;
+      followUpAudio
+        .play()
+        .catch((err) => console.log("Audio play failed:", err));
+    };
+
+    if (shouldChainMainAudio) {
+      primaryAudio.addEventListener("ended", playFollowUpAudio, { once: true });
+    }
+
+    primaryAudio.play().catch((err) => console.log("Audio play failed:", err));
+
+    return () => {
+      isCancelled = true;
+      if (shouldChainMainAudio) {
+        primaryAudio.removeEventListener("ended", playFollowUpAudio);
+      }
+      primaryAudio.pause();
+      primaryAudio.currentTime = 0;
+      if (followUpAudio) {
+        followUpAudio.pause();
+        followUpAudio.currentTime = 0;
+      }
+    };
+  }, [
+    currentStep,
+    currentLessonId,
+    currentLessonIntroVoice,
+    currentLessonMainAudio,
+  ]);
 
   const handleTraceDemoComplete = useCallback(() => {
     setPassiveReady(true);
