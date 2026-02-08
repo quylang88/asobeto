@@ -21,6 +21,7 @@ interface LessonInterfaceProps {
 }
 
 const FEEDBACK_ADVANCE_DELAY_MS = 2600;
+const TRACE_STARS_ADVANCE_DELAY_MS = 3800;
 const FEEDBACK_SUCCESS_AUDIO = "/assets/audio/feedback/gioi-qua.mp3";
 const FEEDBACK_FAIL_AUDIO = "/assets/audio/feedback/tiec-qua.mp3";
 const FEEDBACK_CHEER_AUDIO = "/assets/audio/feedback/applause-cheer.mp3";
@@ -44,6 +45,16 @@ const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
   rotate: (index * 43) % 360,
   color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
 }));
+
+const TRACE_SPARKLE_PIECES = [
+  { id: 1, x: -72, y: -34, delay: 0.08 },
+  { id: 2, x: -38, y: -84, delay: 0.18 },
+  { id: 3, x: 0, y: -104, delay: 0.26 },
+  { id: 4, x: 42, y: -82, delay: 0.16 },
+  { id: 5, x: 76, y: -34, delay: 0.24 },
+  { id: 6, x: -58, y: 22, delay: 0.12 },
+  { id: 7, x: 58, y: 22, delay: 0.2 },
+];
 
 function getSpeedLabel(speed: string): string {
   if (speed === "slow") return "Chậm";
@@ -190,42 +201,131 @@ interface TraceStarsPopupProps {
 }
 
 function TraceStarsPopup({ stars }: TraceStarsPopupProps) {
+  // 2 sao thì tách đều quanh tâm để vẫn cân đối theo trục ngang
+  const starOffsets = stars === 2 ? [-92, 92] : [0];
+
   return (
     <motion.div
-      className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+      className="pointer-events-none fixed inset-0 z-60 flex items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="absolute h-40 w-40 rounded-full bg-yellow-bright/30 blur-2xl"
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1.05, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ duration: 0.35 }}
+        className="absolute inset-0 bg-slate-950/82 backdrop-blur-[3px]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
       />
-      {Array.from({ length: stars }).map((_, index) => (
+      <motion.div
+        className="absolute h-104 w-104 rounded-full border-2 border-yellow-100/85 bg-radial-[circle_at_center] from-yellow-100/45 via-yellow-200/16 to-transparent shadow-[0_0_180px_rgba(250,204,21,0.86)]"
+        initial={{ scale: 0.88, opacity: 0 }}
+        animate={{ scale: [0.92, 1.06, 0.97], opacity: [0.8, 1, 0.88] }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute h-88 w-88 rounded-full bg-yellow-bright/64 blur-3xl"
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: [0.88, 1.12, 0.98], opacity: [0.68, 1, 0.78] }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute h-120 w-120 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.24),rgba(254,249,195,0))]"
+        initial={{ opacity: 0, rotate: 0 }}
+        animate={{ opacity: [0.25, 0.4, 0.25], rotate: 360 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 5.8, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div
+        className="absolute h-56 w-56 rounded-full bg-white/28 blur-3xl"
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: [0.78, 1, 0.88], opacity: [0.2, 0.4, 0.22] }}
+        exit={{ scale: 0.7, opacity: 0 }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {TRACE_SPARKLE_PIECES.map((piece) => (
+        <motion.div
+          key={`trace-sparkle-${piece.id}`}
+          className="absolute"
+          initial={{ opacity: 0, scale: 0.4, x: piece.x, y: piece.y + 12 }}
+          animate={{
+            opacity: [0.35, 1, 0.4],
+            scale: [0.55, 1.05, 0.65],
+            x: [piece.x - 4, piece.x + 4, piece.x - 4],
+            y: [piece.y + 10, piece.y - 10, piece.y + 10],
+            rotate: [-8, 8, -8],
+          }}
+          exit={{ opacity: 0, scale: 0.2 }}
+          transition={{
+            duration: 1.9,
+            delay: piece.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <Star className="h-8 w-8 fill-yellow-200 text-yellow-50 drop-shadow-[0_0_28px_rgba(250,204,21,1)]" />
+        </motion.div>
+      ))}
+      {starOffsets.map((offsetX, index) => (
         <motion.div
           key={`trace-star-${index}`}
-          className="absolute"
+          className="absolute flex items-center justify-center"
           initial={{
             opacity: 0,
-            x: index % 2 === 0 ? -30 : 30,
-            y: 34,
-            scale: 0.4,
-            rotate: index % 2 === 0 ? -20 : 20,
+            x: 0,
+            y: 380,
+            scale: 0.42,
+            rotate: 0,
           }}
           animate={{
-            opacity: [0, 1, 1, 0],
-            x: index % 2 === 0 ? -74 : 74,
-            y: -108 - index * 16,
-            scale: [0.4, 1.2, 1],
-            rotate: index % 2 === 0 ? -18 : 18,
+            opacity: 1,
+            x: offsetX,
+            y: 0,
+            scale: 1,
+            rotate: 0,
           }}
           exit={{ opacity: 0, scale: 0.85 }}
-          transition={{ duration: 1.2, delay: index * 0.12, ease: "easeOut" }}
+          transition={{
+            duration: 1.15,
+            delay: index * 0.1,
+            ease: [0.2, 0.85, 0.2, 1],
+          }}
         >
-          <Star className="h-16 w-16 fill-yellow-bright text-yellow-bright drop-shadow-[0_0_18px_rgba(250,204,21,0.65)]" />
+          <motion.div
+            className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-yellow-50/95 bg-white/50 shadow-[0_0_52px_rgba(250,204,21,0.96)]"
+            animate={{ scale: [0.92, 1.06, 0.96], opacity: [0.72, 1, 0.8] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-200/80 blur-2xl"
+            animate={{ opacity: [0.5, 0.92, 0.58], scale: [0.9, 1.12, 0.96] }}
+            transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/72 blur-lg"
+            animate={{ opacity: [0.45, 0.75, 0.5], scale: [0.92, 1.08, 0.96] }}
+            transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.08, 0.98, 1.04, 1],
+              rotate: [-6, 6, -4, 4, -6],
+            }}
+            transition={{
+              duration: 1.7,
+              delay: 1.1 + index * 0.15,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <Star
+              className="h-28 w-28 fill-yellow-bright text-yellow-50 drop-shadow-[0_0_52px_rgba(250,204,21,1)]"
+              strokeWidth={2.8}
+            />
+          </motion.div>
         </motion.div>
       ))}
     </motion.div>
@@ -254,6 +354,7 @@ export function LessonInterface({
     );
   });
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const advanceTimeoutRef = useRef<number | null>(null);
 
   const hasLessons = lessons.length > 0;
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
@@ -320,15 +421,23 @@ export function LessonInterface({
     audio.play().catch((err) => console.log("Audio play failed:", err));
   };
 
+  // Dọn timeout chuyển lesson để tránh timer cũ "nhảy cóc" khi bé vào/ra màn nhiều lần
+  const clearAdvanceTimeout = useCallback(() => {
+    if (advanceTimeoutRef.current === null) return;
+    window.clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = null;
+  }, []);
+
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
+      clearAdvanceTimeout();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [clearAdvanceTimeout]);
 
   // Auto-play audio when lesson changes
   useEffect(() => {
@@ -339,18 +448,6 @@ export function LessonInterface({
   const handleTraceDemoComplete = useCallback(() => {
     setPassiveReady(true);
   }, []);
-
-  useEffect(() => {
-    if (!traceStarBurstCount) return;
-
-    const timeoutId = window.setTimeout(() => {
-      setTraceStarBurstCount(null);
-    }, 1500);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [traceStarBurstCount]);
 
   useEffect(() => {
     if (!requiresAnimationComplete || passiveReady || isLetterTraceDemoLesson)
@@ -365,7 +462,10 @@ export function LessonInterface({
     };
   }, [requiresAnimationComplete, passiveReady, currentStep, isLetterTraceDemoLesson]);
 
-  const handleScoringResult = (correct: boolean) => {
+  const handleScoringResult = (
+    correct: boolean,
+    advanceDelayMs: number = FEEDBACK_ADVANCE_DELAY_MS,
+  ) => {
     setIsCorrect(correct);
     if (correct) {
       setScore((prev) => prev + 1);
@@ -378,9 +478,12 @@ export function LessonInterface({
       playOneShotAudio(FEEDBACK_FAIL_AUDIO);
     }
 
-    setTimeout(() => {
+    // Luôn reset timer cũ rồi mới tạo timer mới để đảm bảo thời gian chờ đúng theo lesson hiện tại
+    clearAdvanceTimeout();
+    advanceTimeoutRef.current = window.setTimeout(() => {
+      advanceTimeoutRef.current = null;
       handleNext();
-    }, FEEDBACK_ADVANCE_DELAY_MS);
+    }, advanceDelayMs);
   };
 
   const handleAnswer = (answer: LessonAnswer) => {
@@ -407,10 +510,15 @@ export function LessonInterface({
       setTraceStarBurstCount(Math.min(2, result.stars));
     }
     const correct = result.score >= traceOneStarThreshold;
-    handleScoringResult(correct);
+    const advanceDelayMs =
+      currentLesson.lessonKind === "letter_trace_practice"
+        ? TRACE_STARS_ADVANCE_DELAY_MS
+        : FEEDBACK_ADVANCE_DELAY_MS;
+    handleScoringResult(correct, advanceDelayMs);
   };
 
   const handleNext = () => {
+    clearAdvanceTimeout();
     setSelectedAnswer(null);
     setIsCorrect(null);
     setTraceResult(null);

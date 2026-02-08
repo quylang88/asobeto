@@ -1,6 +1,11 @@
 "use client";
 
 import { type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  getLetterStrokeAnimation,
+  type LetterStrokePath,
+  type StrokePoint,
+} from "../data/tracing/letters";
 import { LessonButton } from "./lesson-button";
 
 export interface TraceEvaluation {
@@ -20,8 +25,19 @@ interface LetterTracingCanvasProps {
   onAutoTraceComplete?: () => void;
 }
 
+interface SampledStroke {
+  points: StrokePoint[];
+  cumulativeLengths: number[];
+  totalLength: number;
+  durationMs: number;
+  pauseAfterMs: number;
+}
+
 const CANVAS_SIZE = 280;
 const LINE_WIDTH = 28;
+const GENERIC_DEMO_DURATION_MS = 4200;
+// Lấy mẫu dày hơn để nét auto-tô bám cong mượt, không bị gãy khi chạy chậm
+const STROKE_SAMPLE_DENSITY = 220;
 
 function toCanvasPoint(
   event: PointerEvent<HTMLCanvasElement>,
@@ -37,6 +53,130 @@ function clamp01(value: number) {
   if (value < 0) return 0;
   if (value > 1) return 1;
   return value;
+}
+
+function lerp(start: number, end: number, t: number): number {
+  return start + (end - start) * t;
+}
+
+function distance(from: StrokePoint, to: StrokePoint): number {
+  return Math.hypot(to.x - from.x, to.y - from.y);
+}
+
+function cubicBezierPoint(
+  t: number,
+  start: StrokePoint,
+  strokeCurve: LetterStrokePath["curves"][number],
+): StrokePoint {
+  const u = 1 - t;
+  const tt = t * t;
+  const uu = u * u;
+  const uuu = uu * u;
+  const ttt = tt * t;
+
+  return {
+    x:
+      uuu * start.x +
+      3 * uu * t * strokeCurve.control1.x +
+      3 * u * tt * strokeCurve.control2.x +
+      ttt * strokeCurve.end.x,
+    y:
+      uuu * start.y +
+      3 * uu * t * strokeCurve.control1.y +
+      3 * u * tt * strokeCurve.control2.y +
+      ttt * strokeCurve.end.y,
+  };
+}
+
+function sampleStrokePath(stroke: LetterStrokePath): SampledStroke {
+  const points: StrokePoint[] = [{ x: stroke.start.x, y: stroke.start.y }];
+  let cursor: StrokePoint = { x: stroke.start.x, y: stroke.start.y };
+
+  for (const curve of stroke.curves) {
+    for (let step = 1; step <= STROKE_SAMPLE_DENSITY; step += 1) {
+      const t = step / STROKE_SAMPLE_DENSITY;
+      points.push(cubicBezierPoint(t, cursor, curve));
+    }
+    cursor = { x: curve.end.x, y: curve.end.y };
+  }
+
+  const cumulativeLengths: number[] = [0];
+  let totalLength = 0;
+
+  for (let i = 1; i < points.length; i += 1) {
+    totalLength += distance(points[i - 1], points[i]);
+    cumulativeLengths.push(totalLength);
+  }
+
+  return {
+    points,
+    cumulativeLengths,
+    totalLength,
+    durationMs: stroke.durationMs,
+    pauseAfterMs: stroke.pauseAfterMs ?? 0,
+  };
+}
+
+function drawPartialSampledStroke(
+  ctx: CanvasRenderingContext2D,
+  sampledStroke: SampledStroke,
+  progress: number,
+) {
+  if (sampledStroke.points.length <= 1) return;
+
+  const normalizedProgress = clamp01(progress);
+  const targetLength = sampledStroke.totalLength * normalizedProgress;
+
+  const points = sampledStroke.points;
+  const cumulativeLengths = sampledStroke.cumulativeLengths;
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+
+  if (targetLength <= 0) {
+    ctx.stroke();
+    return;
+  }
+
+  for (let i = 1; i < points.length; i += 1) {
+    const segmentEndLength = cumulativeLengths[i];
+
+    if (segmentEndLength <= targetLength) {
+      ctx.lineTo(points[i].x, points[i].y);
+      continue;
+    }
+
+    const segmentStartLength = cumulativeLengths[i - 1];
+    const segmentLength = segmentEndLength - segmentStartLength;
+    const segmentProgress =
+      segmentLength > 0
+        ? (targetLength - segmentStartLength) / segmentLength
+        : 0;
+
+    ctx.lineTo(
+      lerp(points[i - 1].x, points[i].x, segmentProgress),
+      lerp(points[i - 1].y, points[i].y, segmentProgress),
+    );
+    break;
+  }
+
+  ctx.stroke();
+}
+
+function drawSampledStrokeGuide(
+  ctx: CanvasRenderingContext2D,
+  sampledStrokes: SampledStroke[],
+  guideLineWidth: number,
+) {
+  ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.lineWidth = guideLineWidth;
+  ctx.strokeStyle = "rgba(34, 197, 94, 0.22)";
+
+  for (const sampledStroke of sampledStrokes) {
+    drawPartialSampledStroke(ctx, sampledStroke, 1);
+  }
 }
 
 function getGuideFontSize(targetText: string): number {
@@ -95,6 +235,22 @@ export function LetterTracingCanvas({
     () => getTraceLineWidth(normalizedTarget || "a"),
     [normalizedTarget],
   );
+  const letterStrokeAnimation = useMemo(
+    () => getLetterStrokeAnimation(normalizedTarget || "a"),
+    [normalizedTarget],
+  );
+  // Chuyển dữ liệu đường cong theo từng chữ thành danh sách điểm để vẽ mượt theo tiến trình
+  const sampledDemoStrokes = useMemo(
+    () => letterStrokeAnimation?.strokes.map(sampleStrokePath) ?? [],
+    [letterStrokeAnimation],
+  );
+  const totalDemoDurationMs = useMemo(() => {
+    if (sampledDemoStrokes.length === 0) return GENERIC_DEMO_DURATION_MS;
+    return sampledDemoStrokes.reduce(
+      (sum, stroke) => sum + stroke.durationMs + stroke.pauseAfterMs,
+      0,
+    );
+  }, [sampledDemoStrokes]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -124,8 +280,22 @@ export function LetterTracingCanvas({
     drawCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     guideCtx.scale(ratio, ratio);
-    drawGuideGlyph(guideCtx, normalizedTarget || "a", guideFontSize);
-  }, [guideFontSize, normalizedTarget, lineWidth, isDemoMode]);
+
+    // Ở lesson demo, dùng cùng độ dày giữa nét mờ và nét auto-tô để cảm giác "đi đè" chính xác
+    const demoStrokeWidth = Math.max(10, lineWidth * 0.52);
+    // Ở lesson demo, nét mờ dùng chính stroke data để nét tô tự động bám khít từng nét chữ
+    if (isDemoMode && sampledDemoStrokes.length > 0) {
+      drawSampledStrokeGuide(guideCtx, sampledDemoStrokes, demoStrokeWidth);
+    } else {
+      drawGuideGlyph(guideCtx, normalizedTarget || "a", guideFontSize);
+    }
+  }, [
+    guideFontSize,
+    isDemoMode,
+    lineWidth,
+    normalizedTarget,
+    sampledDemoStrokes,
+  ]);
 
   useEffect(() => {
     if (!isDemoMode) return;
@@ -137,13 +307,12 @@ export function LetterTracingCanvas({
 
     const ratio = window.devicePixelRatio || 1;
     const traceText = normalizedTarget || "a";
-    const traceLineWidth = Math.max(12, lineWidth * 0.56);
-    const traceDurationMs = 2600;
+    // Nét auto-tô giữ cùng bề dày với nét mờ để nhìn rõ "đi đúng đường"
+    const traceLineWidth = Math.max(10, lineWidth * 0.52);
     const dashLength = CANVAS_SIZE * 9;
     autoTraceDoneRef.current = false;
 
-    // Vẽ hoạt ảnh auto-tô cho lesson demo và bật nút tiếp tục khi hoàn tất
-    const drawAutoTraceFrame = (progress: number) => {
+    const drawGenericFallbackFrame = (progress: number) => {
       drawCtx.setTransform(1, 0, 0, 1, 0, 0);
       drawCtx.clearRect(0, 0, canvas.width, canvas.height);
       drawCtx.scale(ratio, ratio);
@@ -162,16 +331,61 @@ export function LetterTracingCanvas({
       drawCtx.fillText(traceText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
     };
 
+    // Ưu tiên vẽ theo từng nét chữ được định nghĩa riêng để đúng quy trình viết của từng chữ
+    const drawLetterStrokeFrame = (elapsedMs: number) => {
+      drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+      drawCtx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCtx.scale(ratio, ratio);
+      drawCtx.lineJoin = "round";
+      drawCtx.lineCap = "round";
+      drawCtx.lineWidth = traceLineWidth;
+      drawCtx.strokeStyle = "#15803d";
+      // Bóng nhẹ để nét nổi nhưng vẫn sắc, tránh cảm giác lem
+      drawCtx.shadowColor = "rgba(34, 197, 94, 0.22)";
+      drawCtx.shadowBlur = 4;
+
+      // Chạy timeline theo từng nét + khoảng dừng giữa các nét (nếu có)
+      let remainingMs = elapsedMs;
+      for (const sampledStroke of sampledDemoStrokes) {
+        if (remainingMs <= 0) break;
+
+        if (remainingMs < sampledStroke.durationMs) {
+          drawPartialSampledStroke(
+            drawCtx,
+            sampledStroke,
+            remainingMs / sampledStroke.durationMs,
+          );
+          break;
+        }
+
+        drawPartialSampledStroke(drawCtx, sampledStroke, 1);
+        remainingMs -= sampledStroke.durationMs;
+
+        if (remainingMs < sampledStroke.pauseAfterMs) {
+          break;
+        }
+
+        remainingMs -= sampledStroke.pauseAfterMs;
+      }
+
+      drawCtx.shadowBlur = 0;
+      drawCtx.shadowColor = "transparent";
+    };
+
     let rafId = 0;
     let startTime = 0;
 
     const tick = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const elapsed = timestamp - startTime;
-      const progress = clamp01(elapsed / traceDurationMs);
-      drawAutoTraceFrame(progress);
 
-      if (progress < 1) {
+      if (sampledDemoStrokes.length > 0) {
+        drawLetterStrokeFrame(elapsed);
+      } else {
+        drawGenericFallbackFrame(clamp01(elapsed / totalDemoDurationMs));
+      }
+
+      if (elapsed < totalDemoDurationMs) {
         rafId = window.requestAnimationFrame(tick);
         return;
       }
@@ -187,11 +401,13 @@ export function LetterTracingCanvas({
       window.cancelAnimationFrame(rafId);
     };
   }, [
-    isDemoMode,
-    normalizedTarget,
     guideFontSize,
+    isDemoMode,
     lineWidth,
+    normalizedTarget,
     onAutoTraceComplete,
+    sampledDemoStrokes,
+    totalDemoDurationMs,
   ]);
 
   // Xóa toàn bộ nét bé đã vẽ để bắt đầu lại lượt tô
