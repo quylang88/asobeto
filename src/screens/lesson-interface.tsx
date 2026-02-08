@@ -710,7 +710,7 @@ export function LessonInterface({
             )}
 
             {currentLesson.type === "passive" && isLetterTraceDemoLesson && (
-              <div className="relative mt-2 inline-block">
+              <div className="relative mt-2 w-fit mx-auto">
                 {/* Dùng lại khung tô chữ và cho hệ thống tự chạy nét mẫu */}
                 <LetterTracingCanvas
                   key={`${currentLesson.id}-demo-${traceDemoReplayKey}`}
