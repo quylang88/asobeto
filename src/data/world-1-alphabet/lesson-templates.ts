@@ -144,7 +144,7 @@ export function createLetterFloorLessons(
         passPolicy: "always",
         starThresholds: {
           oneStar: 0.5,
-          twoStars: 0.85,
+          twoStars: 0.75,
         },
         maxStars: 2,
       },

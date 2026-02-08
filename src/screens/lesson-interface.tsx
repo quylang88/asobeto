@@ -647,6 +647,16 @@ export function LessonInterface({
   if (showCompletion) {
     const stars =
       completionStars ?? getAttemptFloorStars(lessons, lessonStarsThisAttempt);
+    const noStarsEarned = stars <= 0;
+    const completionTitle = noStarsEarned ? "Cố lên bé nhé!" : "Tuyệt Vời!";
+    const completionSummary =
+      activeLessonsCount > 0
+        ? noStarsEarned
+          ? `Bé đã làm đúng ${score}/${activeLessonsCount} câu. Không sao, bé luyện thêm một chút nữa để lần sau nhận sao nhé!`
+          : `Bé đã làm đúng ${score}/${activeLessonsCount} câu và nhận ${stars}/${Math.min(FLOOR_MAX_STARS, activeLessonsTotalStars)} sao!`
+        : noStarsEarned
+          ? "Bé đã hoàn thành bài học rồi. Mình thử lại để săn sao nhé!"
+          : "Bé đã hoàn thành bài học!";
 
     return (
       <div className="relative w-full h-dvh bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
@@ -656,15 +666,21 @@ export function LessonInterface({
           transition={{ type: "spring", duration: 0.8 }}
           className="text-center"
         >
-          <Mascot size="lg" emotion="excited" className="mx-auto" />
+          <Mascot
+            size="lg"
+            emotion={noStarsEarned ? "sad" : "excited"}
+            className="mx-auto"
+          />
 
           <motion.h1
-            className="mt-8 text-4xl md:text-5xl font-bold text-foreground"
+            className={`mt-8 text-4xl md:text-5xl font-bold ${
+              noStarsEarned ? "text-amber-700" : "text-foreground"
+            }`}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            Tuyệt Vời!
+            {completionTitle}
           </motion.h1>
 
           <motion.div
@@ -697,9 +713,7 @@ export function LessonInterface({
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3 }}
           >
-            {activeLessonsCount > 0
-              ? `Bạn đã làm đúng ${score}/${activeLessonsCount} câu và nhận ${stars}/${Math.min(FLOOR_MAX_STARS, activeLessonsTotalStars)} sao!`
-              : "Bạn đã hoàn thành bài học!"}
+            {completionSummary}
           </motion.p>
 
           <motion.div
