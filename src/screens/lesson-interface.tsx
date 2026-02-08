@@ -20,10 +20,7 @@ import {
   type TraceEvaluation,
 } from "../components/letter-tracing-canvas";
 import { LessonContent, LessonAnswer } from "../data/game-config";
-import {
-  getStoredLessonStars,
-  saveFloorProgress,
-} from "@/lib/floor-progress";
+import { getStoredLessonStars, saveFloorProgress } from "@/lib/floor-progress";
 
 interface LessonInterfaceProps {
   worldId: number;
@@ -37,9 +34,10 @@ interface LessonInterfaceProps {
 
 const FEEDBACK_ADVANCE_DELAY_MS = 2600;
 const TRACE_STARS_ADVANCE_DELAY_MS = 3800;
-const FEEDBACK_SUCCESS_AUDIO = "/assets/audio/feedback/gioi-qua.mp3";
-const FEEDBACK_FAIL_AUDIO = "/assets/audio/feedback/tiec-qua.mp3";
-const FEEDBACK_CHEER_AUDIO = "/assets/audio/feedback/applause-cheer.mp3";
+const FEEDBACK_SUCCESS_AUDIO = "/assets/audio/feedback/success-answer.mp3";
+const FEEDBACK_WRONG_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
+const FEEDBACK_FLOOR_CHEER_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
+const FEEDBACK_FLOOR_TRY_AGAIN_AUDIO = "/assets/audio/feedback/try-again.mp3";
 const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
 const FOG_ERASE_RADIUS = 24;
 const LESSON_PREVIEW_CONTROL_OFFSET_CLASS = "-right-14";
@@ -349,12 +347,12 @@ export function LessonInterface({
     isLetterTraceDemoLesson &&
     Boolean(
       pairedTracePracticeLessonId &&
-        getStoredLessonStars({
-          worldId,
-          towerId,
-          floorId,
-          lessonId: pairedTracePracticeLessonId,
-        }) >= 1,
+      getStoredLessonStars({
+        worldId,
+        towerId,
+        floorId,
+        lessonId: pairedTracePracticeLessonId,
+      }) >= 1,
     );
 
   const playAudio = (src: string) => {
@@ -530,12 +528,13 @@ export function LessonInterface({
       }
     }
 
-    if (correct) {
-      playOneShotAudio(FEEDBACK_SUCCESS_AUDIO);
-      playOneShotAudio(FEEDBACK_CHEER_AUDIO);
-    } else {
-      playOneShotAudio(FEEDBACK_FAIL_AUDIO);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
+
+    playOneShotAudio(correct ? FEEDBACK_SUCCESS_AUDIO : FEEDBACK_WRONG_AUDIO);
 
     // Luôn reset timer cũ rồi mới tạo timer mới để đảm bảo thời gian chờ đúng theo lesson hiện tại
     clearAdvanceTimeout();
@@ -616,6 +615,13 @@ export function LessonInterface({
 
     const latestLessonStars = lessonStarsThisAttemptRef.current;
     const attemptFloorStars = getAttemptFloorStars(lessons, latestLessonStars);
+
+    if (attemptFloorStars >= 1) {
+      playOneShotAudio(FEEDBACK_FLOOR_CHEER_AUDIO);
+    } else if (attemptFloorStars <= 0) {
+      playOneShotAudio(FEEDBACK_FLOOR_TRY_AGAIN_AUDIO);
+    }
+
     setCompletionStars(attemptFloorStars);
     saveFloorProgress({
       worldId,
