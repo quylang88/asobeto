@@ -5,28 +5,28 @@ export const letterStrokeC: LetterStrokeAnimation = {
   letter: "c",
   strokes: [
     {
-      // Điểm đặt bút thấp hơn dòng trên một chút, cong lên mềm trước khi ôm vòng thân chữ
-      start: { x: 210, y: 128 },
+      // Nét 1: cong trái, đặt bút dưới đường kẻ 3 một chút
+      start: { x: 188, y: 148 },
       curves: [
         {
-          control1: { x: 202, y: 104 },
-          control2: { x: 168, y: 90 },
-          end: { x: 136, y: 112 },
+          control1: { x: 176, y: 134 },
+          control2: { x: 128, y: 124 },
+          end: { x: 96, y: 164 },
         },
         {
-          control1: { x: 92, y: 142 },
-          control2: { x: 92, y: 220 },
-          end: { x: 136, y: 240 },
+          control1: { x: 70, y: 196 },
+          control2: { x: 72, y: 264 },
+          end: { x: 126, y: 278 },
         },
         {
-          control1: { x: 174, y: 258 },
-          control2: { x: 226, y: 202 },
-          // Điểm dừng ở đúng lưng chừng thân chữ, đầu nét hướng nhẹ vào trong
-          end: { x: 196, y: 166 },
+          control1: { x: 166, y: 286 },
+          control2: { x: 202, y: 262 },
+          // Dừng ở khoảng giữa đường kẻ 1 và đường kẻ 2
+          end: { x: 186, y: 244 },
         },
       ],
-      // Nét đơn liền mạch chạy chậm để bé dễ quan sát hướng rê bút
-      durationMs: 7000,
+      // Nét đơn liền mạch chạy chậm để bé quan sát rõ hướng tô
+      durationMs: 5800,
     },
   ],
 };

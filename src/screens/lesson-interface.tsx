@@ -3,11 +3,14 @@
 import { type PointerEvent, useCallback, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, X, Star, ArrowRight } from "lucide-react";
+import { Volume2, RotateCcw, X, Star, ArrowRight } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { LessonButton } from "../components/lesson-button";
+import { LessonStarCelebration } from "../components/lesson-star-celebration";
 import {
   LetterTracingCanvas,
+  LETTER_TRACING_CANVAS_HEIGHT,
+  LETTER_TRACING_CANVAS_WIDTH,
   type TraceEvaluation,
 } from "../components/letter-tracing-canvas";
 import { LessonContent, LessonAnswer } from "../data/game-config";
@@ -26,9 +29,8 @@ const FEEDBACK_SUCCESS_AUDIO = "/assets/audio/feedback/gioi-qua.mp3";
 const FEEDBACK_FAIL_AUDIO = "/assets/audio/feedback/tiec-qua.mp3";
 const FEEDBACK_CHEER_AUDIO = "/assets/audio/feedback/applause-cheer.mp3";
 const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
-// Khung preview chữ đã tăng lên 240px nên canvas sương cần phủ kín đúng kích thước này
-const FOG_CANVAS_SIZE = 240;
 const FOG_ERASE_RADIUS = 24;
+const LESSON_PREVIEW_CONTROL_OFFSET_CLASS = "-right-14";
 const LETTER_TOP_INSTRUCTION_KINDS = new Set([
   "letter_listen",
   "letter_quiz",
@@ -46,16 +48,6 @@ const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
   color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
 }));
 
-const TRACE_SPARKLE_PIECES = [
-  { id: 1, x: -72, y: -34, delay: 0.08 },
-  { id: 2, x: -38, y: -84, delay: 0.18 },
-  { id: 3, x: 0, y: -104, delay: 0.26 },
-  { id: 4, x: 42, y: -82, delay: 0.16 },
-  { id: 5, x: 76, y: -34, delay: 0.24 },
-  { id: 6, x: -58, y: 22, delay: 0.12 },
-  { id: 7, x: 58, y: 22, delay: 0.2 },
-];
-
 function getSpeedLabel(speed: string): string {
   if (speed === "slow") return "Chậm";
   if (speed === "fast") return "Nhanh";
@@ -71,9 +63,17 @@ function getPreviewTextSizeClass(value: string): string {
 
 interface FogRevealOverlayProps {
   revealKey: string;
+  width: number;
+  height: number;
+  roundedClassName?: string;
 }
 
-function FogRevealOverlay({ revealKey }: FogRevealOverlayProps) {
+function FogRevealOverlay({
+  revealKey,
+  width,
+  height,
+  roundedClassName = "rounded-md",
+}: FogRevealOverlayProps) {
   const fogCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isErasingFog, setIsErasingFog] = useState(false);
 
@@ -83,39 +83,35 @@ function FogRevealOverlay({ revealKey }: FogRevealOverlayProps) {
     if (!fogCanvas) return;
 
     const ratio = window.devicePixelRatio || 1;
-    fogCanvas.width = Math.floor(FOG_CANVAS_SIZE * ratio);
-    fogCanvas.height = Math.floor(FOG_CANVAS_SIZE * ratio);
-    fogCanvas.style.width = `${FOG_CANVAS_SIZE}px`;
-    fogCanvas.style.height = `${FOG_CANVAS_SIZE}px`;
+    fogCanvas.width = Math.floor(width * ratio);
+    fogCanvas.height = Math.floor(height * ratio);
+    fogCanvas.style.width = `${width}px`;
+    fogCanvas.style.height = `${height}px`;
 
     const fogCtx = fogCanvas.getContext("2d");
     if (!fogCtx) return;
     fogCtx.setTransform(1, 0, 0, 1, 0, 0);
     fogCtx.scale(ratio, ratio);
-    fogCtx.clearRect(0, 0, FOG_CANVAS_SIZE, FOG_CANVAS_SIZE);
+    fogCtx.clearRect(0, 0, width, height);
 
     // Tăng độ đậm của sương để không nhìn rõ nét chữ bên dưới trước khi bé xóa
-    const fogGradient = fogCtx.createLinearGradient(
-      0,
-      0,
-      FOG_CANVAS_SIZE,
-      FOG_CANVAS_SIZE,
-    );
+    const fogGradient = fogCtx.createLinearGradient(0, 0, width, height);
     fogGradient.addColorStop(0, "rgba(217, 240, 223, 1)");
     fogGradient.addColorStop(1, "rgba(188, 224, 199, 1)");
     fogCtx.fillStyle = fogGradient;
-    fogCtx.fillRect(0, 0, FOG_CANVAS_SIZE, FOG_CANVAS_SIZE);
+    fogCtx.fillRect(0, 0, width, height);
 
     fogCtx.fillStyle = "rgba(236, 249, 239, 0.72)";
-    for (let i = 0; i < 28; i += 1) {
-      const x = (i * 29 + 12) % FOG_CANVAS_SIZE;
-      const y = (i * 47 + 18) % FOG_CANVAS_SIZE;
+    const textureCount = Math.max(24, Math.round((width * height) / 1600));
+    for (let i = 0; i < textureCount; i += 1) {
+      const x = (i * 29 + 12) % width;
+      const y = (i * 47 + 18) % height;
       const radius = 15 + (i % 5) * 5;
       fogCtx.beginPath();
       fogCtx.arc(x, y, radius, 0, Math.PI * 2);
       fogCtx.fill();
     }
-  }, [revealKey]);
+  }, [revealKey, width, height]);
 
   // Xóa sương đúng vị trí ngón tay khi bé chạm/di trên canvas
   const eraseFogAtPoint = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -125,8 +121,8 @@ function FogRevealOverlay({ revealKey }: FogRevealOverlayProps) {
     if (!fogCtx) return;
 
     const rect = fogCanvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * FOG_CANVAS_SIZE;
-    const y = ((event.clientY - rect.top) / rect.height) * FOG_CANVAS_SIZE;
+    const x = ((event.clientX - rect.left) / rect.width) * width;
+    const y = ((event.clientY - rect.top) / rect.height) * height;
 
     fogCtx.save();
     fogCtx.globalCompositeOperation = "destination-out";
@@ -139,7 +135,7 @@ function FogRevealOverlay({ revealKey }: FogRevealOverlayProps) {
   return (
     <canvas
       ref={fogCanvasRef}
-      className="absolute inset-0 z-10 rounded-3xl touch-none"
+      className={`absolute inset-0 z-10 touch-none ${roundedClassName}`}
       onPointerDown={(event) => {
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -196,142 +192,6 @@ function FullScreenSuccessCelebration() {
   );
 }
 
-interface TraceStarsPopupProps {
-  stars: number;
-}
-
-function TraceStarsPopup({ stars }: TraceStarsPopupProps) {
-  // 2 sao thì tách đều quanh tâm để vẫn cân đối theo trục ngang
-  const starOffsets = stars === 2 ? [-92, 92] : [0];
-
-  return (
-    <motion.div
-      className="pointer-events-none fixed inset-0 z-60 flex items-center justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="absolute inset-0 bg-slate-950/82 backdrop-blur-[3px]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-      />
-      <motion.div
-        className="absolute h-104 w-104 rounded-full border-2 border-yellow-100/85 bg-radial-[circle_at_center] from-yellow-100/45 via-yellow-200/16 to-transparent shadow-[0_0_180px_rgba(250,204,21,0.86)]"
-        initial={{ scale: 0.88, opacity: 0 }}
-        animate={{ scale: [0.92, 1.06, 0.97], opacity: [0.8, 1, 0.88] }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute h-88 w-88 rounded-full bg-yellow-bright/64 blur-3xl"
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: [0.88, 1.12, 0.98], opacity: [0.68, 1, 0.78] }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute h-120 w-120 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.24),rgba(254,249,195,0))]"
-        initial={{ opacity: 0, rotate: 0 }}
-        animate={{ opacity: [0.25, 0.4, 0.25], rotate: 360 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 5.8, repeat: Infinity, ease: "linear" }}
-      />
-      <motion.div
-        className="absolute h-56 w-56 rounded-full bg-white/28 blur-3xl"
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: [0.78, 1, 0.88], opacity: [0.2, 0.4, 0.22] }}
-        exit={{ scale: 0.7, opacity: 0 }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {TRACE_SPARKLE_PIECES.map((piece) => (
-        <motion.div
-          key={`trace-sparkle-${piece.id}`}
-          className="absolute"
-          initial={{ opacity: 0, scale: 0.4, x: piece.x, y: piece.y + 12 }}
-          animate={{
-            opacity: [0.35, 1, 0.4],
-            scale: [0.55, 1.05, 0.65],
-            x: [piece.x - 4, piece.x + 4, piece.x - 4],
-            y: [piece.y + 10, piece.y - 10, piece.y + 10],
-            rotate: [-8, 8, -8],
-          }}
-          exit={{ opacity: 0, scale: 0.2 }}
-          transition={{
-            duration: 1.9,
-            delay: piece.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <Star className="h-8 w-8 fill-yellow-200 text-yellow-50 drop-shadow-[0_0_28px_rgba(250,204,21,1)]" />
-        </motion.div>
-      ))}
-      {starOffsets.map((offsetX, index) => (
-        <motion.div
-          key={`trace-star-${index}`}
-          className="absolute flex items-center justify-center"
-          initial={{
-            opacity: 0,
-            x: 0,
-            y: 380,
-            scale: 0.42,
-            rotate: 0,
-          }}
-          animate={{
-            opacity: 1,
-            x: offsetX,
-            y: 0,
-            scale: 1,
-            rotate: 0,
-          }}
-          exit={{ opacity: 0, scale: 0.85 }}
-          transition={{
-            duration: 1.15,
-            delay: index * 0.1,
-            ease: [0.2, 0.85, 0.2, 1],
-          }}
-        >
-          <motion.div
-            className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-yellow-50/95 bg-white/50 shadow-[0_0_52px_rgba(250,204,21,0.96)]"
-            animate={{ scale: [0.92, 1.06, 0.96], opacity: [0.72, 1, 0.8] }}
-            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-200/80 blur-2xl"
-            animate={{ opacity: [0.5, 0.92, 0.58], scale: [0.9, 1.12, 0.96] }}
-            transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/72 blur-lg"
-            animate={{ opacity: [0.45, 0.75, 0.5], scale: [0.92, 1.08, 0.96] }}
-            transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            animate={{
-              scale: [1, 1.08, 0.98, 1.04, 1],
-              rotate: [-6, 6, -4, 4, -6],
-            }}
-            transition={{
-              duration: 1.7,
-              delay: 1.1 + index * 0.15,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <Star
-              className="h-28 w-28 fill-yellow-bright text-yellow-50 drop-shadow-[0_0_52px_rgba(250,204,21,1)]"
-              strokeWidth={2.8}
-            />
-          </motion.div>
-        </motion.div>
-      ))}
-    </motion.div>
-  );
-}
-
 export function LessonInterface({
   lessons,
   onComplete,
@@ -343,9 +203,8 @@ export function LessonInterface({
   const [score, setScore] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [traceResult, setTraceResult] = useState<TraceEvaluation | null>(null);
-  const [traceStarBurstCount, setTraceStarBurstCount] = useState<number | null>(
-    null,
-  );
+  const [traceDemoReplayKey, setTraceDemoReplayKey] = useState(0);
+  const [celebrationStars, setCelebrationStars] = useState<number | null>(null);
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -367,6 +226,7 @@ export function LessonInterface({
   const isVocabTracePracticeLesson =
     currentLesson?.lessonKind === "vocab_trace_practice";
   const isLetterTraceDemoLesson = currentLesson?.lessonKind === "letter_trace_demo";
+  const isLetterListenLesson = currentLesson?.lessonKind === "letter_listen";
   // Gom nhóm 4 lesson chữ cái để dùng chung cách hiển thị instruction trên cùng
   const shouldPromoteTitleToInstruction = Boolean(
     currentLesson?.lessonKind &&
@@ -396,6 +256,7 @@ export function LessonInterface({
     Boolean(currentLesson.gating?.requireAnimationComplete);
   // Lesson quiz hiển thị chữ cái thật dưới lớp sương, không còn dấu hỏi
   const isFogRevealLesson = currentLesson?.lessonKind === "letter_quiz";
+  const isLetterGridPreviewLesson = isLetterListenLesson || isFogRevealLesson;
   const displayText =
     currentLesson?.targetText ??
     currentLesson?.targetLetter ??
@@ -449,6 +310,12 @@ export function LessonInterface({
     setPassiveReady(true);
   }, []);
 
+  const handleReplayTraceDemo = () => {
+    clearAdvanceTimeout();
+    setPassiveReady(false);
+    setTraceDemoReplayKey((prev) => prev + 1);
+  };
+
   useEffect(() => {
     if (!requiresAnimationComplete || passiveReady || isLetterTraceDemoLesson)
       return;
@@ -465,10 +332,14 @@ export function LessonInterface({
   const handleScoringResult = (
     correct: boolean,
     advanceDelayMs: number = FEEDBACK_ADVANCE_DELAY_MS,
+    earnedStars: number = 0,
   ) => {
     setIsCorrect(correct);
     if (correct) {
       setScore((prev) => prev + 1);
+      if (earnedStars > 0) {
+        setCelebrationStars(Math.max(1, Math.min(3, Math.round(earnedStars))));
+      }
     }
 
     if (correct) {
@@ -491,7 +362,11 @@ export function LessonInterface({
       return;
 
     setSelectedAnswer(answer.id);
-    handleScoringResult(answer.isCorrect);
+    const earnedStars =
+      answer.isCorrect && currentLesson.scoring?.maxStars
+        ? currentLesson.scoring.maxStars
+        : 0;
+    handleScoringResult(answer.isCorrect, FEEDBACK_ADVANCE_DELAY_MS, earnedStars);
   };
 
   const handleTraceEvaluate = (result: TraceEvaluation) => {
@@ -505,16 +380,14 @@ export function LessonInterface({
     }
 
     setTraceResult(result);
-    // Lesson 4 hiển thị popup sao bay lên thay vì hiện điểm %
-    if (currentLesson.lessonKind === "letter_trace_practice" && result.stars > 0) {
-      setTraceStarBurstCount(Math.min(2, result.stars));
-    }
+    const lessonMaxStars = currentLesson.scoring?.maxStars ?? 2;
+    const earnedStars = Math.min(lessonMaxStars, result.stars);
     const correct = result.score >= traceOneStarThreshold;
     const advanceDelayMs =
       currentLesson.lessonKind === "letter_trace_practice"
         ? TRACE_STARS_ADVANCE_DELAY_MS
         : FEEDBACK_ADVANCE_DELAY_MS;
-    handleScoringResult(correct, advanceDelayMs);
+    handleScoringResult(correct, advanceDelayMs, earnedStars);
   };
 
   const handleNext = () => {
@@ -522,7 +395,8 @@ export function LessonInterface({
     setSelectedAnswer(null);
     setIsCorrect(null);
     setTraceResult(null);
-    setTraceStarBurstCount(null);
+    setTraceDemoReplayKey(0);
+    setCelebrationStars(null);
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -652,9 +526,7 @@ export function LessonInterface({
         {isCorrect === true && <FullScreenSuccessCelebration />}
       </AnimatePresence>
       <AnimatePresence>
-        {traceStarBurstCount && isLetterTracePracticeLesson && (
-          <TraceStarsPopup stars={traceStarBurstCount} />
-        )}
+        {celebrationStars && <LessonStarCelebration stars={celebrationStars} />}
       </AnimatePresence>
 
       <div className="p-4 flex items-center gap-4 pt-safe">
@@ -704,7 +576,56 @@ export function LessonInterface({
               </p>
             )}
 
-            {showPreviewCard && (
+            {showPreviewCard && isLetterGridPreviewLesson && !currentLesson.mainImage && (
+              <motion.div
+                className="relative mx-auto mb-6 inline-block"
+                animate={
+                  currentLesson.type === "passive"
+                    ? { scale: [1, 1.02, 1] }
+                    : {}
+                }
+                transition={{ duration: 2, repeat: Infinity }}
+                onClick={() =>
+                  currentLesson.mainAudio && playAudio(currentLesson.mainAudio)
+                }
+              >
+                <LetterTracingCanvas
+                  key={`${currentLesson.id}-filled-preview`}
+                  mode="preview"
+                  targetText={targetText || displayText}
+                />
+                {isFogRevealLesson && (
+                  <FogRevealOverlay
+                    revealKey={currentLesson.id}
+                    width={LETTER_TRACING_CANVAS_WIDTH}
+                    height={LETTER_TRACING_CANVAS_HEIGHT}
+                    roundedClassName="rounded-md"
+                  />
+                )}
+                {currentLesson.mainAudio && (
+                  <motion.div
+                    className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <LessonButton
+                      className="rounded-full"
+                      frontClassName="h-10 w-10"
+                      aria-label="Phát lại âm thanh"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(currentLesson.mainAudio!);
+                      }}
+                    >
+                      <Volume2 className="w-5 h-5 text-white" />
+                    </LessonButton>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+            {showPreviewCard &&
+              !(isLetterGridPreviewLesson && !currentLesson.mainImage) && (
               <motion.div
                 className="relative mx-auto h-60 w-60 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
                 animate={
@@ -732,11 +653,6 @@ export function LessonInterface({
                   >
                     {displayText}
                   </span>
-                )}
-
-                {/* Lesson nghe-chọn hiển thị chữ cái dưới lớp sương để bé chạm và mở dần */}
-                {isFogRevealLesson && !currentLesson.mainImage && (
-                  <FogRevealOverlay revealKey={currentLesson.id} />
                 )}
 
                 {currentLesson.mainAudio && (
@@ -794,14 +710,28 @@ export function LessonInterface({
             )}
 
             {currentLesson.type === "passive" && isLetterTraceDemoLesson && (
-              <div className="mt-2 flex flex-col items-center gap-3">
+              <div className="relative mt-2 inline-block">
                 {/* Dùng lại khung tô chữ và cho hệ thống tự chạy nét mẫu */}
                 <LetterTracingCanvas
-                  key={`${currentLesson.id}-demo`}
+                  key={`${currentLesson.id}-demo-${traceDemoReplayKey}`}
                   mode="demo"
                   targetText={targetText}
                   onAutoTraceComplete={handleTraceDemoComplete}
                 />
+                <motion.div
+                  className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <LessonButton
+                    className="rounded-full"
+                    frontClassName="h-10 w-10"
+                    aria-label="Xem lại nét mẫu"
+                    onClick={handleReplayTraceDemo}
+                  >
+                    <RotateCcw className="w-5 h-5 text-white" />
+                  </LessonButton>
+                </motion.div>
               </div>
             )}
 

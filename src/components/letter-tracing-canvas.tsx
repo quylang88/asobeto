@@ -15,9 +15,11 @@ export interface TraceEvaluation {
   coverage: number;
 }
 
+type TracingCanvasMode = "practice" | "demo" | "preview";
+
 interface LetterTracingCanvasProps {
   targetText: string;
-  mode?: "practice" | "demo";
+  mode?: TracingCanvasMode;
   disabled?: boolean;
   oneStarThreshold?: number;
   twoStarThreshold?: number;
@@ -33,20 +35,45 @@ interface SampledStroke {
   pauseAfterMs: number;
 }
 
-const CANVAS_SIZE = 280;
+const SOURCE_CANVAS_SIZE = 280;
 const LINE_WIDTH = 28;
 const GENERIC_DEMO_DURATION_MS = 4200;
 // Lấy mẫu dày hơn để nét auto-tô bám cong mượt, không bị gãy khi chạy chậm
 const STROKE_SAMPLE_DENSITY = 220;
+const WRITING_GRID_MARGIN = 8;
+// Bám đúng bố cục ảnh mẫu: ngang 3 ô, dọc 4 ô (không hiển thị số)
+const WRITING_GRID_COLUMNS = 3;
+const WRITING_GRID_ROWS = 4;
+const WRITING_GRID_CELL_SIZE = 56;
+const DRAW_AREA_WIDTH = WRITING_GRID_COLUMNS * WRITING_GRID_CELL_SIZE;
+const DRAW_AREA_HEIGHT = WRITING_GRID_ROWS * WRITING_GRID_CELL_SIZE;
+const CANVAS_WIDTH = DRAW_AREA_WIDTH + WRITING_GRID_MARGIN * 2;
+const CANVAS_HEIGHT = DRAW_AREA_HEIGHT + WRITING_GRID_MARGIN * 2;
+const GUIDE_STROKE_COLOR = "rgba(17, 24, 39, 0.16)";
+const TRACE_STROKE_COLOR = "#111827";
+const USER_STROKE_COLOR = "#0f172a";
+const FILLED_STROKE_COLOR = "#0b0f1a";
+
+export const LETTER_TRACING_CANVAS_WIDTH = CANVAS_WIDTH;
+export const LETTER_TRACING_CANVAS_HEIGHT = CANVAS_HEIGHT;
 
 function toCanvasPoint(
   event: PointerEvent<HTMLCanvasElement>,
   canvas: HTMLCanvasElement,
 ) {
   const rect = canvas.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * CANVAS_SIZE;
-  const y = ((event.clientY - rect.top) / rect.height) * CANVAS_SIZE;
+  const x = ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH;
+  const y = ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT;
   return { x, y };
+}
+
+function mapPointToWritingGrid(point: StrokePoint): StrokePoint {
+  return {
+    x:
+      WRITING_GRID_MARGIN + (point.x / SOURCE_CANVAS_SIZE) * DRAW_AREA_WIDTH,
+    y:
+      WRITING_GRID_MARGIN + (point.y / SOURCE_CANVAS_SIZE) * DRAW_AREA_HEIGHT,
+  };
 }
 
 function clamp01(value: number) {
@@ -89,15 +116,21 @@ function cubicBezierPoint(
 }
 
 function sampleStrokePath(stroke: LetterStrokePath): SampledStroke {
-  const points: StrokePoint[] = [{ x: stroke.start.x, y: stroke.start.y }];
-  let cursor: StrokePoint = { x: stroke.start.x, y: stroke.start.y };
+  const mappedStart = mapPointToWritingGrid(stroke.start);
+  const points: StrokePoint[] = [{ x: mappedStart.x, y: mappedStart.y }];
+  let cursor: StrokePoint = { x: mappedStart.x, y: mappedStart.y };
 
   for (const curve of stroke.curves) {
+    const mappedCurve = {
+      control1: mapPointToWritingGrid(curve.control1),
+      control2: mapPointToWritingGrid(curve.control2),
+      end: mapPointToWritingGrid(curve.end),
+    };
     for (let step = 1; step <= STROKE_SAMPLE_DENSITY; step += 1) {
       const t = step / STROKE_SAMPLE_DENSITY;
-      points.push(cubicBezierPoint(t, cursor, curve));
+      points.push(cubicBezierPoint(t, cursor, mappedCurve));
     }
-    cursor = { x: curve.end.x, y: curve.end.y };
+    cursor = { x: mappedCurve.end.x, y: mappedCurve.end.y };
   }
 
   const cumulativeLengths: number[] = [0];
@@ -167,12 +200,16 @@ function drawSampledStrokeGuide(
   ctx: CanvasRenderingContext2D,
   sampledStrokes: SampledStroke[],
   guideLineWidth: number,
+  strokeStyle: string = GUIDE_STROKE_COLOR,
+  clearFirst: boolean = true,
 ) {
-  ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  if (clearFirst) {
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.lineWidth = guideLineWidth;
-  ctx.strokeStyle = "rgba(34, 197, 94, 0.22)";
+  ctx.strokeStyle = strokeStyle;
 
   for (const sampledStroke of sampledStrokes) {
     drawPartialSampledStroke(ctx, sampledStroke, 1);
@@ -181,17 +218,19 @@ function drawSampledStrokeGuide(
 
 function getGuideFontSize(targetText: string): number {
   const targetLength = [...targetText].length;
-  if (targetLength <= 1) return 248;
-  if (targetLength === 2) return 218;
-  if (targetLength <= 4) return 172;
-  return 142;
+  const baseSize = Math.min(DRAW_AREA_WIDTH, DRAW_AREA_HEIGHT);
+  if (targetLength <= 1) return Math.round(baseSize * 0.84);
+  if (targetLength === 2) return Math.round(baseSize * 0.72);
+  if (targetLength <= 4) return Math.round(baseSize * 0.58);
+  return Math.round(baseSize * 0.48);
 }
 
 function getTraceLineWidth(targetText: string): number {
   const targetLength = [...targetText].length;
-  if (targetLength <= 1) return 30;
-  if (targetLength === 2) return 26;
-  return LINE_WIDTH;
+  if (targetLength <= 1) return 16;
+  if (targetLength === 2) return 14;
+  if (targetLength <= 4) return 12;
+  return Math.max(10, LINE_WIDTH * 0.38);
 }
 
 function drawGuideGlyph(
@@ -200,12 +239,90 @@ function drawGuideGlyph(
   guideFontSize: number,
   fillStyle: string = "rgba(17, 24, 39, 0.15)",
 ) {
-  ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   ctx.fillStyle = fillStyle;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
-  ctx.fillText(targetText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+  ctx.fillText(targetText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+}
+
+function WritingGridOverlay() {
+  const columnWidth = WRITING_GRID_CELL_SIZE;
+  const rowHeight = WRITING_GRID_CELL_SIZE;
+  const primaryVerticalLines = Array.from(
+    { length: WRITING_GRID_COLUMNS + 1 },
+    (_, index) => WRITING_GRID_MARGIN + index * columnWidth,
+  );
+  const primaryHorizontalLines = Array.from(
+    { length: WRITING_GRID_ROWS + 1 },
+    (_, index) => WRITING_GRID_MARGIN + index * rowHeight,
+  );
+  const helperVerticalLines = Array.from(
+    { length: WRITING_GRID_COLUMNS },
+    (_, index) => WRITING_GRID_MARGIN + (index + 0.5) * columnWidth,
+  );
+  const helperHorizontalLines = Array.from(
+    { length: WRITING_GRID_ROWS },
+    (_, index) => WRITING_GRID_MARGIN + (index + 0.5) * rowHeight,
+  );
+
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0"
+      viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+      aria-hidden
+    >
+      {primaryVerticalLines.map((x, index) => (
+        <line
+          key={`grid-primary-v-${index}`}
+          x1={x}
+          y1={WRITING_GRID_MARGIN}
+          x2={x}
+          y2={CANVAS_HEIGHT - WRITING_GRID_MARGIN}
+          stroke="#38bdf8"
+          strokeWidth={2.2}
+          strokeDasharray="8 8"
+        />
+      ))}
+      {primaryHorizontalLines.map((y, index) => (
+        <line
+          key={`grid-primary-h-${index}`}
+          x1={WRITING_GRID_MARGIN}
+          y1={y}
+          x2={CANVAS_WIDTH - WRITING_GRID_MARGIN}
+          y2={y}
+          stroke="#38bdf8"
+          strokeWidth={2.2}
+          strokeDasharray="8 8"
+        />
+      ))}
+      {helperVerticalLines.map((x, index) => (
+        <line
+          key={`grid-helper-v-${index}`}
+          x1={x}
+          y1={WRITING_GRID_MARGIN}
+          x2={x}
+          y2={CANVAS_HEIGHT - WRITING_GRID_MARGIN}
+          stroke="#93c5fd"
+          strokeWidth={1}
+          strokeDasharray="4 8"
+        />
+      ))}
+      {helperHorizontalLines.map((y, index) => (
+        <line
+          key={`grid-helper-h-${index}`}
+          x1={WRITING_GRID_MARGIN}
+          y1={y}
+          x2={CANVAS_WIDTH - WRITING_GRID_MARGIN}
+          y2={y}
+          stroke="#93c5fd"
+          strokeWidth={1}
+          strokeDasharray="4 8"
+        />
+      ))}
+    </svg>
+  );
 }
 
 export function LetterTracingCanvas({
@@ -223,6 +340,11 @@ export function LetterTracingCanvas({
   const [hasStroke, setHasStroke] = useState(false);
   const autoTraceDoneRef = useRef(false);
   const isDemoMode = mode === "demo";
+  const isPreviewMode = mode === "preview";
+  const rootClassName =
+    mode === "practice"
+      ? "mt-2 inline-flex flex-col items-center gap-3"
+      : "inline-flex flex-col items-center gap-3";
   const normalizedTarget = useMemo(
     () => targetText.trim().toLocaleLowerCase(),
     [targetText],
@@ -258,15 +380,15 @@ export function LetterTracingCanvas({
     if (!canvas || !guideCanvas) return;
 
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(CANVAS_SIZE * ratio);
-    canvas.height = Math.floor(CANVAS_SIZE * ratio);
-    canvas.style.width = `${CANVAS_SIZE}px`;
-    canvas.style.height = `${CANVAS_SIZE}px`;
+    canvas.width = Math.floor(CANVAS_WIDTH * ratio);
+    canvas.height = Math.floor(CANVAS_HEIGHT * ratio);
+    canvas.style.width = `${CANVAS_WIDTH}px`;
+    canvas.style.height = `${CANVAS_HEIGHT}px`;
 
-    guideCanvas.width = Math.floor(CANVAS_SIZE * ratio);
-    guideCanvas.height = Math.floor(CANVAS_SIZE * ratio);
-    guideCanvas.style.width = `${CANVAS_SIZE}px`;
-    guideCanvas.style.height = `${CANVAS_SIZE}px`;
+    guideCanvas.width = Math.floor(CANVAS_WIDTH * ratio);
+    guideCanvas.height = Math.floor(CANVAS_HEIGHT * ratio);
+    guideCanvas.style.width = `${CANVAS_WIDTH}px`;
+    guideCanvas.style.height = `${CANVAS_HEIGHT}px`;
 
     const drawCtx = canvas.getContext("2d");
     const guideCtx = guideCanvas.getContext("2d");
@@ -276,26 +398,65 @@ export function LetterTracingCanvas({
     drawCtx.lineJoin = "round";
     drawCtx.lineCap = "round";
     drawCtx.lineWidth = lineWidth;
-    drawCtx.strokeStyle = "#16a34a";
-    drawCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    drawCtx.strokeStyle = USER_STROKE_COLOR;
+    drawCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     guideCtx.scale(ratio, ratio);
+    guideCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Ở lesson demo, dùng cùng độ dày giữa nét mờ và nét auto-tô để cảm giác "đi đè" chính xác
-    const demoStrokeWidth = Math.max(10, lineWidth * 0.52);
-    // Ở lesson demo, nét mờ dùng chính stroke data để nét tô tự động bám khít từng nét chữ
-    if (isDemoMode && sampledDemoStrokes.length > 0) {
-      drawSampledStrokeGuide(guideCtx, sampledDemoStrokes, demoStrokeWidth);
+    // Lesson 1 chế độ preview chỉ cần ô ly + chữ tô sẵn, không vẽ lớp chữ mờ nền
+    if (isPreviewMode) return;
+
+    const guideStrokeWidth = Math.max(7, lineWidth * 0.7);
+    if (sampledDemoStrokes.length > 0) {
+      drawSampledStrokeGuide(
+        guideCtx,
+        sampledDemoStrokes,
+        guideStrokeWidth,
+        GUIDE_STROKE_COLOR,
+      );
     } else {
       drawGuideGlyph(guideCtx, normalizedTarget || "a", guideFontSize);
     }
   }, [
     guideFontSize,
-    isDemoMode,
+    isPreviewMode,
     lineWidth,
     normalizedTarget,
     sampledDemoStrokes,
   ]);
+
+  useEffect(() => {
+    if (!isPreviewMode) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const drawCtx = canvas.getContext("2d");
+    if (!drawCtx) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    const previewStrokeWidth = Math.max(9, lineWidth * 0.92);
+
+    drawCtx.setTransform(1, 0, 0, 1, 0, 0);
+    drawCtx.clearRect(0, 0, canvas.width, canvas.height);
+    drawCtx.scale(ratio, ratio);
+    drawCtx.lineJoin = "round";
+    drawCtx.lineCap = "round";
+    drawCtx.lineWidth = previewStrokeWidth;
+    drawCtx.strokeStyle = FILLED_STROKE_COLOR;
+
+    if (sampledDemoStrokes.length > 0) {
+      drawSampledStrokeGuide(
+        drawCtx,
+        sampledDemoStrokes,
+        previewStrokeWidth,
+        FILLED_STROKE_COLOR,
+      );
+      return;
+    }
+
+    drawGuideGlyph(drawCtx, normalizedTarget || "a", guideFontSize, FILLED_STROKE_COLOR);
+  }, [guideFontSize, isPreviewMode, lineWidth, normalizedTarget, sampledDemoStrokes]);
 
   useEffect(() => {
     if (!isDemoMode) return;
@@ -307,9 +468,8 @@ export function LetterTracingCanvas({
 
     const ratio = window.devicePixelRatio || 1;
     const traceText = normalizedTarget || "a";
-    // Nét auto-tô giữ cùng bề dày với nét mờ để nhìn rõ "đi đúng đường"
-    const traceLineWidth = Math.max(10, lineWidth * 0.52);
-    const dashLength = CANVAS_SIZE * 9;
+    const traceLineWidth = Math.max(8, lineWidth * 0.74);
+    const dashLength = Math.max(CANVAS_WIDTH, CANVAS_HEIGHT) * 9;
     autoTraceDoneRef.current = false;
 
     const drawGenericFallbackFrame = (progress: number) => {
@@ -319,16 +479,16 @@ export function LetterTracingCanvas({
       drawCtx.lineJoin = "round";
       drawCtx.lineCap = "round";
       drawCtx.lineWidth = traceLineWidth;
-      drawCtx.strokeStyle = "#16a34a";
+      drawCtx.strokeStyle = TRACE_STROKE_COLOR;
       drawCtx.textAlign = "center";
       drawCtx.textBaseline = "middle";
       drawCtx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
       drawCtx.setLineDash([dashLength]);
       drawCtx.lineDashOffset = dashLength * (1 - progress);
-      drawCtx.strokeText(traceText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+      drawCtx.strokeText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
       drawCtx.setLineDash([]);
-      drawCtx.fillStyle = `rgba(22, 163, 74, ${0.08 + progress * 0.2})`;
-      drawCtx.fillText(traceText, CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+      drawCtx.fillStyle = `rgba(17, 24, 39, ${0.08 + progress * 0.18})`;
+      drawCtx.fillText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     };
 
     // Ưu tiên vẽ theo từng nét chữ được định nghĩa riêng để đúng quy trình viết của từng chữ
@@ -339,10 +499,10 @@ export function LetterTracingCanvas({
       drawCtx.lineJoin = "round";
       drawCtx.lineCap = "round";
       drawCtx.lineWidth = traceLineWidth;
-      drawCtx.strokeStyle = "#15803d";
+      drawCtx.strokeStyle = TRACE_STROKE_COLOR;
       // Bóng nhẹ để nét nổi nhưng vẫn sắc, tránh cảm giác lem
-      drawCtx.shadowColor = "rgba(34, 197, 94, 0.22)";
-      drawCtx.shadowBlur = 4;
+      drawCtx.shadowColor = "rgba(15, 23, 42, 0.2)";
+      drawCtx.shadowBlur = 3;
 
       // Chạy timeline theo từng nét + khoảng dừng giữa các nét (nếu có)
       let remainingMs = elapsedMs;
@@ -417,12 +577,12 @@ export function LetterTracingCanvas({
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     setHasStroke(false);
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (disabled || isDemoMode) return;
+    if (disabled || isDemoMode || isPreviewMode) return;
     event.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -438,7 +598,7 @@ export function LetterTracingCanvas({
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || disabled || isDemoMode) return;
+    if (!isDrawing || disabled || isDemoMode || isPreviewMode) return;
     event.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -480,7 +640,16 @@ export function LetterTracingCanvas({
 
     const ratio = window.devicePixelRatio || 1;
     targetCtx.scale(ratio, ratio);
-    drawGuideGlyph(targetCtx, normalizedTarget, guideFontSize, "#111111");
+    if (sampledDemoStrokes.length > 0) {
+      drawSampledStrokeGuide(
+        targetCtx,
+        sampledDemoStrokes,
+        Math.max(7, lineWidth * 0.7),
+        "#111111",
+      );
+    } else {
+      drawGuideGlyph(targetCtx, normalizedTarget, guideFontSize, "#111111");
+    }
 
     const drawnData = drawCtx.getImageData(0, 0, canvas.width, canvas.height).data;
     const targetData = targetCtx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -507,17 +676,23 @@ export function LetterTracingCanvas({
   };
 
   return (
-    <div className="mt-2 flex flex-col items-center gap-3">
-      <div className="relative h-70 w-70 rounded-3xl border-2 border-dashed border-green-bright/40 bg-white shadow-lg">
+    <div className={rootClassName}>
+      <div
+        className="relative overflow-hidden rounded-md border-2 border-sky-400 bg-white shadow-lg"
+        style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+      >
+        <WritingGridOverlay />
         <canvas
           ref={guideCanvasRef}
-          className="pointer-events-none absolute inset-0 rounded-3xl"
+          className="pointer-events-none absolute inset-0"
           aria-hidden
         />
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 z-10 rounded-3xl touch-none ${
-            disabled || isDemoMode ? "pointer-events-none opacity-80" : ""
+          className={`absolute inset-0 z-10 touch-none ${
+            disabled || isDemoMode || isPreviewMode
+              ? "pointer-events-none opacity-80"
+              : ""
           }`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
