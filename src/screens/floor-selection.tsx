@@ -162,7 +162,7 @@ function StandardFloorCard({
               {/* Stars */}
               {floor.unlocked && (
                 <div className="flex gap-0.5 mt-1.5">
-                  {[...Array(3)].map((_, i) => (
+                  {[...Array(Math.max(1, floor.maxStars ?? 3))].map((_, i) => (
                     <Star
                       key={i}
                       className={`w-4 h-4 ${
@@ -419,7 +419,7 @@ function BossFloorCard({
               {/* Stars for boss level */}
               {!isLocked && (
                 <div className="flex gap-1 mt-2">
-                  {[...Array(3)].map((_, i) => (
+                  {[...Array(Math.max(1, floor.maxStars ?? 3))].map((_, i) => (
                     <Star
                       key={i}
                       className={`w-5 h-5 ${

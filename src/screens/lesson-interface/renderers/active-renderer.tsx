@@ -46,7 +46,6 @@ interface LessonActiveRendererProps {
   isMicSubmitting: boolean;
   handleMicButtonClick: () => void;
   micLevel: number;
-  isLetterTracePracticeLesson: boolean;
   targetText: string;
   traceResult: TraceEvaluation | null;
   traceOneStarThreshold: number;
@@ -82,7 +81,6 @@ export function LessonActiveRenderer({
   isMicSubmitting,
   handleMicButtonClick,
   micLevel,
-  isLetterTracePracticeLesson,
   targetText,
   traceResult,
   traceOneStarThreshold,
@@ -356,10 +354,6 @@ export function LessonActiveRenderer({
 
       {currentLesson.type === "active" && isTracePracticeLesson && (
         <div className="mt-2 flex flex-col items-center gap-3">
-          {!isLetterTracePracticeLesson && (
-            <p className="text-sm text-muted-foreground">{`Bé tô theo mẫu từ "${targetText}".`}</p>
-          )}
-
           <LetterTracingCanvas
             key={currentLesson.id}
             mode="practice"

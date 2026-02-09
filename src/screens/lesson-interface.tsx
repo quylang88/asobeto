@@ -11,7 +11,6 @@ import { Mascot } from "../components/beto-mascot";
 import { getStoredLessonStars } from "@/lib/floor-progress";
 import { type LessonContent } from "../data/game-config";
 import {
-  FLOOR_MAX_STARS,
   SuccessCelebrationOverlay,
   LessonActiveRenderer,
   GameButton,
@@ -31,7 +30,6 @@ import {
   isFogRevealLessonKind,
   isLetterGridPreviewLessonKind,
   isLetterTraceDemoLessonKind,
-  isLetterTracePracticeLessonKind,
   isTracePracticeLessonKind,
   isVocabListenRepeatLessonKind,
   isVocabTracePracticeLessonKind,
@@ -50,6 +48,7 @@ interface LessonInterfaceProps {
   towerId: number;
   floorId: number;
   floorName: string;
+  floorMaxStars: number;
   lessons: LessonContent[];
   onComplete: () => void;
   onBack: () => void;
@@ -58,6 +57,7 @@ export function LessonInterface({
   worldId,
   towerId,
   floorId,
+  floorMaxStars,
   lessons,
   onComplete,
   onBack,
@@ -105,8 +105,6 @@ export function LessonInterface({
   });
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
   const isTracePracticeLesson = isTracePracticeLessonKind(currentLessonKind);
-  const isLetterTracePracticeLesson =
-    isLetterTracePracticeLessonKind(currentLessonKind);
   const isVocabTracePracticeLesson =
     isVocabTracePracticeLessonKind(currentLessonKind);
   const isWordBuildLesson = isWordBuildLessonKind(currentLessonKind);
@@ -263,6 +261,7 @@ export function LessonInterface({
     worldId,
     towerId,
     floorId,
+    floorMaxStars,
     lessons,
     hasLessons,
     currentLesson,
@@ -349,14 +348,15 @@ export function LessonInterface({
 
   if (showCompletion) {
     const stars =
-      completionStars ?? getAttemptFloorStars(lessons, lessonStarsThisAttempt);
+      completionStars ??
+      getAttemptFloorStars(lessons, lessonStarsThisAttempt, floorMaxStars);
     return (
       <LessonCompletionView
         stars={stars}
         score={score}
         activeLessonsCount={activeLessonsCount}
         activeLessonsTotalStars={activeLessonsTotalStars}
-        floorMaxStars={FLOOR_MAX_STARS}
+        floorMaxStars={floorMaxStars}
         onComplete={onComplete}
       />
     );
@@ -445,7 +445,6 @@ export function LessonInterface({
               isMicSubmitting={isMicSubmitting}
               handleMicButtonClick={handleMicButtonClick}
               micLevel={micLevel}
-              isLetterTracePracticeLesson={isLetterTracePracticeLesson}
               targetText={targetText}
               traceResult={traceResult}
               traceOneStarThreshold={traceOneStarThreshold}

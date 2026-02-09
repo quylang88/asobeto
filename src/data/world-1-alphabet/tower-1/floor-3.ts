@@ -1,7 +1,7 @@
 import { LessonContent } from "../map-structure";
 import { createVocabFloorLessons } from "../lesson-templates";
 
-export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
+const baseFloor3Lessons = createVocabFloorLessons({
   lessonPrefix: "t1-f3",
   word: "cá",
   wordAssetKey: "fish",
@@ -18,4 +18,25 @@ export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
     { id: "o", text: "o", kind: "letter" },
   ],
   reviewLetters: ["A", "C"],
+});
+
+export const floor3Lessons: LessonContent[] = baseFloor3Lessons.map((lesson) => {
+  if (lesson.id !== "t1-f3-l4" || lesson.type !== "active") {
+    return lesson;
+  }
+
+  return {
+    ...lesson,
+    scoring: {
+      ...(lesson.scoring ?? {
+        metric: "trace_accuracy",
+        passPolicy: "always" as const,
+      }),
+      starThresholds: {
+        oneStar: 0.5,
+        twoStars: 0.75,
+      },
+      maxStars: 2,
+    },
+  };
 });

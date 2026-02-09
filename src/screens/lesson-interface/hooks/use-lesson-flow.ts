@@ -17,7 +17,6 @@ import {
   FEEDBACK_FLOOR_TRY_AGAIN_AUDIO,
   FEEDBACK_SUCCESS_AUDIO,
   FEEDBACK_WRONG_AUDIO,
-  FLOOR_MAX_STARS,
   TRACE_STARS_ADVANCE_DELAY_MS,
 } from "../constants";
 import {
@@ -30,6 +29,7 @@ interface UseLessonFlowParams {
   worldId: number;
   towerId: number;
   floorId: number;
+  floorMaxStars: number;
   lessons: LessonContent[];
   hasLessons: boolean;
   currentLesson: LessonContent | undefined;
@@ -66,6 +66,7 @@ export function useLessonFlow({
   worldId,
   towerId,
   floorId,
+  floorMaxStars,
   lessons,
   hasLessons,
   currentLesson,
@@ -306,7 +307,11 @@ export function useLessonFlow({
     }
 
     const latestLessonStars = lessonStarsThisAttemptRef.current;
-    const attemptFloorStars = getAttemptFloorStars(lessons, latestLessonStars);
+    const attemptFloorStars = getAttemptFloorStars(
+      lessons,
+      latestLessonStars,
+      floorMaxStars,
+    );
 
     if (attemptFloorStars >= 1) {
       playOneShotAudio(FEEDBACK_FLOOR_CHEER_AUDIO);
@@ -321,13 +326,14 @@ export function useLessonFlow({
       floorId,
       floorStars: attemptFloorStars,
       lessonStars: latestLessonStars,
-      maxStars: FLOOR_MAX_STARS,
+      maxStars: floorMaxStars,
     });
     setShowCompletion(true);
   }, [
     clearAdvanceTimeout,
     currentStep,
     floorId,
+    floorMaxStars,
     hasLessons,
     lessonStarsThisAttemptRef,
     lessons,

@@ -23,6 +23,9 @@ export function LessonCompletionView({
   onComplete,
 }: LessonCompletionViewProps) {
   // Tách màn hoàn thành thành component riêng để LessonInterface chỉ còn vai trò điều phối state.
+  const displayedStarCount = Math.max(1, floorMaxStars);
+  const starSizeClass =
+    displayedStarCount > 3 ? "w-11 h-11 md:w-12 md:h-12" : "w-16 h-16";
   const noStarsEarned = stars <= 0;
   const completionTitle = noStarsEarned ? "Cố lên bé nhé!" : "Tuyệt Vời!";
   const completionSummary =
@@ -65,7 +68,7 @@ export function LessonCompletionView({
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          {[...Array(3)].map((_, i) => (
+          {[...Array(displayedStarCount)].map((_, i) => (
             <motion.div
               key={i}
               initial={{ scale: 0, rotate: -180 }}
@@ -73,7 +76,7 @@ export function LessonCompletionView({
               transition={{ delay: 0.7 + i * 0.2, type: "spring" }}
             >
               <Star
-                className={`w-16 h-16 ${
+                className={`${starSizeClass} ${
                   i < stars
                     ? "text-yellow-bright fill-yellow-bright"
                     : "text-gray-300 fill-gray-200"

@@ -139,6 +139,7 @@ export default function AsobetoApp() {
           towerId={gameState.selectedTower!}
           floorId={gameState.selectedFloor!}
           floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
+          floorMaxStars={selectedFloor?.maxStars ?? 3}
           lessons={selectedFloor?.content || []}
           onComplete={handleLessonComplete}
           onBack={() => handleBack("floorSelection")}

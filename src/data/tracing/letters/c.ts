@@ -1,4 +1,4 @@
-import { LetterStrokeAnimation } from "./types";
+import { LetterStrokeAnimation } from "../types";
 
 // Nét chữ "c" thường chuẩn tiếng Việt: 1 nét cong liền mạch, mở bên phải
 export const letterStrokeC: LetterStrokeAnimation = {

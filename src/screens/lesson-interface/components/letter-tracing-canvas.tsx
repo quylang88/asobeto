@@ -5,7 +5,7 @@ import {
   getLetterStrokeAnimation,
   type LetterStrokePath,
   type StrokePoint,
-} from "@/data/tracing/letters";
+} from "@/data/tracing";
 import { GameButton } from "./button";
 
 export interface TraceEvaluation {
@@ -41,39 +41,79 @@ const LINE_WIDTH = 28;
 const GENERIC_DEMO_DURATION_MS = 4200;
 // Lấy mẫu dày hơn để nét auto-tô bám cong mượt, không bị gãy khi chạy chậm
 const STROKE_SAMPLE_DENSITY = 220;
-const WRITING_GRID_MARGIN = 8;
-// Bám đúng bố cục ảnh mẫu: ngang 3 ô, dọc 4 ô (không hiển thị số)
-const WRITING_GRID_COLUMNS = 3;
-const WRITING_GRID_ROWS = 4;
-const WRITING_GRID_CELL_SIZE = 70;
-const DRAW_AREA_WIDTH = WRITING_GRID_COLUMNS * WRITING_GRID_CELL_SIZE;
-const DRAW_AREA_HEIGHT = WRITING_GRID_ROWS * WRITING_GRID_CELL_SIZE;
-const CANVAS_WIDTH = DRAW_AREA_WIDTH + WRITING_GRID_MARGIN * 2;
-const CANVAS_HEIGHT = DRAW_AREA_HEIGHT + WRITING_GRID_MARGIN * 2;
+const DEFAULT_WRITING_GRID_MARGIN = 8;
+// Mặc định lưới ngang 3 ô, dọc 4 ô; một số từ ghép sẽ ghi đè (ví dụ "cá" dùng 4 ô ngang).
+const DEFAULT_WRITING_GRID_COLUMNS = 3;
+const DEFAULT_WRITING_GRID_ROWS = 4;
+const DEFAULT_WRITING_GRID_CELL_SIZE = 70;
 const GUIDE_STROKE_COLOR = "rgba(17, 24, 39, 0.16)";
 const TRACE_STROKE_COLOR = "#111827";
 const USER_STROKE_COLOR = "#0f172a";
 const FILLED_STROKE_COLOR = "#0b0f1a";
 
-export const LETTER_TRACING_CANVAS_WIDTH = CANVAS_WIDTH;
-export const LETTER_TRACING_CANVAS_HEIGHT = CANVAS_HEIGHT;
+interface TracingGridMetrics {
+  margin: number;
+  columns: number;
+  rows: number;
+  cellSize: number;
+  drawAreaWidth: number;
+  drawAreaHeight: number;
+  canvasWidth: number;
+  canvasHeight: number;
+}
+
+function createTracingGridMetrics(layout?: {
+  margin?: number;
+  columns?: number;
+  rows?: number;
+  cellSize?: number;
+}): TracingGridMetrics {
+  const margin = layout?.margin ?? DEFAULT_WRITING_GRID_MARGIN;
+  const columns = layout?.columns ?? DEFAULT_WRITING_GRID_COLUMNS;
+  const rows = layout?.rows ?? DEFAULT_WRITING_GRID_ROWS;
+  const cellSize = layout?.cellSize ?? DEFAULT_WRITING_GRID_CELL_SIZE;
+  const drawAreaWidth = columns * cellSize;
+  const drawAreaHeight = rows * cellSize;
+
+  return {
+    margin,
+    columns,
+    rows,
+    cellSize,
+    drawAreaWidth,
+    drawAreaHeight,
+    canvasWidth: drawAreaWidth + margin * 2,
+    canvasHeight: drawAreaHeight + margin * 2,
+  };
+}
+
+const DEFAULT_TRACING_GRID_METRICS = createTracingGridMetrics();
+
+export const LETTER_TRACING_CANVAS_WIDTH = DEFAULT_TRACING_GRID_METRICS.canvasWidth;
+export const LETTER_TRACING_CANVAS_HEIGHT =
+  DEFAULT_TRACING_GRID_METRICS.canvasHeight;
 
 function toCanvasPoint(
   event: PointerEvent<HTMLCanvasElement>,
   canvas: HTMLCanvasElement,
+  metrics: TracingGridMetrics,
 ) {
   const rect = canvas.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH;
-  const y = ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT;
+  const x = ((event.clientX - rect.left) / rect.width) * metrics.canvasWidth;
+  const y = ((event.clientY - rect.top) / rect.height) * metrics.canvasHeight;
   return { x, y };
 }
 
-function mapPointToWritingGrid(point: StrokePoint): StrokePoint {
+function mapPointToWritingGrid(
+  point: StrokePoint,
+  metrics: TracingGridMetrics,
+): StrokePoint {
   return {
     x:
-      WRITING_GRID_MARGIN + (point.x / SOURCE_CANVAS_SIZE) * DRAW_AREA_WIDTH,
+      metrics.margin + (point.x / SOURCE_CANVAS_SIZE) * metrics.drawAreaWidth,
     y:
-      WRITING_GRID_MARGIN + (point.y / SOURCE_CANVAS_SIZE) * DRAW_AREA_HEIGHT,
+      metrics.margin +
+      (point.y / SOURCE_CANVAS_SIZE) * metrics.drawAreaHeight,
   };
 }
 
@@ -116,16 +156,19 @@ function cubicBezierPoint(
   };
 }
 
-function sampleStrokePath(stroke: LetterStrokePath): SampledStroke {
-  const mappedStart = mapPointToWritingGrid(stroke.start);
+function sampleStrokePath(
+  stroke: LetterStrokePath,
+  metrics: TracingGridMetrics,
+): SampledStroke {
+  const mappedStart = mapPointToWritingGrid(stroke.start, metrics);
   const points: StrokePoint[] = [{ x: mappedStart.x, y: mappedStart.y }];
   let cursor: StrokePoint = { x: mappedStart.x, y: mappedStart.y };
 
   for (const curve of stroke.curves) {
     const mappedCurve = {
-      control1: mapPointToWritingGrid(curve.control1),
-      control2: mapPointToWritingGrid(curve.control2),
-      end: mapPointToWritingGrid(curve.end),
+      control1: mapPointToWritingGrid(curve.control1, metrics),
+      control2: mapPointToWritingGrid(curve.control2, metrics),
+      end: mapPointToWritingGrid(curve.end, metrics),
     };
     for (let step = 1; step <= STROKE_SAMPLE_DENSITY; step += 1) {
       const t = step / STROKE_SAMPLE_DENSITY;
@@ -200,12 +243,13 @@ function drawPartialSampledStroke(
 function drawSampledStrokeGuide(
   ctx: CanvasRenderingContext2D,
   sampledStrokes: SampledStroke[],
+  metrics: TracingGridMetrics,
   guideLineWidth: number,
   strokeStyle: string = GUIDE_STROKE_COLOR,
   clearFirst: boolean = true,
 ) {
   if (clearFirst) {
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.clearRect(0, 0, metrics.canvasWidth, metrics.canvasHeight);
   }
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -217,9 +261,12 @@ function drawSampledStrokeGuide(
   }
 }
 
-function getGuideFontSize(targetText: string): number {
+function getGuideFontSize(
+  targetText: string,
+  metrics: TracingGridMetrics,
+): number {
   const targetLength = [...targetText].length;
-  const baseSize = Math.min(DRAW_AREA_WIDTH, DRAW_AREA_HEIGHT);
+  const baseSize = Math.min(metrics.drawAreaWidth, metrics.drawAreaHeight);
   if (targetLength <= 1) return Math.round(baseSize * 0.84);
   if (targetLength === 2) return Math.round(baseSize * 0.72);
   if (targetLength <= 4) return Math.round(baseSize * 0.58);
@@ -250,51 +297,52 @@ function getCanvasGuideFontFamily(): string {
 function drawGuideGlyph(
   ctx: CanvasRenderingContext2D,
   targetText: string,
+  metrics: TracingGridMetrics,
   guideFontSize: number,
   fillStyle: string = "rgba(17, 24, 39, 0.15)",
   fontFamily: string = getCanvasGuideFontFamily(),
 ) {
-  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.clearRect(0, 0, metrics.canvasWidth, metrics.canvasHeight);
   ctx.fillStyle = fillStyle;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `${guideFontSize}px ${fontFamily}`;
-  ctx.fillText(targetText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+  ctx.fillText(targetText, metrics.canvasWidth / 2, metrics.canvasHeight / 2);
 }
 
-function WritingGridOverlay() {
-  const columnWidth = WRITING_GRID_CELL_SIZE;
-  const rowHeight = WRITING_GRID_CELL_SIZE;
+function WritingGridOverlay({ metrics }: { metrics: TracingGridMetrics }) {
+  const columnWidth = metrics.cellSize;
+  const rowHeight = metrics.cellSize;
   const primaryVerticalLines = Array.from(
-    { length: WRITING_GRID_COLUMNS + 1 },
-    (_, index) => WRITING_GRID_MARGIN + index * columnWidth,
+    { length: metrics.columns + 1 },
+    (_, index) => metrics.margin + index * columnWidth,
   );
   const primaryHorizontalLines = Array.from(
-    { length: WRITING_GRID_ROWS + 1 },
-    (_, index) => WRITING_GRID_MARGIN + index * rowHeight,
+    { length: metrics.rows + 1 },
+    (_, index) => metrics.margin + index * rowHeight,
   );
   const helperVerticalLines = Array.from(
-    { length: WRITING_GRID_COLUMNS },
-    (_, index) => WRITING_GRID_MARGIN + (index + 0.5) * columnWidth,
+    { length: metrics.columns },
+    (_, index) => metrics.margin + (index + 0.5) * columnWidth,
   );
   const helperHorizontalLines = Array.from(
-    { length: WRITING_GRID_ROWS },
-    (_, index) => WRITING_GRID_MARGIN + (index + 0.5) * rowHeight,
+    { length: metrics.rows },
+    (_, index) => metrics.margin + (index + 0.5) * rowHeight,
   );
 
   return (
     <svg
       className="pointer-events-none absolute inset-0"
-      viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+      viewBox={`0 0 ${metrics.canvasWidth} ${metrics.canvasHeight}`}
       aria-hidden
     >
       {primaryVerticalLines.map((x, index) => (
         <line
           key={`grid-primary-v-${index}`}
           x1={x}
-          y1={WRITING_GRID_MARGIN}
+          y1={metrics.margin}
           x2={x}
-          y2={CANVAS_HEIGHT - WRITING_GRID_MARGIN}
+          y2={metrics.canvasHeight - metrics.margin}
           stroke="#38bdf8"
           strokeWidth={2.2}
           strokeDasharray="8 8"
@@ -303,9 +351,9 @@ function WritingGridOverlay() {
       {primaryHorizontalLines.map((y, index) => (
         <line
           key={`grid-primary-h-${index}`}
-          x1={WRITING_GRID_MARGIN}
+          x1={metrics.margin}
           y1={y}
-          x2={CANVAS_WIDTH - WRITING_GRID_MARGIN}
+          x2={metrics.canvasWidth - metrics.margin}
           y2={y}
           stroke="#38bdf8"
           strokeWidth={2.2}
@@ -316,9 +364,9 @@ function WritingGridOverlay() {
         <line
           key={`grid-helper-v-${index}`}
           x1={x}
-          y1={WRITING_GRID_MARGIN}
+          y1={metrics.margin}
           x2={x}
-          y2={CANVAS_HEIGHT - WRITING_GRID_MARGIN}
+          y2={metrics.canvasHeight - metrics.margin}
           stroke="#93c5fd"
           strokeWidth={1}
           strokeDasharray="4 8"
@@ -327,9 +375,9 @@ function WritingGridOverlay() {
       {helperHorizontalLines.map((y, index) => (
         <line
           key={`grid-helper-h-${index}`}
-          x1={WRITING_GRID_MARGIN}
+          x1={metrics.margin}
           y1={y}
-          x2={CANVAS_WIDTH - WRITING_GRID_MARGIN}
+          x2={metrics.canvasWidth - metrics.margin}
           y2={y}
           stroke="#93c5fd"
           strokeWidth={1}
@@ -365,22 +413,29 @@ export function LetterTracingCanvas({
     () => targetText.trim().toLocaleLowerCase(),
     [targetText],
   );
-  const guideFontSize = useMemo(
-    () => getGuideFontSize(normalizedTarget || "a"),
+  const letterStrokeAnimation = useMemo(
+    () => getLetterStrokeAnimation(normalizedTarget || "a"),
     [normalizedTarget],
+  );
+  const tracingGridMetrics = useMemo(
+    () => createTracingGridMetrics(letterStrokeAnimation?.layout),
+    [letterStrokeAnimation],
+  );
+  const guideFontSize = useMemo(
+    () => getGuideFontSize(normalizedTarget || "a", tracingGridMetrics),
+    [normalizedTarget, tracingGridMetrics],
   );
   const lineWidth = useMemo(
     () => getTraceLineWidth(normalizedTarget || "a"),
     [normalizedTarget],
   );
-  const letterStrokeAnimation = useMemo(
-    () => getLetterStrokeAnimation(normalizedTarget || "a"),
-    [normalizedTarget],
-  );
   // Chuyển dữ liệu đường cong theo từng chữ thành danh sách điểm để vẽ mượt theo tiến trình
   const sampledDemoStrokes = useMemo(
-    () => letterStrokeAnimation?.strokes.map(sampleStrokePath) ?? [],
-    [letterStrokeAnimation],
+    () =>
+      letterStrokeAnimation?.strokes.map((stroke) =>
+        sampleStrokePath(stroke, tracingGridMetrics),
+      ) ?? [],
+    [letterStrokeAnimation, tracingGridMetrics],
   );
   const totalDemoDurationMs = useMemo(() => {
     if (sampledDemoStrokes.length === 0) return GENERIC_DEMO_DURATION_MS;
@@ -396,15 +451,15 @@ export function LetterTracingCanvas({
     if (!canvas || !guideCanvas) return;
 
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(CANVAS_WIDTH * ratio);
-    canvas.height = Math.floor(CANVAS_HEIGHT * ratio);
-    canvas.style.width = `${CANVAS_WIDTH}px`;
-    canvas.style.height = `${CANVAS_HEIGHT}px`;
+    canvas.width = Math.floor(tracingGridMetrics.canvasWidth * ratio);
+    canvas.height = Math.floor(tracingGridMetrics.canvasHeight * ratio);
+    canvas.style.width = `${tracingGridMetrics.canvasWidth}px`;
+    canvas.style.height = `${tracingGridMetrics.canvasHeight}px`;
 
-    guideCanvas.width = Math.floor(CANVAS_WIDTH * ratio);
-    guideCanvas.height = Math.floor(CANVAS_HEIGHT * ratio);
-    guideCanvas.style.width = `${CANVAS_WIDTH}px`;
-    guideCanvas.style.height = `${CANVAS_HEIGHT}px`;
+    guideCanvas.width = Math.floor(tracingGridMetrics.canvasWidth * ratio);
+    guideCanvas.height = Math.floor(tracingGridMetrics.canvasHeight * ratio);
+    guideCanvas.style.width = `${tracingGridMetrics.canvasWidth}px`;
+    guideCanvas.style.height = `${tracingGridMetrics.canvasHeight}px`;
 
     const drawCtx = canvas.getContext("2d");
     const guideCtx = guideCanvas.getContext("2d");
@@ -415,10 +470,20 @@ export function LetterTracingCanvas({
     drawCtx.lineCap = "round";
     drawCtx.lineWidth = lineWidth;
     drawCtx.strokeStyle = USER_STROKE_COLOR;
-    drawCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawCtx.clearRect(
+      0,
+      0,
+      tracingGridMetrics.canvasWidth,
+      tracingGridMetrics.canvasHeight,
+    );
 
     guideCtx.scale(ratio, ratio);
-    guideCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    guideCtx.clearRect(
+      0,
+      0,
+      tracingGridMetrics.canvasWidth,
+      tracingGridMetrics.canvasHeight,
+    );
 
     // Lesson 1 chế độ preview chỉ cần ô ly + chữ tô sẵn, không vẽ lớp chữ mờ nền
     if (isPreviewMode) return;
@@ -428,11 +493,17 @@ export function LetterTracingCanvas({
       drawSampledStrokeGuide(
         guideCtx,
         sampledDemoStrokes,
+        tracingGridMetrics,
         guideStrokeWidth,
         GUIDE_STROKE_COLOR,
       );
     } else {
-      drawGuideGlyph(guideCtx, normalizedTarget || "a", guideFontSize);
+      drawGuideGlyph(
+        guideCtx,
+        normalizedTarget || "a",
+        tracingGridMetrics,
+        guideFontSize,
+      );
     }
   }, [
     guideFontSize,
@@ -440,6 +511,7 @@ export function LetterTracingCanvas({
     lineWidth,
     normalizedTarget,
     sampledDemoStrokes,
+    tracingGridMetrics,
   ]);
 
   useEffect(() => {
@@ -465,14 +537,28 @@ export function LetterTracingCanvas({
       drawSampledStrokeGuide(
         drawCtx,
         sampledDemoStrokes,
+        tracingGridMetrics,
         previewStrokeWidth,
         FILLED_STROKE_COLOR,
       );
       return;
     }
 
-    drawGuideGlyph(drawCtx, normalizedTarget || "a", guideFontSize, FILLED_STROKE_COLOR);
-  }, [guideFontSize, isPreviewMode, lineWidth, normalizedTarget, sampledDemoStrokes]);
+    drawGuideGlyph(
+      drawCtx,
+      normalizedTarget || "a",
+      tracingGridMetrics,
+      guideFontSize,
+      FILLED_STROKE_COLOR,
+    );
+  }, [
+    guideFontSize,
+    isPreviewMode,
+    lineWidth,
+    normalizedTarget,
+    sampledDemoStrokes,
+    tracingGridMetrics,
+  ]);
 
   useEffect(() => {
     if (!isDemoMode) return;
@@ -498,10 +584,18 @@ export function LetterTracingCanvas({
       drawCtx.font = `${guideFontSize}px ${guideFontFamily}`;
       drawCtx.globalAlpha = 0.2 + normalizedProgress * 0.65;
       drawCtx.fillStyle = TRACE_STROKE_COLOR;
-      drawCtx.fillText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      drawCtx.fillText(
+        traceText,
+        tracingGridMetrics.canvasWidth / 2,
+        tracingGridMetrics.canvasHeight / 2,
+      );
       drawCtx.globalAlpha = 1;
       drawCtx.fillStyle = `rgba(17, 24, 39, ${0.08 + normalizedProgress * 0.18})`;
-      drawCtx.fillText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      drawCtx.fillText(
+        traceText,
+        tracingGridMetrics.canvasWidth / 2,
+        tracingGridMetrics.canvasHeight / 2,
+      );
     };
 
     // Ưu tiên vẽ theo từng nét chữ được định nghĩa riêng để đúng quy trình viết của từng chữ
@@ -580,6 +674,7 @@ export function LetterTracingCanvas({
     normalizedTarget,
     onAutoTraceComplete,
     sampledDemoStrokes,
+    tracingGridMetrics,
     totalDemoDurationMs,
   ]);
 
@@ -590,7 +685,12 @@ export function LetterTracingCanvas({
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.clearRect(
+      0,
+      0,
+      tracingGridMetrics.canvasWidth,
+      tracingGridMetrics.canvasHeight,
+    );
     setHasStroke(false);
   };
 
@@ -603,7 +703,7 @@ export function LetterTracingCanvas({
     if (!ctx) return;
 
     canvas.setPointerCapture(event.pointerId);
-    const point = toCanvasPoint(event, canvas);
+    const point = toCanvasPoint(event, canvas, tracingGridMetrics);
     ctx.beginPath();
     ctx.moveTo(point.x, point.y);
     setIsDrawing(true);
@@ -618,7 +718,7 @@ export function LetterTracingCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const point = toCanvasPoint(event, canvas);
+    const point = toCanvasPoint(event, canvas, tracingGridMetrics);
     ctx.lineTo(point.x, point.y);
     ctx.stroke();
   };
@@ -657,11 +757,18 @@ export function LetterTracingCanvas({
       drawSampledStrokeGuide(
         targetCtx,
         sampledDemoStrokes,
+        tracingGridMetrics,
         Math.max(7, lineWidth * 0.7),
         "#111111",
       );
     } else {
-      drawGuideGlyph(targetCtx, normalizedTarget, guideFontSize, "#111111");
+      drawGuideGlyph(
+        targetCtx,
+        normalizedTarget,
+        tracingGridMetrics,
+        guideFontSize,
+        "#111111",
+      );
     }
 
     const drawnData = drawCtx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -692,13 +799,16 @@ export function LetterTracingCanvas({
     <div className={rootClassName}>
       <div
         className="relative overflow-hidden rounded-md border-2 border-sky-400 bg-white shadow-lg"
-        style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+        style={{
+          width: `${tracingGridMetrics.canvasWidth}px`,
+          height: `${tracingGridMetrics.canvasHeight}px`,
+        }}
         onPointerDown={() => {
           if (!onFrameTap || !isDemoMode) return;
           onFrameTap();
         }}
       >
-        <WritingGridOverlay />
+        <WritingGridOverlay metrics={tracingGridMetrics} />
         <canvas
           ref={guideCanvasRef}
           className="pointer-events-none absolute inset-0"

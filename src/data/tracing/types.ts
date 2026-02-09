@@ -16,7 +16,15 @@ export interface LetterStrokePath {
   pauseAfterMs?: number;
 }
 
+export interface TracingGridLayout {
+  columns?: number;
+  rows?: number;
+  cellSize?: number;
+  margin?: number;
+}
+
 export interface LetterStrokeAnimation {
   letter: string;
   strokes: LetterStrokePath[];
+  layout?: TracingGridLayout;
 }

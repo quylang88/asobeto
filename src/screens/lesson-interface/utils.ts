@@ -1,6 +1,7 @@
 import type { LessonContent } from "@/data/game-config";
-import { FLOOR_MAX_STARS } from "./constants";
 import type { WordBuildSlotPlacement, WordBuildToken } from "./types";
+
+const DEFAULT_FLOOR_MAX_STARS = 3;
 
 function normalizeSpeechText(value: string, removeDiacritics: boolean): string {
   let normalized = value.toLocaleLowerCase("vi-VN");
@@ -153,6 +154,7 @@ export function getLessonMaxStars(lesson: LessonContent): number {
 export function getAttemptFloorStars(
   lessons: LessonContent[],
   lessonStars: Record<string, number>,
+  floorMaxStars: number = DEFAULT_FLOOR_MAX_STARS,
 ): number {
   const totalPossibleStars = lessons.reduce(
     (sum, lesson) => sum + getLessonMaxStars(lesson),
@@ -164,10 +166,10 @@ export function getAttemptFloorStars(
   }, 0);
 
   if (totalPossibleStars <= 0) {
-    return FLOOR_MAX_STARS;
+    return floorMaxStars;
   }
 
-  return Math.max(0, Math.min(FLOOR_MAX_STARS, Math.round(earnedStars)));
+  return Math.max(0, Math.min(floorMaxStars, Math.round(earnedStars)));
 }
 
 export function getWordBuildStateForLesson(

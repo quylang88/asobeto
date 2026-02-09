@@ -50,7 +50,7 @@ export const tower1Floors: Floor[] = [
     completed: false,
     unlocked: true,
     stars: 0,
-    maxStars: 3,
+    maxStars: 5,
     content: floor3Lessons,
   },
   {
