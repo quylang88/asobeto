@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 
-interface LessonStarCelebrationProps {
+interface StarCelebrationProps {
   stars: number;
 }
 
@@ -34,7 +34,7 @@ function getStarOffsets(stars: number): number[] {
   return [-112, 0, 112];
 }
 
-export function LessonStarCelebration({ stars }: LessonStarCelebrationProps) {
+export function StarCelebration({ stars }: StarCelebrationProps) {
   const starOffsets = getStarOffsets(stars);
 
   return (
@@ -54,14 +54,14 @@ export function LessonStarCelebration({ stars }: LessonStarCelebrationProps) {
         transition={{ duration: 1.45, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute left-1/2 top-[34%] h-[16.5rem] w-[16.5rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(254,240,138,0.74),rgba(254,240,138,0.25),transparent_72%)]"
+        className="absolute left-1/2 top-[34%] h-66 w-66 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(254,240,138,0.74),rgba(254,240,138,0.25),transparent_72%)]"
         initial={{ scale: 0.72, opacity: 0 }}
         animate={{ scale: [0.84, 1.08, 0.9], opacity: [0.6, 0.98, 0.66] }}
         exit={{ opacity: 0, scale: 0.84 }}
         transition={{ duration: 1.25, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute left-1/2 top-[34%] h-[21rem] w-[21rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.42),rgba(254,249,195,0))]"
+        className="absolute left-1/2 top-[34%] h-84 w-84 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.42),rgba(254,249,195,0))]"
         initial={{ rotate: 0, opacity: 0 }}
         animate={{ rotate: 360, opacity: [0.18, 0.4, 0.18] }}
         exit={{ opacity: 0 }}
@@ -133,7 +133,7 @@ export function LessonStarCelebration({ stars }: LessonStarCelebrationProps) {
           }}
         >
           <motion.div
-            className="absolute left-1/2 top-1/2 h-[6.5rem] w-[6.5rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100/72 blur-2xl"
+            className="absolute left-1/2 top-1/2 h-26 w-26 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100/72 blur-2xl"
             animate={{ opacity: [0.52, 0.9, 0.58], scale: [0.9, 1.12, 0.95] }}
             transition={{ duration: 1.38, repeat: Infinity, ease: "easeInOut" }}
           />

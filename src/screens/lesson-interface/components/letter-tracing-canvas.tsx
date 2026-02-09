@@ -5,8 +5,8 @@ import {
   getLetterStrokeAnimation,
   type LetterStrokePath,
   type StrokePoint,
-} from "../data/tracing/letters";
-import { LessonButton } from "./lesson-button";
+} from "@/data/tracing/letters";
+import { GameButton } from "./button";
 
 export interface TraceEvaluation {
   score: number;
@@ -721,22 +721,22 @@ export function LetterTracingCanvas({
 
       {mode === "practice" && (
         <div className="flex items-center gap-3">
-          <LessonButton
+          <GameButton
             onClick={clearCanvas}
             disabled={disabled}
             className="rounded-2xl"
             frontClassName="px-5 py-2 text-sm"
           >
             Xóa nét
-          </LessonButton>
-          <LessonButton
+          </GameButton>
+          <GameButton
             onClick={evaluateTrace}
             disabled={disabled || !hasStroke}
             className="rounded-2xl"
             frontClassName="px-6 py-2 text-sm"
           >
             Chấm điểm
-          </LessonButton>
+          </GameButton>
         </div>
       )}
     </div>
