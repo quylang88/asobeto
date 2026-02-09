@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  type DragEvent,
   type PointerEvent,
   useCallback,
-  useState,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -43,6 +42,7 @@ const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
 const FOG_ERASE_RADIUS = 24;
 const LESSON_PREVIEW_CONTROL_OFFSET_CLASS = "-right-14";
 const FLOOR_MAX_STARS = 3;
+const WORD_BUILD_TILE_SIZE_PX = 80;
 const LETTER_TOP_INSTRUCTION_KINDS = new Set([
   "letter_listen",
   "letter_quiz",
@@ -98,6 +98,11 @@ interface WordBuildSlotPlacement {
   slotIndex: number;
   column: number;
   row: 0 | 1 | 2;
+}
+
+interface WordBuildActiveDrag {
+  tokenId: string;
+  sourceSlotIndex: number | null;
 }
 
 function normalizeSpeechText(value: string, removeDiacritics: boolean): string {
@@ -462,6 +467,8 @@ export function LessonInterface({
   const [wordBuildSlotTokenIds, setWordBuildSlotTokenIds] = useState<
     Array<string | null>
   >(() => getWordBuildStateForLesson(lessons[0]).slotTokenIds);
+  const [wordBuildActiveDrag, setWordBuildActiveDrag] =
+    useState<WordBuildActiveDrag | null>(null);
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -479,7 +486,10 @@ export function LessonInterface({
   const micAudioContextRef = useRef<AudioContext | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const micFrameRef = useRef<number | null>(null);
-  const wordBuildDragTokenIdRef = useRef<string | null>(null);
+  const wordBuildDragPointerIdRef = useRef<number | null>(null);
+  const wordBuildDragPositionRef = useRef({ clientX: 0, clientY: 0 });
+  const wordBuildDragFrameRef = useRef<number | null>(null);
+  const wordBuildGhostRef = useRef<HTMLDivElement | null>(null);
 
   const hasLessons = lessons.length > 0;
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
@@ -559,6 +569,16 @@ export function LessonInterface({
       token,
     ]),
   );
+  const wordBuildDraggedToken = wordBuildActiveDrag
+    ? wordBuildTokenMap.get(wordBuildActiveDrag.tokenId)
+    : undefined;
+  const wordBuildDraggedTokenText = wordBuildDraggedToken
+    ? getWordBuildTokenDisplayText(wordBuildDraggedToken)
+    : "";
+  const isWordBuildDraggedTone = wordBuildDraggedToken?.kind === "tone";
+  const isWordBuildDraggedSingleLetter =
+    wordBuildDraggedToken?.kind === "letter" &&
+    [...wordBuildDraggedTokenText].length === 1;
   const isWordBuildReady =
     isWordBuildLesson &&
     wordBuildSlotTokenIds.length === wordBuildTargetTokenIds.length &&
@@ -691,6 +711,11 @@ export function LessonInterface({
     return () => {
       clearAdvanceTimeout();
       resetSpeechSession();
+      wordBuildDragPointerIdRef.current = null;
+      if (wordBuildDragFrameRef.current !== null) {
+        window.cancelAnimationFrame(wordBuildDragFrameRef.current);
+        wordBuildDragFrameRef.current = null;
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -1065,67 +1090,153 @@ export function LessonInterface({
     );
   };
 
-  const placeWordBuildTokenInSlot = (tokenId: string, slotIndex: number) => {
-    if (!isWordBuildLesson || isCorrect !== null) return;
-    if (!wordBuildSourceTokenIds.includes(tokenId)) return;
+  const syncWordBuildGhostPosition = useCallback(() => {
+    wordBuildDragFrameRef.current = null;
+    const ghost = wordBuildGhostRef.current;
+    if (!ghost) return;
 
-    setWordBuildSlotTokenIds((previousSlots) => {
-      if (slotIndex < 0 || slotIndex >= previousSlots.length) {
-        return previousSlots;
-      }
+    const { clientX, clientY } = wordBuildDragPositionRef.current;
+    ghost.style.transform = `translate3d(${clientX - WORD_BUILD_TILE_SIZE_PX / 2}px, ${clientY - WORD_BUILD_TILE_SIZE_PX / 2}px, 0)`;
+  }, []);
 
-      const nextSlots = [...previousSlots];
-      const sourceSlotIndex = nextSlots.findIndex(
-        (placedTokenId) => placedTokenId === tokenId,
-      );
+  const scheduleWordBuildGhostPositionSync = useCallback(() => {
+    if (wordBuildDragFrameRef.current !== null) return;
+    wordBuildDragFrameRef.current = window.requestAnimationFrame(
+      syncWordBuildGhostPosition,
+    );
+  }, [syncWordBuildGhostPosition]);
 
-      if (sourceSlotIndex === slotIndex) {
-        return previousSlots;
-      }
-
-      const displacedTokenId = nextSlots[slotIndex];
-      if (sourceSlotIndex >= 0) {
-        nextSlots[sourceSlotIndex] = displacedTokenId ?? null;
-      }
-
-      nextSlots[slotIndex] = tokenId;
-      return nextSlots;
-    });
-  };
-
-  const handleWordBuildTokenDragStart = (
-    event: DragEvent<HTMLElement>,
-    tokenId: string,
-  ) => {
-    if (!isWordBuildLesson || isCorrect !== null) {
-      event.preventDefault();
-      return;
+  const resetWordBuildDragState = useCallback(() => {
+    wordBuildDragPointerIdRef.current = null;
+    if (wordBuildDragFrameRef.current !== null) {
+      window.cancelAnimationFrame(wordBuildDragFrameRef.current);
+      wordBuildDragFrameRef.current = null;
     }
+    setWordBuildActiveDrag(null);
+  }, []);
 
-    wordBuildDragTokenIdRef.current = tokenId;
-    event.dataTransfer.setData("text/plain", tokenId);
-    event.dataTransfer.effectAllowed = "move";
-  };
+  const getWordBuildSlotIndexFromPoint = useCallback(
+    (clientX: number, clientY: number): number | null => {
+      const targetElement = document.elementFromPoint(clientX, clientY);
+      if (!(targetElement instanceof HTMLElement)) return null;
 
-  const handleWordBuildTokenDragEnd = () => {
-    wordBuildDragTokenIdRef.current = null;
-  };
+      const slotElement = targetElement.closest<HTMLElement>(
+        "[data-word-build-slot-index]",
+      );
+      if (!slotElement) return null;
 
-  const handleWordBuildSlotDrop = (
-    event: DragEvent<HTMLDivElement>,
-    slotIndex: number,
+      const rawSlotIndex = slotElement.dataset.wordBuildSlotIndex;
+      if (!rawSlotIndex) return null;
+
+      const slotIndex = Number.parseInt(rawSlotIndex, 10);
+      if (!Number.isInteger(slotIndex)) return null;
+      return slotIndex;
+    },
+    [],
+  );
+
+  const handleWordBuildTokenPointerDown = (
+    event: PointerEvent<HTMLElement>,
+    tokenId: string,
+    sourceSlotIndex: number | null,
   ) => {
+    if (!isWordBuildLesson || isCorrect !== null || wordBuildActiveDrag) return;
+    if (event.pointerType !== "touch" && event.button !== 0) return;
+
     event.preventDefault();
-    if (!isWordBuildLesson || isCorrect !== null) return;
+    event.stopPropagation();
 
-    const tokenId =
-      event.dataTransfer.getData("text/plain").trim() ||
-      wordBuildDragTokenIdRef.current;
-    if (!tokenId) return;
-
-    placeWordBuildTokenInSlot(tokenId, slotIndex);
-    wordBuildDragTokenIdRef.current = null;
+    wordBuildDragPointerIdRef.current = event.pointerId;
+    wordBuildDragPositionRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+    setWordBuildActiveDrag({ tokenId, sourceSlotIndex });
+    scheduleWordBuildGhostPositionSync();
   };
+
+  useEffect(() => {
+    if (!wordBuildActiveDrag) return;
+
+    const allowedSourceTokenIds = new Set(wordBuildSourceTokenIds);
+    scheduleWordBuildGhostPositionSync();
+
+    const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
+      if (event.pointerId !== wordBuildDragPointerIdRef.current) return;
+
+      wordBuildDragPositionRef.current = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+      scheduleWordBuildGhostPositionSync();
+      event.preventDefault();
+    };
+
+    const handleWindowPointerEnd = (event: globalThis.PointerEvent) => {
+      if (event.pointerId !== wordBuildDragPointerIdRef.current) return;
+
+      const dropSlotIndex = getWordBuildSlotIndexFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+      const draggedTokenId = wordBuildActiveDrag.tokenId;
+      if (
+        dropSlotIndex !== null &&
+        isWordBuildLesson &&
+        isCorrect === null &&
+        allowedSourceTokenIds.has(draggedTokenId)
+      ) {
+        setWordBuildSlotTokenIds((previousSlots) => {
+          if (dropSlotIndex < 0 || dropSlotIndex >= previousSlots.length) {
+            return previousSlots;
+          }
+
+          const nextSlots = [...previousSlots];
+          const sourceSlotIndex = nextSlots.findIndex(
+            (placedTokenId) => placedTokenId === draggedTokenId,
+          );
+          if (sourceSlotIndex === dropSlotIndex) {
+            return previousSlots;
+          }
+
+          const displacedTokenId = nextSlots[dropSlotIndex];
+          if (sourceSlotIndex >= 0) {
+            nextSlots[sourceSlotIndex] = displacedTokenId ?? null;
+          }
+
+          nextSlots[dropSlotIndex] = draggedTokenId;
+          return nextSlots;
+        });
+      }
+
+      resetWordBuildDragState();
+      event.preventDefault();
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove, {
+      passive: false,
+    });
+    window.addEventListener("pointerup", handleWindowPointerEnd, {
+      passive: false,
+    });
+    window.addEventListener("pointercancel", handleWindowPointerEnd, {
+      passive: false,
+    });
+
+    return () => {
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerEnd);
+      window.removeEventListener("pointercancel", handleWindowPointerEnd);
+    };
+  }, [
+    getWordBuildSlotIndexFromPoint,
+    isCorrect,
+    isWordBuildLesson,
+    resetWordBuildDragState,
+    scheduleWordBuildGhostPositionSync,
+    wordBuildActiveDrag,
+    wordBuildSourceTokenIds,
+  ]);
 
   const handleWordBuildCheck = () => {
     if (
@@ -1191,7 +1302,7 @@ export function LessonInterface({
     setTraceDemoReplayKey(0);
     setTraceDemoFastForwarded(false);
     setCelebrationStars(null);
-    wordBuildDragTokenIdRef.current = null;
+    resetWordBuildDragState();
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -1217,7 +1328,6 @@ export function LessonInterface({
       const nextWordBuildState = getWordBuildStateForLesson(nextLesson);
       setWordBuildTokenOrder(nextWordBuildState.tokenOrder);
       setWordBuildSlotTokenIds(nextWordBuildState.slotTokenIds);
-      wordBuildDragTokenIdRef.current = null;
 
       setCurrentStep(nextStep);
       return;
@@ -1683,6 +1793,9 @@ export function LessonInterface({
                       const tokenDisplayText = getWordBuildTokenDisplayText(token);
                       const isToneToken = token.kind === "tone";
                       const isPlacedToken = wordBuildPlacedTokenIds.has(tokenId);
+                      const isDraggingFromPool =
+                        wordBuildActiveDrag?.tokenId === tokenId &&
+                        wordBuildActiveDrag.sourceSlotIndex === null;
                       const isSingleLetter =
                         token.kind === "letter" &&
                         [...tokenDisplayText].length === 1;
@@ -1692,18 +1805,20 @@ export function LessonInterface({
                           key={`word-build-pool-${tokenId}`}
                           className="h-20 w-20"
                         >
-                          {isPlacedToken ? (
+                          {isPlacedToken || isDraggingFromPool ? (
                             <div className="h-full w-full rounded-2xl border-4 border-dashed border-slate-200/80 bg-slate-100/40" />
                           ) : (
                             <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
                               <LessonButton
-                                draggable={isCorrect === null}
-                                onDragStart={(event) =>
-                                  handleWordBuildTokenDragStart(event, tokenId)
+                                onPointerDown={(event) =>
+                                  handleWordBuildTokenPointerDown(
+                                    event,
+                                    tokenId,
+                                    null,
+                                  )
                                 }
-                                onDragEnd={handleWordBuildTokenDragEnd}
                                 disabled={isCorrect !== null}
-                                className="h-full w-full rounded-2xl"
+                                className="h-full w-full rounded-2xl touch-none select-none"
                                 frontClassName={`h-full w-full px-2 ${
                                   isToneToken
                                     ? "text-5xl leading-none"
@@ -1760,40 +1875,43 @@ export function LessonInterface({
                         const isSingleLetter =
                           placedToken?.kind === "letter" &&
                           [...slotDisplayText].length === 1;
+                        const isDraggingFromCurrentSlot =
+                          Boolean(placedTokenId) &&
+                          wordBuildActiveDrag?.tokenId === placedTokenId &&
+                          wordBuildActiveDrag.sourceSlotIndex === slotIndex;
                         const displayRow =
                           wordBuildDisplayRowByLogicalRow.get(slotPlacement.row) ?? 1;
 
                         return (
                           <div
                             key={`word-build-slot-${slotIndex}`}
-                            draggable={Boolean(placedToken) && isCorrect === null}
-                            onDragStart={(event) => {
+                            data-word-build-slot-index={slotIndex}
+                            onPointerDown={(event) => {
                               if (!placedTokenId) return;
-                              handleWordBuildTokenDragStart(event, placedTokenId);
+                              handleWordBuildTokenPointerDown(
+                                event,
+                                placedTokenId,
+                                slotIndex,
+                              );
                             }}
-                            onDragEnd={handleWordBuildTokenDragEnd}
-                            onDragOver={(event) => {
-                              event.preventDefault();
-                            }}
-                            onDrop={(event) =>
-                              handleWordBuildSlotDrop(event, slotIndex)
-                            }
                             className={`flex items-center justify-center rounded-2xl border-4 border-dashed px-2 text-center transition-colors ${
                               placedToken
                                 ? "border-green-300 bg-green-50"
                                 : "border-sky-200 bg-sky-50/80"
-                            } ${placedToken ? "cursor-grab" : "cursor-default"} h-20 w-20`}
+                            } ${
+                              placedToken ? "cursor-grab touch-none select-none" : "cursor-default"
+                            } h-20 w-20`}
                             style={{
                               gridColumnStart: slotPlacement.column,
                               gridRowStart: displayRow,
                             }}
                           >
-                            {placedToken ? (
+                            {placedToken && !isDraggingFromCurrentSlot ? (
                               <span
                                 className={`font-bold text-foreground ${
                                   isToneToken
                                     ? "text-4xl leading-none"
-                                    : isSingleLetter
+                                  : isSingleLetter
                                       ? "font-hp-special text-5xl leading-none"
                                       : "text-lg leading-tight"
                                 }`}
@@ -1951,6 +2069,36 @@ export function LessonInterface({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {wordBuildActiveDrag && wordBuildDraggedToken && (
+          <motion.div
+            ref={wordBuildGhostRef}
+            className="pointer-events-none fixed left-0 top-0 z-50 h-20 w-20"
+            style={{
+              transform: "translate3d(-9999px, -9999px, 0)",
+            }}
+            initial={{ opacity: 0.9, scale: 0.92 }}
+            animate={{ opacity: 0.96, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+          >
+            <div className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-green-200 bg-green-bright text-white shadow-xl">
+              <span
+                className={`font-bold ${
+                  isWordBuildDraggedTone
+                    ? "text-5xl leading-none"
+                    : isWordBuildDraggedSingleLetter
+                      ? "font-hp-special text-5xl leading-none"
+                      : "text-xl leading-tight"
+                }`}
+              >
+                {wordBuildDraggedTokenText}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         className="fixed bottom-4 left-4"
