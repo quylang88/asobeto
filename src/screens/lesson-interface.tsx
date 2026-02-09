@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type DragEvent,
   type PointerEvent,
   useCallback,
   useState,
@@ -91,6 +92,14 @@ interface SpeechRecognitionWindow extends Window {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 }
 
+type WordBuildToken = NonNullable<LessonContent["targetTokens"]>[number];
+
+interface WordBuildSlotPlacement {
+  slotIndex: number;
+  column: number;
+  row: 0 | 1 | 2;
+}
+
 function normalizeSpeechText(value: string, removeDiacritics: boolean): string {
   let normalized = value.toLocaleLowerCase("vi-VN");
   if (removeDiacritics) {
@@ -163,6 +172,70 @@ function getSpeedLabel(speed: string): string {
   return "Thường";
 }
 
+function shuffleArray<T>(items: T[]): T[] {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+  return shuffled;
+}
+
+function getWordBuildTokenDisplayText(token: WordBuildToken): string {
+  if (token.kind !== "tone") return token.text;
+
+  const normalizedTokenId = token.id.toLocaleLowerCase("vi-VN");
+  if (normalizedTokenId.includes("sac")) return "´";
+  if (normalizedTokenId.includes("huyen")) return "`";
+  if (normalizedTokenId.includes("nga")) return "~";
+  if (normalizedTokenId.includes("hoi")) return "?";
+  if (normalizedTokenId.includes("nang")) return "•";
+
+  return token.text;
+}
+
+function getWordBuildSlotPlacements(tokens: WordBuildToken[]): {
+  placements: WordBuildSlotPlacement[];
+  columnCount: number;
+} {
+  let columnCount = 0;
+  let lastLetterColumn = 0;
+  const placements: WordBuildSlotPlacement[] = [];
+
+  tokens.forEach((token, slotIndex) => {
+    if (token.kind === "letter") {
+      columnCount += 1;
+      lastLetterColumn = columnCount;
+      placements.push({
+        slotIndex,
+        column: columnCount,
+        row: 1,
+      });
+      return;
+    }
+
+    const normalizedTokenId = token.id.toLocaleLowerCase("vi-VN");
+    const normalizedTokenText = token.text.toLocaleLowerCase("vi-VN");
+    const isDotBelowTone =
+      normalizedTokenId.includes("nang") || normalizedTokenText.includes("nặng");
+    const anchorColumn = lastLetterColumn || Math.max(1, columnCount);
+
+    placements.push({
+      slotIndex,
+      column: anchorColumn,
+      row: isDotBelowTone ? 2 : 0,
+    });
+  });
+
+  return {
+    placements,
+    columnCount: Math.max(1, columnCount),
+  };
+}
+
 function getPreviewTextSizeClass(value: string): string {
   const charCount = [...value].length;
   if (charCount <= 1) return "text-[10rem] md:text-[11rem]";
@@ -193,6 +266,30 @@ function getAttemptFloorStars(
   }
 
   return Math.max(0, Math.min(FLOOR_MAX_STARS, Math.round(earnedStars)));
+}
+
+function getWordBuildStateForLesson(
+  lesson: LessonContent | undefined,
+): {
+  tokenOrder: string[];
+  slotTokenIds: Array<string | null>;
+} {
+  if (!lesson || lesson.lessonKind !== "vocab_word_build") {
+    return {
+      tokenOrder: [],
+      slotTokenIds: [],
+    };
+  }
+
+  const expectedTokens = lesson.targetTokens ?? [];
+  const sourceTokens = lesson.instruction
+    ? (lesson.tokenPool ?? expectedTokens)
+    : expectedTokens;
+
+  return {
+    tokenOrder: shuffleArray(sourceTokens.map((token) => token.id)),
+    slotTokenIds: Array.from({ length: expectedTokens.length }, () => null),
+  };
 }
 
 function getTracePracticeLessonIdFromDemoLessonId(
@@ -359,6 +456,12 @@ export function LessonInterface({
   const [isMicRecording, setIsMicRecording] = useState(false);
   const [isMicSubmitting, setIsMicSubmitting] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
+  const [wordBuildTokenOrder, setWordBuildTokenOrder] = useState<string[]>(
+    () => getWordBuildStateForLesson(lessons[0]).tokenOrder,
+  );
+  const [wordBuildSlotTokenIds, setWordBuildSlotTokenIds] = useState<
+    Array<string | null>
+  >(() => getWordBuildStateForLesson(lessons[0]).slotTokenIds);
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -376,6 +479,7 @@ export function LessonInterface({
   const micAudioContextRef = useRef<AudioContext | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const micFrameRef = useRef<number | null>(null);
+  const wordBuildDragTokenIdRef = useRef<string | null>(null);
 
   const hasLessons = lessons.length > 0;
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
@@ -390,6 +494,7 @@ export function LessonInterface({
     currentLesson?.lessonKind === "letter_trace_practice";
   const isVocabTracePracticeLesson =
     currentLesson?.lessonKind === "vocab_trace_practice";
+  const isWordBuildLesson = currentLesson?.lessonKind === "vocab_word_build";
   const isLetterTraceDemoLesson =
     currentLesson?.lessonKind === "letter_trace_demo";
   const isLetterListenLesson = currentLesson?.lessonKind === "letter_listen";
@@ -433,11 +538,52 @@ export function LessonInterface({
   const hasAnswerOptions = Boolean(currentLesson?.answers?.length);
   const targetText =
     currentLesson?.targetText ?? currentLesson?.targetLetter ?? "";
+  const wordBuildExpectedTokens = isWordBuildLesson
+    ? (currentLesson?.targetTokens ?? [])
+    : [];
+  const wordBuildSourceTokens = isWordBuildLesson
+    ? (currentLesson?.instruction
+        ? (currentLesson?.tokenPool ?? currentLesson?.targetTokens ?? [])
+        : (currentLesson?.targetTokens ?? []))
+    : [];
+  const wordBuildTargetTokenIds = wordBuildExpectedTokens.map(
+    (token) => token.id,
+  );
+  const wordBuildSourceTokenIds = wordBuildSourceTokens.map((token) => token.id);
+  const wordBuildPlacedTokenIds = new Set(
+    wordBuildSlotTokenIds.filter((tokenId): tokenId is string => tokenId !== null),
+  );
+  const wordBuildTokenMap = new Map(
+    [...wordBuildSourceTokens, ...wordBuildExpectedTokens].map((token) => [
+      token.id,
+      token,
+    ]),
+  );
+  const isWordBuildReady =
+    isWordBuildLesson &&
+    wordBuildSlotTokenIds.length === wordBuildTargetTokenIds.length &&
+    wordBuildSlotTokenIds.length > 0 &&
+    wordBuildSlotTokenIds.every((tokenId): tokenId is string => tokenId !== null);
+  const wordBuildSlotLayout = getWordBuildSlotPlacements(wordBuildExpectedTokens);
+  const wordBuildPlacementBySlotIndex = new Map(
+    wordBuildSlotLayout.placements.map((placement) => [
+      placement.slotIndex,
+      placement,
+    ]),
+  );
+  const wordBuildUsedRows = Array.from(
+    new Set(wordBuildSlotLayout.placements.map((placement) => placement.row)),
+  ).sort((leftRow, rightRow) => leftRow - rightRow);
+  const wordBuildGridRowCount = Math.max(1, wordBuildUsedRows.length);
+  const wordBuildDisplayRowByLogicalRow = new Map(
+    wordBuildUsedRows.map((logicalRow, rowIndex) => [logicalRow, rowIndex + 1]),
+  );
   const traceOneStarThreshold =
     currentLesson?.scoring?.starThresholds?.oneStar ?? 0.5;
   const traceTwoStarThreshold =
     currentLesson?.scoring?.starThresholds?.twoStars ?? 0.85;
-  const showPreviewCard = !isTracePracticeLesson && !isLetterTraceDemoLesson;
+  const showPreviewCard =
+    !isTracePracticeLesson && !isLetterTraceDemoLesson && !isWordBuildLesson;
   const requiresAnimationComplete =
     currentLesson?.type === "passive" &&
     Boolean(currentLesson.gating?.requireAnimationComplete);
@@ -919,6 +1065,100 @@ export function LessonInterface({
     );
   };
 
+  const placeWordBuildTokenInSlot = (tokenId: string, slotIndex: number) => {
+    if (!isWordBuildLesson || isCorrect !== null) return;
+    if (!wordBuildSourceTokenIds.includes(tokenId)) return;
+
+    setWordBuildSlotTokenIds((previousSlots) => {
+      if (slotIndex < 0 || slotIndex >= previousSlots.length) {
+        return previousSlots;
+      }
+
+      const nextSlots = [...previousSlots];
+      const sourceSlotIndex = nextSlots.findIndex(
+        (placedTokenId) => placedTokenId === tokenId,
+      );
+
+      if (sourceSlotIndex === slotIndex) {
+        return previousSlots;
+      }
+
+      const displacedTokenId = nextSlots[slotIndex];
+      if (sourceSlotIndex >= 0) {
+        nextSlots[sourceSlotIndex] = displacedTokenId ?? null;
+      }
+
+      nextSlots[slotIndex] = tokenId;
+      return nextSlots;
+    });
+  };
+
+  const handleWordBuildTokenDragStart = (
+    event: DragEvent<HTMLElement>,
+    tokenId: string,
+  ) => {
+    if (!isWordBuildLesson || isCorrect !== null) {
+      event.preventDefault();
+      return;
+    }
+
+    wordBuildDragTokenIdRef.current = tokenId;
+    event.dataTransfer.setData("text/plain", tokenId);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleWordBuildTokenDragEnd = () => {
+    wordBuildDragTokenIdRef.current = null;
+  };
+
+  const handleWordBuildSlotDrop = (
+    event: DragEvent<HTMLDivElement>,
+    slotIndex: number,
+  ) => {
+    event.preventDefault();
+    if (!isWordBuildLesson || isCorrect !== null) return;
+
+    const tokenId =
+      event.dataTransfer.getData("text/plain").trim() ||
+      wordBuildDragTokenIdRef.current;
+    if (!tokenId) return;
+
+    placeWordBuildTokenInSlot(tokenId, slotIndex);
+    wordBuildDragTokenIdRef.current = null;
+  };
+
+  const handleWordBuildCheck = () => {
+    if (
+      !currentLesson ||
+      currentLesson.type !== "active" ||
+      !isWordBuildLesson ||
+      !isWordBuildReady ||
+      isCorrect !== null
+    ) {
+      return;
+    }
+
+    const targetTokenIds = (currentLesson.targetTokens ?? []).map(
+      (token) => token.id,
+    );
+    const isAssembledCorrectly =
+      targetTokenIds.length > 0 &&
+      targetTokenIds.length === wordBuildSlotTokenIds.length &&
+      targetTokenIds.every(
+        (targetTokenId, tokenIndex) =>
+          wordBuildSlotTokenIds[tokenIndex] === targetTokenId,
+      );
+    const earnedStars = isAssembledCorrectly
+      ? currentLesson.scoring?.maxStars ?? 1
+      : 0;
+
+    handleScoringResult(
+      isAssembledCorrectly,
+      FEEDBACK_ADVANCE_DELAY_MS,
+      earnedStars,
+    );
+  };
+
   const handleTraceEvaluate = (result: TraceEvaluation) => {
     if (
       !currentLesson ||
@@ -940,7 +1180,7 @@ export function LessonInterface({
     handleScoringResult(correct, advanceDelayMs, earnedStars);
   };
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     clearAdvanceTimeout();
     resetSpeechSession();
     speechFinalizeRef.current = false;
@@ -951,6 +1191,7 @@ export function LessonInterface({
     setTraceDemoReplayKey(0);
     setTraceDemoFastForwarded(false);
     setCelebrationStars(null);
+    wordBuildDragTokenIdRef.current = null;
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -972,6 +1213,11 @@ export function LessonInterface({
       } else {
         setPassiveReady(true);
       }
+
+      const nextWordBuildState = getWordBuildStateForLesson(nextLesson);
+      setWordBuildTokenOrder(nextWordBuildState.tokenOrder);
+      setWordBuildSlotTokenIds(nextWordBuildState.slotTokenIds);
+      wordBuildDragTokenIdRef.current = null;
 
       setCurrentStep(nextStep);
       return;
@@ -996,21 +1242,11 @@ export function LessonInterface({
       maxStars: FLOOR_MAX_STARS,
     });
     setShowCompletion(true);
-  }, [
-    clearAdvanceTimeout,
-    currentStep,
-    floorId,
-    hasLessons,
-    lessons,
-    playOneShotAudio,
-    resetSpeechSession,
-    towerId,
-    worldId,
-  ]);
+  };
 
   useEffect(() => {
     handleNextRef.current = handleNext;
-  }, [handleNext]);
+  });
 
   // Guard against empty lessons
   if (!hasLessons || !currentLesson) {
@@ -1228,7 +1464,7 @@ export function LessonInterface({
             {showPreviewCard &&
               !(isLetterGridPreviewLesson && !currentLesson.mainImage) && (
                 <motion.div
-                  className="relative mx-auto h-96 w-72 rounded-3xl shadow-xl mb-6"
+                  className="relative mx-auto h-96 w-68 rounded-3xl shadow-xl mb-6"
                   animate={
                     currentLesson.type === "passive"
                       ? { scale: [1, 1.02, 1] }
@@ -1437,6 +1673,154 @@ export function LessonInterface({
               </div>
             )}
 
+            {currentLesson.type === "active" && isWordBuildLesson && (
+              <div className="mt-2 flex w-full flex-col items-center gap-4">
+                <div className="w-full rounded-3xl bg-white/80 p-4 shadow-md">
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    {wordBuildTokenOrder.map((tokenId) => {
+                      const token = wordBuildTokenMap.get(tokenId);
+                      if (!token) return null;
+                      const tokenDisplayText = getWordBuildTokenDisplayText(token);
+                      const isToneToken = token.kind === "tone";
+                      const isPlacedToken = wordBuildPlacedTokenIds.has(tokenId);
+                      const isSingleLetter =
+                        token.kind === "letter" &&
+                        [...tokenDisplayText].length === 1;
+
+                      return (
+                        <div
+                          key={`word-build-pool-${tokenId}`}
+                          className="h-20 w-20"
+                        >
+                          {isPlacedToken ? (
+                            <div className="h-full w-full rounded-2xl border-4 border-dashed border-slate-200/80 bg-slate-100/40" />
+                          ) : (
+                            <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
+                              <LessonButton
+                                draggable={isCorrect === null}
+                                onDragStart={(event) =>
+                                  handleWordBuildTokenDragStart(event, tokenId)
+                                }
+                                onDragEnd={handleWordBuildTokenDragEnd}
+                                disabled={isCorrect !== null}
+                                className="h-full w-full rounded-2xl"
+                                frontClassName={`h-full w-full px-2 ${
+                                  isToneToken
+                                    ? "text-5xl leading-none"
+                                    : isSingleLetter
+                                      ? "text-5xl leading-none"
+                                      : "text-xl leading-tight"
+                                }`}
+                              >
+                                <span
+                                  className={
+                                    !isToneToken && isSingleLetter
+                                      ? "font-hp-special"
+                                      : undefined
+                                  }
+                                >
+                                  {tokenDisplayText}
+                                </span>
+                              </LessonButton>
+                            </motion.div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="w-full rounded-3xl bg-white/90 p-4 shadow-md">
+                  <div className="mx-auto flex min-h-[15rem] items-center justify-center">
+                    <div
+                      className="grid w-fit justify-items-center gap-x-3 gap-y-2"
+                      style={{
+                        gridTemplateColumns: `repeat(${wordBuildSlotLayout.columnCount}, minmax(0, 5rem))`,
+                        gridTemplateRows: `repeat(${wordBuildGridRowCount}, 5rem)`,
+                      }}
+                    >
+                      {wordBuildSlotTokenIds.map((placedTokenId, slotIndex) => {
+                        const expectedToken = wordBuildExpectedTokens[slotIndex];
+                        if (!expectedToken) return null;
+
+                        const slotPlacement = wordBuildPlacementBySlotIndex.get(
+                          slotIndex,
+                        ) ?? {
+                          slotIndex,
+                          column: slotIndex + 1,
+                          row: 1 as const,
+                        };
+                        const placedToken = placedTokenId
+                          ? wordBuildTokenMap.get(placedTokenId)
+                          : null;
+                        const slotDisplayText = placedToken
+                          ? getWordBuildTokenDisplayText(placedToken)
+                          : "";
+                        const isToneToken = placedToken?.kind === "tone";
+                        const isSingleLetter =
+                          placedToken?.kind === "letter" &&
+                          [...slotDisplayText].length === 1;
+                        const displayRow =
+                          wordBuildDisplayRowByLogicalRow.get(slotPlacement.row) ?? 1;
+
+                        return (
+                          <div
+                            key={`word-build-slot-${slotIndex}`}
+                            draggable={Boolean(placedToken) && isCorrect === null}
+                            onDragStart={(event) => {
+                              if (!placedTokenId) return;
+                              handleWordBuildTokenDragStart(event, placedTokenId);
+                            }}
+                            onDragEnd={handleWordBuildTokenDragEnd}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                            }}
+                            onDrop={(event) =>
+                              handleWordBuildSlotDrop(event, slotIndex)
+                            }
+                            className={`flex items-center justify-center rounded-2xl border-4 border-dashed px-2 text-center transition-colors ${
+                              placedToken
+                                ? "border-green-300 bg-green-50"
+                                : "border-sky-200 bg-sky-50/80"
+                            } ${placedToken ? "cursor-grab" : "cursor-default"} h-20 w-20`}
+                            style={{
+                              gridColumnStart: slotPlacement.column,
+                              gridRowStart: displayRow,
+                            }}
+                          >
+                            {placedToken ? (
+                              <span
+                                className={`font-bold text-foreground ${
+                                  isToneToken
+                                    ? "text-4xl leading-none"
+                                    : isSingleLetter
+                                      ? "font-hp-special text-5xl leading-none"
+                                      : "text-lg leading-tight"
+                                }`}
+                              >
+                                {slotDisplayText}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
+                  <LessonButton
+                    onClick={handleWordBuildCheck}
+                    disabled={!isWordBuildReady || isCorrect !== null}
+                    className="rounded-3xl"
+                    frontClassName="px-10 py-3 text-lg"
+                  >
+                    Kiểm Tra
+                  </LessonButton>
+                </motion.div>
+              </div>
+            )}
+
             {currentLesson.type === "active" &&
               isThresholdSpeechLesson &&
               !hasAnswerOptions &&
@@ -1532,7 +1916,8 @@ export function LessonInterface({
             {currentLesson.type === "active" &&
               !hasAnswerOptions &&
               !isTracePracticeLesson &&
-              !isThresholdSpeechLesson && (
+              !isThresholdSpeechLesson &&
+              !isWordBuildLesson && (
                 <motion.div
                   className="mt-4 inline-block"
                   initial={{ y: 20, opacity: 0 }}
