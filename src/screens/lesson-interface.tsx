@@ -850,7 +850,7 @@ export function LessonInterface({
             {showPreviewCard &&
               !(isLetterGridPreviewLesson && !currentLesson.mainImage) && (
                 <motion.div
-                  className="relative mx-auto h-60 w-60 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
+                  className="relative mx-auto w-72 h-96 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
                   animate={
                     currentLesson.type === "passive"
                       ? { scale: [1, 1.02, 1] }
