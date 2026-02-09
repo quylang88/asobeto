@@ -82,7 +82,7 @@ export function createLetterFloorLessons(
       type: "passive",
       lessonKind: "letter_listen",
       title: `Làm quen chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-1.mp3`,
+      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-1.mp3`,
       mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
       audioVariants: createLetterAudioVariants(letterAssetKey),
       targetLetter: normalizedLetter,
@@ -101,7 +101,7 @@ export function createLetterFloorLessons(
       type: "active",
       lessonKind: "letter_quiz",
       title: "Nghe và chọn chữ cái",
-      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-2.mp3`,
+      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-2.mp3`,
       mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
       answers: createLetterAnswers(letter, distractors),
       targetLetter: normalizedLetter,
@@ -119,7 +119,7 @@ export function createLetterFloorLessons(
       type: "passive",
       lessonKind: "letter_trace_demo",
       title: `Xem cách viết chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-3.mp3`,
+      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-3.mp3`,
       targetLetter: normalizedLetter,
       targetText: normalizedLetter,
       gating: {
@@ -136,7 +136,7 @@ export function createLetterFloorLessons(
       type: "active",
       lessonKind: "letter_trace_practice",
       title: `Viết lại chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro/${letterAssetKey}-intro-4.mp3`,
+      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-4.mp3`,
       targetLetter: normalizedLetter,
       targetText: normalizedLetter,
       scoring: {
@@ -165,17 +165,23 @@ export function createVocabFloorLessons(
     reviewMode,
   } = config;
   const reviewPrefix = reviewMode ? "Ôn tập: " : "";
+  const isFloor3SpeakingFlow = !reviewMode;
+  const introAudioBase = `/assets/audio/intro-words/${wordAssetKey}`;
 
   return [
     {
       id: `${lessonPrefix}-l1`,
       type: "passive",
       lessonKind: "vocab_listen_look",
-      title: `${reviewPrefix}Nghe và nhìn "${word}"`,
-      instruction: `Bé hãy nghe và nhìn từ "${word}" nhé.`,
-      introVoice: `Bé hãy nghe và nhìn từ "${word}" nhé.`,
+      title: isFloor3SpeakingFlow
+        ? `${reviewPrefix}Nghe và nhìn`
+        : `${reviewPrefix}Nghe và nhìn "${word}"`,
+      instruction: isFloor3SpeakingFlow
+        ? undefined
+        : `Bé hãy nghe và nhìn từ "${word}" nhé.`,
+      introVoice: `${introAudioBase}-l1.mp3`,
       mainAudio: `/assets/audio/words/${wordAssetKey}.mp3`,
-      mainImage: `/assets/images/words/${wordAssetKey}.png`,
+      mainImage: `/assets/images/${wordAssetKey}.png`,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {
@@ -188,19 +194,28 @@ export function createVocabFloorLessons(
       id: `${lessonPrefix}-l2`,
       type: "active",
       lessonKind: "vocab_listen_repeat",
-      title: `${reviewPrefix}Nghe và nói lại`,
-      instruction: `Bé hãy nghe và nói lại từ "${word}".`,
-      introVoice: `Bé hãy nghe và nói lại từ "${word}".`,
-      mainAudio: `/assets/audio/words/${wordAssetKey}.mp3`,
+      title: isFloor3SpeakingFlow
+        ? `${reviewPrefix}Nghe đánh vần và nói lại`
+        : `${reviewPrefix}Nghe và nói lại`,
+      instruction: isFloor3SpeakingFlow
+        ? undefined
+        : `Bé hãy nghe và nói lại từ "${word}".`,
+      introVoice: `${introAudioBase}-l2.mp3`,
+      mainAudio: isFloor3SpeakingFlow
+        ? `/assets/audio/words/${wordAssetKey}-spelling.mp3`
+        : `/assets/audio/words/${wordAssetKey}.mp3`,
+      mainImage: `/assets/images/${wordAssetKey}-with-word.png`,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {
         metric: "speech_similarity",
-        passPolicy: "always",
+        passPolicy: isFloor3SpeakingFlow ? "threshold" : "always",
+        passThreshold: isFloor3SpeakingFlow ? 0.5 : undefined,
         starThresholds: {
-          oneStar: 0.78,
+          oneStar: isFloor3SpeakingFlow ? 0.5 : 0.78,
+          twoStars: isFloor3SpeakingFlow ? 0.75 : undefined,
         },
-        maxStars: 1,
+        maxStars: isFloor3SpeakingFlow ? 2 : 1,
       },
     },
     {
@@ -208,8 +223,10 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_word_build",
       title: `${reviewPrefix}Ghép từ`,
-      instruction: `Bé hãy ghép đúng từ "${word}" nhé.`,
-      introVoice: `Bé hãy ghép đúng từ "${word}" nhé.`,
+      instruction: isFloor3SpeakingFlow
+        ? undefined
+        : `Bé hãy ghép đúng từ "${word}" nhé.`,
+      introVoice: `${introAudioBase}-l3.mp3`,
       question: `Kéo thả để tạo từ "${word}"`,
       targetText: word,
       targetTokens: wordTokens,
@@ -229,8 +246,10 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_trace_practice",
       title: `${reviewPrefix}Viết từ "${word}"`,
-      instruction: `Bé hãy viết lại từ "${word}" theo nét mờ.`,
-      introVoice: `Bé hãy viết lại từ "${word}" theo nét mờ.`,
+      instruction: isFloor3SpeakingFlow
+        ? undefined
+        : `Bé hãy viết lại từ "${word}" theo nét mờ.`,
+      introVoice: `${introAudioBase}-l4.mp3`,
       mainImage: `/assets/tracing/words/${wordAssetKey}-guide.png`,
       targetText: word,
       relatedLetters: reviewLetters,

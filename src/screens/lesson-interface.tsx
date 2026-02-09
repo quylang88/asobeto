@@ -9,7 +9,7 @@ import {
 } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, RotateCcw, X, Star, ArrowRight } from "lucide-react";
+import { Volume2, RotateCcw, X, Star, ArrowRight, Mic, Square } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { LessonButton } from "../components/lesson-button";
 import { LessonStarCelebration } from "../components/lesson-star-celebration";
@@ -59,6 +59,104 @@ const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
   color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
 }));
 
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+
+type SpeechRecognitionResultEventLike = {
+  results: ArrayLike<{
+    0?: {
+      transcript?: string;
+    };
+  }>;
+};
+
+type SpeechRecognitionErrorEventLike = {
+  error?: string;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+interface SpeechRecognitionWindow extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
+
+function normalizeSpeechText(value: string, removeDiacritics: boolean): string {
+  let normalized = value.toLocaleLowerCase("vi-VN");
+  if (removeDiacritics) {
+    normalized = normalized
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+  }
+  return normalized
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getLevenshteinDistance(a: string, b: string): number {
+  if (!a) return b.length;
+  if (!b) return a.length;
+
+  const previousRow = new Array(b.length + 1);
+  const currentRow = new Array(b.length + 1);
+
+  for (let j = 0; j <= b.length; j += 1) {
+    previousRow[j] = j;
+  }
+
+  for (let i = 1; i <= a.length; i += 1) {
+    currentRow[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      currentRow[j] = Math.min(
+        currentRow[j - 1] + 1,
+        previousRow[j] + 1,
+        previousRow[j - 1] + cost,
+      );
+    }
+    for (let j = 0; j <= b.length; j += 1) {
+      previousRow[j] = currentRow[j];
+    }
+  }
+
+  return previousRow[b.length];
+}
+
+function getNormalizedSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const maxLength = Math.max(a.length, b.length);
+  if (maxLength <= 0) return 1;
+  return Math.max(0, 1 - getLevenshteinDistance(a, b) / maxLength);
+}
+
+function getSpeechSimilarity(spokenText: string, targetText: string): number {
+  const spokenOriginal = normalizeSpeechText(spokenText, false);
+  const targetOriginal = normalizeSpeechText(targetText, false);
+  const spokenNoDiacritics = normalizeSpeechText(spokenText, true);
+  const targetNoDiacritics = normalizeSpeechText(targetText, true);
+
+  const directScore = getNormalizedSimilarity(spokenOriginal, targetOriginal);
+  const noDiacriticsScore = getNormalizedSimilarity(
+    spokenNoDiacritics,
+    targetNoDiacritics,
+  );
+
+  return Math.max(directScore, noDiacriticsScore);
+}
+
 function getSpeedLabel(speed: string): string {
   if (speed === "slow") return "Chậm";
   if (speed === "fast") return "Nhanh";
@@ -70,20 +168,6 @@ function getPreviewTextSizeClass(value: string): string {
   if (charCount <= 1) return "text-[10rem] md:text-[11rem]";
   if (charCount === 2) return "text-[8.5rem] md:text-[9.5rem]";
   return "text-7xl md:text-8xl";
-}
-
-function getIntroAudioSrc(introVoice?: string): string | undefined {
-  if (!introVoice) return undefined;
-  const normalized = introVoice.trim();
-  if (!normalized) return undefined;
-  if (
-    normalized.startsWith("/") ||
-    normalized.startsWith("http://") ||
-    normalized.startsWith("https://")
-  ) {
-    return normalized;
-  }
-  return undefined;
 }
 
 function getLessonMaxStars(lesson: LessonContent): number {
@@ -272,6 +356,9 @@ export function LessonInterface({
   const [traceDemoReplayKey, setTraceDemoReplayKey] = useState(0);
   const [traceDemoFastForwarded, setTraceDemoFastForwarded] = useState(false);
   const [celebrationStars, setCelebrationStars] = useState<number | null>(null);
+  const [isMicRecording, setIsMicRecording] = useState(false);
+  const [isMicSubmitting, setIsMicSubmitting] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -281,6 +368,14 @@ export function LessonInterface({
   });
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const advanceTimeoutRef = useRef<number | null>(null);
+  const handleNextRef = useRef<() => void>(() => {});
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const speechFinalizeRef = useRef(false);
+  const speechTranscriptRef = useRef("");
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micAudioContextRef = useRef<AudioContext | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
+  const micFrameRef = useRef<number | null>(null);
 
   const hasLessons = lessons.length > 0;
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
@@ -298,22 +393,43 @@ export function LessonInterface({
   const isLetterTraceDemoLesson =
     currentLesson?.lessonKind === "letter_trace_demo";
   const isLetterListenLesson = currentLesson?.lessonKind === "letter_listen";
+  const isVocabListenRepeatLesson =
+    currentLesson?.lessonKind === "vocab_listen_repeat";
+  const isFloor3ListenLookLesson = Boolean(
+    currentLesson?.lessonKind === "vocab_listen_look" &&
+      !currentLesson?.instruction,
+  );
+  const shouldUseLargerVocabImage = Boolean(
+    currentLesson?.mainImage &&
+      (currentLesson.lessonKind === "vocab_listen_look" ||
+        currentLesson.lessonKind === "vocab_listen_repeat"),
+  );
+  const isThresholdSpeechLesson = Boolean(
+    isVocabListenRepeatLesson &&
+      currentLesson?.scoring?.passPolicy === "threshold",
+  );
   // Gom nhóm 4 lesson chữ cái để dùng chung cách hiển thị instruction trên cùng
   const shouldPromoteTitleToInstruction = Boolean(
     currentLesson?.lessonKind &&
     LETTER_TOP_INSTRUCTION_KINDS.has(currentLesson.lessonKind),
   );
+  const isTitlePromotedToTop = Boolean(
+    shouldPromoteTitleToInstruction ||
+      (!currentLesson?.instruction && currentLesson?.title),
+  );
   const topInstructionText = shouldPromoteTitleToInstruction
     ? currentLesson?.title
-    : currentLesson?.instruction;
-  const topInstructionClassName = shouldPromoteTitleToInstruction
+    : currentLesson?.instruction ?? currentLesson?.title;
+  const topInstructionClassName = isTitlePromotedToTop
     ? "text-xl md:text-2xl text-foreground font-bold mb-5"
     : "text-lg text-muted-foreground mb-2";
   const secondaryQuestionText = shouldPromoteTitleToInstruction
     ? undefined
     : currentLesson?.question;
   const showTitleBelowPreview =
-    Boolean(currentLesson?.title) && !shouldPromoteTitleToInstruction;
+    Boolean(currentLesson?.title) &&
+    !shouldPromoteTitleToInstruction &&
+    Boolean(currentLesson?.instruction);
   const hasAnswerOptions = Boolean(currentLesson?.answers?.length);
   const targetText =
     currentLesson?.targetText ?? currentLesson?.targetLetter ?? "";
@@ -366,10 +482,10 @@ export function LessonInterface({
     audio.play().catch((err) => console.log("Audio play failed:", err));
   };
 
-  const playOneShotAudio = (src: string) => {
+  const playOneShotAudio = useCallback((src: string) => {
     const audio = new Audio(src);
     audio.play().catch((err) => console.log("Audio play failed:", err));
-  };
+  }, []);
 
   useEffect(() => {
     lessonStarsThisAttemptRef.current = lessonStarsThisAttempt;
@@ -382,65 +498,116 @@ export function LessonInterface({
     advanceTimeoutRef.current = null;
   }, []);
 
+  const stopMicLevelCapture = useCallback(() => {
+    if (micFrameRef.current !== null) {
+      window.cancelAnimationFrame(micFrameRef.current);
+      micFrameRef.current = null;
+    }
+    if (micAudioContextRef.current) {
+      micAudioContextRef.current.close().catch(() => undefined);
+      micAudioContextRef.current = null;
+    }
+    micAnalyserRef.current = null;
+    if (micStreamRef.current) {
+      for (const track of micStreamRef.current.getTracks()) {
+        track.stop();
+      }
+      micStreamRef.current = null;
+    }
+    setMicLevel(0);
+  }, []);
+
+  const stopSpeechRecognition = useCallback((abort: boolean) => {
+    const recognition = speechRecognitionRef.current;
+    if (!recognition) return;
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onend = null;
+    if (abort) {
+      recognition.abort();
+    } else {
+      recognition.stop();
+    }
+    speechRecognitionRef.current = null;
+  }, []);
+
+  const resetSpeechSession = useCallback(() => {
+    speechFinalizeRef.current = false;
+    speechTranscriptRef.current = "";
+    stopSpeechRecognition(true);
+    stopMicLevelCapture();
+    setIsMicRecording(false);
+    setIsMicSubmitting(false);
+  }, [stopMicLevelCapture, stopSpeechRecognition]);
+
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       clearAdvanceTimeout();
+      resetSpeechSession();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, [clearAdvanceTimeout]);
+  }, [clearAdvanceTimeout, resetSpeechSession]);
 
-  // Auto-play intro first, then main lesson audio (if present)
+  // Auto-play intro audio first, then main lesson audio.
   useEffect(() => {
     if (!currentLessonId) return;
 
-    const introAudio = getIntroAudioSrc(currentLessonIntroVoice);
+    const introAudio = currentLessonIntroVoice?.trim();
     const mainAudio = currentLessonMainAudio;
     if (!introAudio && !mainAudio) return;
 
-    const primarySrc = introAudio ?? mainAudio;
-    if (!primarySrc) return;
-
     let isCancelled = false;
+    let primaryAudio: HTMLAudioElement | null = null;
     let followUpAudio: HTMLAudioElement | null = null;
 
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
 
-    const primaryAudio = new Audio(primarySrc);
-    audioRef.current = primaryAudio;
-    const shouldChainMainAudio = Boolean(
-      introAudio && mainAudio && introAudio !== mainAudio,
-    );
-
-    const playFollowUpAudio = () => {
-      if (isCancelled || !mainAudio) return;
-      if (audioRef.current && audioRef.current !== primaryAudio) return;
-      followUpAudio = new Audio(mainAudio);
-      audioRef.current = followUpAudio;
-      followUpAudio
-        .play()
-        .catch((err) => console.log("Audio play failed:", err));
+    const playAudioSource = (
+      src: string,
+      onEnded?: () => void,
+    ): HTMLAudioElement => {
+      const audio = new Audio(src);
+      audioRef.current = audio;
+      if (onEnded) {
+        audio.addEventListener("ended", onEnded, { once: true });
+        audio.addEventListener("error", onEnded, { once: true });
+      }
+      audio.play().catch((err) => console.log("Audio play failed:", err));
+      return audio;
     };
 
-    if (shouldChainMainAudio) {
-      primaryAudio.addEventListener("ended", playFollowUpAudio, { once: true });
-    }
+    const playMainAudio = () => {
+      if (isCancelled || !mainAudio) {
+        return;
+      }
+      followUpAudio = playAudioSource(mainAudio);
+    };
 
-    primaryAudio.play().catch((err) => console.log("Audio play failed:", err));
+    if (introAudio) {
+      const shouldChainMainAudio =
+        Boolean(mainAudio) && introAudio !== mainAudio;
+      primaryAudio = playAudioSource(
+        introAudio,
+        shouldChainMainAudio ? playMainAudio : undefined,
+      );
+    } else if (mainAudio) {
+      primaryAudio = playAudioSource(mainAudio);
+    }
 
     return () => {
       isCancelled = true;
-      if (shouldChainMainAudio) {
-        primaryAudio.removeEventListener("ended", playFollowUpAudio);
+      if (primaryAudio) {
+        primaryAudio.pause();
+        primaryAudio.currentTime = 0;
       }
-      primaryAudio.pause();
-      primaryAudio.currentTime = 0;
       if (followUpAudio) {
         followUpAudio.pause();
         followUpAudio.currentTime = 0;
@@ -497,52 +664,244 @@ export function LessonInterface({
     isLetterTraceDemoLesson,
   ]);
 
-  const handleScoringResult = (
-    correct: boolean,
-    advanceDelayMs: number = FEEDBACK_ADVANCE_DELAY_MS,
-    earnedStars: number = 0,
-  ) => {
-    if (currentLesson?.type === "active") {
-      const normalizedStars = Math.max(
-        0,
-        Math.min(getLessonMaxStars(currentLesson), Math.round(earnedStars)),
-      );
-      setLessonStarsThisAttempt((prev) => {
-        const next = {
-          ...prev,
-          [currentLesson.id]: Math.max(
-            prev[currentLesson.id] ?? 0,
-            normalizedStars,
-          ),
+  const handleScoringResult = useCallback(
+    (
+      correct: boolean,
+      advanceDelayMs: number = FEEDBACK_ADVANCE_DELAY_MS,
+      earnedStars: number = 0,
+    ) => {
+      resetSpeechSession();
+
+      if (currentLesson?.type === "active") {
+        const normalizedStars = Math.max(
+          0,
+          Math.min(getLessonMaxStars(currentLesson), Math.round(earnedStars)),
+        );
+        setLessonStarsThisAttempt((prev) => {
+          const next = {
+            ...prev,
+            [currentLesson.id]: Math.max(
+              prev[currentLesson.id] ?? 0,
+              normalizedStars,
+            ),
+          };
+          lessonStarsThisAttemptRef.current = next;
+          return next;
+        });
+      }
+
+      setIsCorrect(correct);
+      if (correct) {
+        setScore((prev) => prev + 1);
+        if (earnedStars > 0) {
+          setCelebrationStars(Math.max(1, Math.min(3, Math.round(earnedStars))));
+        }
+      }
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+
+      playOneShotAudio(correct ? FEEDBACK_SUCCESS_AUDIO : FEEDBACK_WRONG_AUDIO);
+
+      // Luôn reset timer cũ rồi mới tạo timer mới để đảm bảo thời gian chờ đúng theo lesson hiện tại
+      clearAdvanceTimeout();
+      advanceTimeoutRef.current = window.setTimeout(() => {
+        advanceTimeoutRef.current = null;
+        handleNextRef.current();
+      }, advanceDelayMs);
+    },
+    [clearAdvanceTimeout, currentLesson, playOneShotAudio, resetSpeechSession],
+  );
+
+  const finalizeSpeechAttempt = useCallback(
+    (capturedTranscript: string) => {
+      if (
+        !currentLesson ||
+        currentLesson.type !== "active" ||
+        !isThresholdSpeechLesson
+      ) {
+        return;
+      }
+      if (speechFinalizeRef.current) return;
+      speechFinalizeRef.current = true;
+
+      const transcript = capturedTranscript.trim();
+      setIsMicRecording(false);
+      setIsMicSubmitting(false);
+      stopSpeechRecognition(true);
+      stopMicLevelCapture();
+
+      const oneStarThreshold =
+        currentLesson.scoring?.starThresholds?.oneStar ?? 0.5;
+      const twoStarThreshold =
+        currentLesson.scoring?.starThresholds?.twoStars ?? 0.75;
+      const lessonMaxStars = currentLesson.scoring?.maxStars ?? 2;
+
+      if (!transcript) {
+        handleScoringResult(false, FEEDBACK_ADVANCE_DELAY_MS, 0);
+        return;
+      }
+
+      const similarity = getSpeechSimilarity(transcript, targetText);
+
+      let earnedStars = 0;
+      if (similarity >= twoStarThreshold) {
+        earnedStars = 2;
+      } else if (similarity >= oneStarThreshold) {
+        earnedStars = 1;
+      }
+      earnedStars = Math.min(lessonMaxStars, earnedStars);
+
+      handleScoringResult(similarity >= oneStarThreshold, FEEDBACK_ADVANCE_DELAY_MS, earnedStars);
+    },
+    [
+      currentLesson,
+      handleScoringResult,
+      isThresholdSpeechLesson,
+      stopMicLevelCapture,
+      stopSpeechRecognition,
+      targetText,
+    ],
+  );
+
+  const startSpeechCapture = useCallback(async () => {
+    if (
+      !currentLesson ||
+      currentLesson.type !== "active" ||
+      !isThresholdSpeechLesson ||
+      isCorrect !== null ||
+      isMicRecording ||
+      isMicSubmitting
+    ) {
+      return;
+    }
+
+    const speechWindow = window as SpeechRecognitionWindow;
+    const RecognitionCtor =
+      speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!RecognitionCtor) {
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      return;
+    }
+
+    clearAdvanceTimeout();
+    speechTranscriptRef.current = "";
+    speechFinalizeRef.current = false;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (AudioContextCtor) {
+        const audioContext = new AudioContextCtor();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        micAudioContextRef.current = audioContext;
+        micAnalyserRef.current = analyser;
+
+        const pcmBuffer = new Uint8Array(analyser.fftSize);
+        const tick = () => {
+          const activeAnalyser = micAnalyserRef.current;
+          if (!activeAnalyser) return;
+          activeAnalyser.getByteTimeDomainData(pcmBuffer);
+          let sumSquares = 0;
+          for (let i = 0; i < pcmBuffer.length; i += 1) {
+            const normalizedSample = (pcmBuffer[i] - 128) / 128;
+            sumSquares += normalizedSample * normalizedSample;
+          }
+          const rms = Math.sqrt(sumSquares / pcmBuffer.length);
+          setMicLevel(Math.min(1, rms * 8));
+          micFrameRef.current = window.requestAnimationFrame(tick);
         };
-        lessonStarsThisAttemptRef.current = next;
-        return next;
+        tick();
+      }
+
+      const recognition = new RecognitionCtor();
+      speechRecognitionRef.current = recognition;
+
+      recognition.lang = "vi-VN";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: SpeechRecognitionResultEventLike) => {
+        const segments: string[] = [];
+        for (let i = 0; i < event.results.length; i += 1) {
+          const transcript = event.results[i]?.[0]?.transcript;
+          if (typeof transcript === "string" && transcript.trim()) {
+            segments.push(transcript.trim());
+          }
+        }
+        const mergedTranscript = segments.join(" ").trim();
+        speechTranscriptRef.current = mergedTranscript;
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+        const errorCode =
+          typeof event?.error === "string" ? event.error : "unknown";
+        console.log("Speech recognition error:", errorCode);
+      };
+
+      recognition.onend = () => {
+        finalizeSpeechAttempt(speechTranscriptRef.current);
+      };
+
+      setIsMicRecording(true);
+      recognition.start();
+    } catch (error) {
+      console.log("Microphone start failed:", error);
+      stopMicLevelCapture();
+      setIsMicRecording(false);
+      setIsMicSubmitting(false);
+    }
+  }, [
+    clearAdvanceTimeout,
+    currentLesson,
+    finalizeSpeechAttempt,
+    isCorrect,
+    isMicRecording,
+    isMicSubmitting,
+    isThresholdSpeechLesson,
+    stopMicLevelCapture,
+  ]);
+
+  const submitSpeechCapture = useCallback(() => {
+    if (!isMicRecording || isMicSubmitting) return;
+    setIsMicRecording(false);
+    setIsMicSubmitting(true);
+
+    const recognition = speechRecognitionRef.current;
+    if (recognition) {
+      recognition.stop();
+      return;
+    }
+
+    finalizeSpeechAttempt(speechTranscriptRef.current);
+  }, [finalizeSpeechAttempt, isMicRecording, isMicSubmitting]);
+
+  const handleMicButtonClick = useCallback(() => {
+    if (isMicRecording) {
+      submitSpeechCapture();
+      return;
+    }
+    if (!isMicSubmitting) {
+      startSpeechCapture().catch((error) => {
+        console.log("Start speech capture failed:", error);
       });
     }
-
-    setIsCorrect(correct);
-    if (correct) {
-      setScore((prev) => prev + 1);
-      if (earnedStars > 0) {
-        setCelebrationStars(Math.max(1, Math.min(3, Math.round(earnedStars))));
-      }
-    }
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    }
-
-    playOneShotAudio(correct ? FEEDBACK_SUCCESS_AUDIO : FEEDBACK_WRONG_AUDIO);
-
-    // Luôn reset timer cũ rồi mới tạo timer mới để đảm bảo thời gian chờ đúng theo lesson hiện tại
-    clearAdvanceTimeout();
-    advanceTimeoutRef.current = window.setTimeout(() => {
-      advanceTimeoutRef.current = null;
-      handleNext();
-    }, advanceDelayMs);
-  };
+  }, [isMicRecording, isMicSubmitting, startSpeechCapture, submitSpeechCapture]);
 
   const handleAnswer = (answer: LessonAnswer) => {
     if (!currentLesson || selectedAnswer || currentLesson.type !== "active")
@@ -581,8 +940,11 @@ export function LessonInterface({
     handleScoringResult(correct, advanceDelayMs, earnedStars);
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     clearAdvanceTimeout();
+    resetSpeechSession();
+    speechFinalizeRef.current = false;
+    speechTranscriptRef.current = "";
     setSelectedAnswer(null);
     setIsCorrect(null);
     setTraceResult(null);
@@ -592,6 +954,8 @@ export function LessonInterface({
 
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
 
     if (!hasLessons) return;
@@ -632,7 +996,21 @@ export function LessonInterface({
       maxStars: FLOOR_MAX_STARS,
     });
     setShowCompletion(true);
-  };
+  }, [
+    clearAdvanceTimeout,
+    currentStep,
+    floorId,
+    hasLessons,
+    lessons,
+    playOneShotAudio,
+    resetSpeechSession,
+    towerId,
+    worldId,
+  ]);
+
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
 
   // Guard against empty lessons
   if (!hasLessons || !currentLesson) {
@@ -784,7 +1162,7 @@ export function LessonInterface({
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            className="relative w-full max-w-md text-center"
+            className={`relative w-full max-w-md text-center ${isFloor3ListenLookLesson ? "-mt-4 md:-mt-5" : ""}`}
           >
             {/* Ưu tiên đưa tiêu đề lesson chữ cái lên đầu màn hình như instruction */}
             {topInstructionText && (
@@ -850,7 +1228,7 @@ export function LessonInterface({
             {showPreviewCard &&
               !(isLetterGridPreviewLesson && !currentLesson.mainImage) && (
                 <motion.div
-                  className="relative mx-auto h-60 w-60 bg-white rounded-3xl shadow-xl mb-6 overflow-hidden"
+                  className="relative mx-auto h-96 w-72 rounded-3xl shadow-xl mb-6"
                   animate={
                     currentLesson.type === "passive"
                       ? { scale: [1, 1.02, 1] }
@@ -862,26 +1240,34 @@ export function LessonInterface({
                     playAudio(currentLesson.mainAudio)
                   }
                 >
-                  {currentLesson.mainImage ? (
-                    <div className="relative w-full h-full p-4">
-                      <Image
-                        src={currentLesson.mainImage}
-                        alt={currentLesson.title || "Lesson Image"}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <span
-                      className={`absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap font-bold leading-none text-green-bright ${getPreviewTextSizeClass(displayText)}`}
-                    >
-                      {displayText}
-                    </span>
-                  )}
+                  <div className="absolute inset-0 overflow-hidden rounded-3xl bg-white">
+                    {currentLesson.mainImage ? (
+                      <div
+                        className={`relative w-full h-full ${
+                          shouldUseLargerVocabImage ? "p-1" : "p-4"
+                        }`}
+                      >
+                        <Image
+                          src={currentLesson.mainImage}
+                          alt={currentLesson.title || "Lesson Image"}
+                          fill
+                          className={`object-contain ${
+                            shouldUseLargerVocabImage ? "scale-[1.06]" : ""
+                          }`}
+                        />
+                      </div>
+                    ) : (
+                      <span
+                        className={`absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap font-bold leading-none text-green-bright ${getPreviewTextSizeClass(displayText)}`}
+                      >
+                        {displayText}
+                      </span>
+                    )}
+                  </div>
 
                   {currentLesson.mainAudio && (
                     <motion.div
-                      className="absolute bottom-2 right-2 z-20"
+                      className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}
                       whileHover={{ scale: 1.08 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -1044,6 +1430,67 @@ export function LessonInterface({
               </div>
             )}
 
+            {currentLesson.type === "active" &&
+              isThresholdSpeechLesson &&
+              !hasAnswerOptions &&
+              !isTracePracticeLesson && (
+                <div className="mt-3 flex flex-col items-center gap-4">
+                  <motion.div
+                    className="relative"
+                    animate={isMicRecording ? { scale: [1, 1.05, 1] } : {}}
+                    transition={{ duration: 0.9, repeat: Infinity }}
+                  >
+                    <LessonButton
+                      tone={isMicRecording ? "danger" : "brand"}
+                      onClick={handleMicButtonClick}
+                      disabled={isMicSubmitting || isCorrect !== null}
+                      className={`rounded-full ${isMicRecording ? "ring-4 ring-red-300/70" : "ring-4 ring-green-200/70"}`}
+                      frontClassName="h-24 w-24"
+                      aria-label={
+                        isMicRecording
+                          ? "Dừng và nộp bài nói"
+                          : "Bắt đầu ghi âm bài nói"
+                      }
+                    >
+                      {isMicRecording ? (
+                        <Square className="h-10 w-10 text-white" />
+                      ) : (
+                        <Mic className="h-10 w-10 text-white" />
+                      )}
+                    </LessonButton>
+                    {isMicRecording && (
+                      <motion.span
+                        className="pointer-events-none absolute inset-0 rounded-full border-4 border-red-300"
+                        animate={{ scale: [1, 1.24], opacity: [0.8, 0] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                      />
+                    )}
+                  </motion.div>
+
+                  <div className="flex h-12 items-end justify-center gap-1.5">
+                    {[0, 1, 2, 3, 4].map((barIndex) => {
+                      const weight = 0.6 + barIndex * 0.15;
+                      const normalizedLevel = isMicRecording
+                        ? Math.min(1, micLevel * weight)
+                        : 0.08;
+                      const barHeight = 8 + normalizedLevel * 30;
+                      return (
+                        <motion.span
+                          key={`mic-bar-${barIndex}`}
+                          className={`w-2 rounded-full ${isMicRecording ? "bg-red-400" : "bg-green-300"}`}
+                          style={{ height: `${barHeight}px` }}
+                          animate={{ opacity: isMicRecording ? [0.55, 1, 0.55] : 0.45 }}
+                          transition={{
+                            duration: 0.45 + barIndex * 0.08,
+                            repeat: Infinity,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
             {currentLesson.type === "active" && isTracePracticeLesson && (
               <div className="mt-2 flex flex-col items-center gap-3">
                 {!isLetterTracePracticeLesson && (
@@ -1077,7 +1524,8 @@ export function LessonInterface({
 
             {currentLesson.type === "active" &&
               !hasAnswerOptions &&
-              !isTracePracticeLesson && (
+              !isTracePracticeLesson &&
+              !isThresholdSpeechLesson && (
                 <motion.div
                   className="mt-4 inline-block"
                   initial={{ y: 20, opacity: 0 }}
@@ -1104,9 +1552,7 @@ export function LessonInterface({
                     isCorrect ? "text-green-bright" : "text-red-500"
                   }`}
                 >
-                  {isCorrect
-                    ? "Đúng rồi! Giỏi quá!"
-                    : "Tiếc quá! Thử lại sau nhé!"}
+                  {isCorrect ? "Giỏi quá!" : "Tiếc quá!"}
                 </motion.div>
               )}
             </AnimatePresence>
