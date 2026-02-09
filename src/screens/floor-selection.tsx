@@ -551,7 +551,7 @@ export function FloorSelection({
             <ChevronLeft className="w-6 h-6" />
           </motion.button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-2xl font-bold text-foreground font-hp-special">
               Tháp {towerName}
             </h1>
             <p className="text-xs text-muted-foreground">

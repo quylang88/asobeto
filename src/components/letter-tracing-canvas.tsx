@@ -234,17 +234,31 @@ function getTraceLineWidth(targetText: string): number {
   return Math.max(10, LINE_WIDTH * 0.38);
 }
 
+function getCanvasGuideFontFamily(): string {
+  if (typeof window === "undefined") {
+    return '"Mali", sans-serif';
+  }
+
+  const appFontFamily = window.getComputedStyle(document.body).fontFamily.trim();
+  if (appFontFamily.length > 0) {
+    return appFontFamily;
+  }
+
+  return '"Mali", sans-serif';
+}
+
 function drawGuideGlyph(
   ctx: CanvasRenderingContext2D,
   targetText: string,
   guideFontSize: number,
   fillStyle: string = "rgba(17, 24, 39, 0.15)",
+  fontFamily: string = getCanvasGuideFontFamily(),
 ) {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   ctx.fillStyle = fillStyle;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
+  ctx.font = `${guideFontSize}px ${fontFamily}`;
   ctx.fillText(targetText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 }
 
@@ -471,25 +485,22 @@ export function LetterTracingCanvas({
     const ratio = window.devicePixelRatio || 1;
     const traceText = normalizedTarget || "a";
     const traceLineWidth = Math.max(8, lineWidth * 0.74);
-    const dashLength = Math.max(CANVAS_WIDTH, CANVAS_HEIGHT) * 9;
+    const guideFontFamily = getCanvasGuideFontFamily();
     autoTraceDoneRef.current = false;
 
     const drawGenericFallbackFrame = (progress: number) => {
+      const normalizedProgress = clamp01(progress);
       drawCtx.setTransform(1, 0, 0, 1, 0, 0);
       drawCtx.clearRect(0, 0, canvas.width, canvas.height);
       drawCtx.scale(ratio, ratio);
-      drawCtx.lineJoin = "round";
-      drawCtx.lineCap = "round";
-      drawCtx.lineWidth = traceLineWidth;
-      drawCtx.strokeStyle = TRACE_STROKE_COLOR;
       drawCtx.textAlign = "center";
       drawCtx.textBaseline = "middle";
-      drawCtx.font = `${guideFontSize}px "Mali", "Varela Round", sans-serif`;
-      drawCtx.setLineDash([dashLength]);
-      drawCtx.lineDashOffset = dashLength * (1 - progress);
-      drawCtx.strokeText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-      drawCtx.setLineDash([]);
-      drawCtx.fillStyle = `rgba(17, 24, 39, ${0.08 + progress * 0.18})`;
+      drawCtx.font = `${guideFontSize}px ${guideFontFamily}`;
+      drawCtx.globalAlpha = 0.2 + normalizedProgress * 0.65;
+      drawCtx.fillStyle = TRACE_STROKE_COLOR;
+      drawCtx.fillText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      drawCtx.globalAlpha = 1;
+      drawCtx.fillStyle = `rgba(17, 24, 39, ${0.08 + normalizedProgress * 0.18})`;
       drawCtx.fillText(traceText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     };
 

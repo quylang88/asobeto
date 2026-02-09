@@ -222,12 +222,12 @@ export function createVocabFloorLessons(
       id: `${lessonPrefix}-l3`,
       type: "active",
       lessonKind: "vocab_word_build",
-      title: `${reviewPrefix}Ghép từ`,
+      title: `${reviewPrefix}Kéo thả để tạo từ "${word}"`,
       instruction: isFloor3SpeakingFlow
         ? undefined
         : `Bé hãy ghép đúng từ "${word}" nhé.`,
       introVoice: `${introAudioBase}-l3.mp3`,
-      question: `Kéo thả để tạo từ "${word}"`,
+      question: ``,
       targetText: word,
       targetTokens: wordTokens,
       tokenPool: wordTokenPool,

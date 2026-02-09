@@ -1384,6 +1384,9 @@ export function LessonInterface({
                   const isSelected = selectedAnswer === answer.id;
                   const isCorrectAnswer = answer.isCorrect;
                   const showResult = selectedAnswer !== null;
+                  const answerText = answer.text?.trim() ?? "";
+                  const useSpecialAnswerFont =
+                    !answer.image && [...answerText].length === 1;
 
                   // Giữ tone xanh-cam cho đáp án, chỉ đổi đỏ khi bé chọn sai
                   const answerTone =
@@ -1421,7 +1424,11 @@ export function LessonInterface({
                             />
                           </div>
                         ) : (
-                          <span className="relative z-10">{answer.text}</span>
+                          <span
+                            className={`relative z-10 ${useSpecialAnswerFont ? "font-hp-special" : ""}`}
+                          >
+                            {answer.text}
+                          </span>
                         )}
                       </LessonButton>
                     </motion.div>

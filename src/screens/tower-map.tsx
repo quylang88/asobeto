@@ -394,7 +394,7 @@ function TowerNode({
         } shadow-md`}
       >
         <p
-          className={`text-sm font-bold ${
+          className={`text-sm font-bold font-hp-special ${
             tower.unlocked ? "text-foreground" : "text-gray-400"
           }`}
         >
