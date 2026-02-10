@@ -128,6 +128,8 @@ export function LessonPassivePreviewRenderer({
                     src={currentLesson.mainImage}
                     alt={currentLesson.title || "Lesson Image"}
                     fill
+                    quality={70}
+                    sizes="(max-width: 768px) 74vw, 272px"
                     className={`object-contain ${
                       shouldUseLargerVocabImage ? "scale-[1.06]" : ""
                     }`}

@@ -133,6 +133,8 @@ export function LessonActiveRenderer({
                         src={answer.image}
                         alt={answer.text || "Answer"}
                         fill
+                        quality={70}
+                        sizes="48px"
                         className="object-contain"
                       />
                     </div>

@@ -1,10 +1,6 @@
 // Điểm vào tập trung cho module Lesson Interface: giữ import gọn và dễ mở rộng lesson mới.
 export {
   FEEDBACK_ADVANCE_DELAY_MS,
-  FEEDBACK_FLOOR_CHEER_AUDIO,
-  FEEDBACK_FLOOR_TRY_AGAIN_AUDIO,
-  FEEDBACK_SUCCESS_AUDIO,
-  FEEDBACK_WRONG_AUDIO,
   FLOOR_MAX_STARS,
   TRACE_STARS_ADVANCE_DELAY_MS,
 } from "./constants";

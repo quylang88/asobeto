@@ -13,10 +13,6 @@ import type { LessonAnswer, LessonContent } from "@/data/game-config";
 import type { TraceEvaluation } from "../components";
 import {
   FEEDBACK_ADVANCE_DELAY_MS,
-  FEEDBACK_FLOOR_CHEER_AUDIO,
-  FEEDBACK_FLOOR_TRY_AGAIN_AUDIO,
-  FEEDBACK_SUCCESS_AUDIO,
-  FEEDBACK_WRONG_AUDIO,
   TRACE_STARS_ADVANCE_DELAY_MS,
 } from "../constants";
 import {
@@ -43,7 +39,6 @@ interface UseLessonFlowParams {
   wordBuildSlotTokenIds: Array<string | null>;
   lessonStarsThisAttemptRef: MutableRefObject<Record<string, number>>;
   stopAudio: () => void;
-  playOneShotAudio: (src: string) => void;
   resetSpeechSession: () => void;
   resetWordBuildDragState: () => void;
   setCurrentStep: Dispatch<SetStateAction<number>>;
@@ -80,7 +75,6 @@ export function useLessonFlow({
   wordBuildSlotTokenIds,
   lessonStarsThisAttemptRef,
   stopAudio,
-  playOneShotAudio,
   resetSpeechSession,
   resetWordBuildDragState,
   setCurrentStep,
@@ -141,7 +135,6 @@ export function useLessonFlow({
       }
 
       stopAudio();
-      playOneShotAudio(correct ? FEEDBACK_SUCCESS_AUDIO : FEEDBACK_WRONG_AUDIO);
 
       // Luôn reset timer cũ rồi mới tạo timer mới để đảm bảo thời gian chờ đúng theo lesson hiện tại
       clearAdvanceTimeout();
@@ -154,7 +147,6 @@ export function useLessonFlow({
       clearAdvanceTimeout,
       currentLesson,
       lessonStarsThisAttemptRef,
-      playOneShotAudio,
       setCelebrationStars,
       setIsCorrect,
       setLessonStarsThisAttempt,
@@ -313,12 +305,6 @@ export function useLessonFlow({
       floorMaxStars,
     );
 
-    if (attemptFloorStars >= 1) {
-      playOneShotAudio(FEEDBACK_FLOOR_CHEER_AUDIO);
-    } else if (attemptFloorStars <= 0) {
-      playOneShotAudio(FEEDBACK_FLOOR_TRY_AGAIN_AUDIO);
-    }
-
     setCompletionStars(attemptFloorStars);
     saveFloorProgress({
       worldId,
@@ -337,7 +323,6 @@ export function useLessonFlow({
     hasLessons,
     lessonStarsThisAttemptRef,
     lessons,
-    playOneShotAudio,
     resetSpeechSession,
     resetWordBuildDragState,
     setCelebrationStars,

@@ -10,6 +10,9 @@ export type {
   Floor,
   LessonContent,
   LessonAnswer,
+  BubblePopLevelId,
+  BubblePopLevelConfig,
+  BubblePopGameConfig,
 } from "./world-1-alphabet";
 export {
   getTotalStars,

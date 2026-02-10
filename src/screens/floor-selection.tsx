@@ -433,35 +433,6 @@ function BossFloorCard({
               )}
             </div>
 
-            {/* Status indicator */}
-            {isLocked ? (
-              <div className="flex flex-col items-center gap-1">
-                <motion.div
-                  className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center"
-                  animate={{
-                    boxShadow: [
-                      "0 0 0 0 rgba(139, 92, 246, 0.4)",
-                      "0 0 0 8px rgba(139, 92, 246, 0)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                  }}
-                >
-                  <span className="text-lg">?</span>
-                </motion.div>
-              </div>
-            ) : floor.completed ? (
-              <motion.div
-                className="w-10 h-10 bg-yellow-300 rounded-full flex items-center justify-center shadow-lg"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.5 }}
-              >
-                <Crown className="w-6 h-6 text-amber-800" />
-              </motion.div>
-            ) : null}
           </div>
         </div>
       </div>

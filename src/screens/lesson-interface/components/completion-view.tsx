@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import { Mascot } from "@/components/beto-mascot";
 import { GameButton } from ".";
+
+const COMPLETION_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
+const COMPLETION_FAIL_AUDIO = "/assets/audio/feedback/try-again.mp3";
 
 interface LessonCompletionViewProps {
   stars: number;
@@ -36,6 +40,28 @@ export function LessonCompletionView({
       : noStarsEarned
         ? "Bé đã hoàn thành bài học rồi. Mình thử lại để săn sao nhé!"
         : "Bé đã hoàn thành bài học!";
+  const completionAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (completionAudioRef.current) {
+      completionAudioRef.current.pause();
+      completionAudioRef.current.currentTime = 0;
+      completionAudioRef.current = null;
+    }
+    const audio = new Audio(
+      noStarsEarned ? COMPLETION_FAIL_AUDIO : COMPLETION_SUCCESS_AUDIO,
+    );
+    completionAudioRef.current = audio;
+    audio.play().catch(() => undefined);
+
+    return () => {
+      if (!completionAudioRef.current) return;
+      completionAudioRef.current.pause();
+      completionAudioRef.current.currentTime = 0;
+      completionAudioRef.current = null;
+    };
+  }, [noStarsEarned]);
 
   return (
     <div className="relative w-full h-dvh bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">

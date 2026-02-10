@@ -1,17 +1,22 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 
+const DEFAULT_STAR_SOUND = "/assets/audio/feedback/success-answer.mp3";
+
 interface StarCelebrationProps {
   stars: number;
+  muteSound?: boolean;
+  soundSrc?: string;
 }
 
 const LIGHT_RAYS = Array.from({ length: 12 }, (_, index) => ({
   id: index,
   rotate: index * 30,
-  delay: (index % 4) * 0.12,
-  duration: 1.8 + (index % 3) * 0.35,
+  delay: (index % 4) * 0.14,
+  duration: 2.1 + (index % 3) * 0.4,
 }));
 
 const GLINT_POINTS = [
@@ -34,8 +39,27 @@ function getStarOffsets(stars: number): number[] {
   return [-112, 0, 112];
 }
 
-export function StarCelebration({ stars }: StarCelebrationProps) {
+export function StarCelebration({
+  stars,
+  muteSound = false,
+  soundSrc = DEFAULT_STAR_SOUND,
+}: StarCelebrationProps) {
   const starOffsets = getStarOffsets(stars);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (muteSound || typeof window === "undefined") return;
+    const audio = new Audio(soundSrc);
+    audioRef.current = audio;
+    audio.play().catch(() => undefined);
+
+    return () => {
+      if (!audioRef.current) return;
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    };
+  }, [muteSound, soundSrc]);
 
   return (
     <motion.div
@@ -43,7 +67,7 @@ export function StarCelebration({ stars }: StarCelebrationProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.22 }}
+      transition={{ duration: 0.24 }}
       aria-hidden
     >
       <motion.div
@@ -51,21 +75,21 @@ export function StarCelebration({ stars }: StarCelebrationProps) {
         initial={{ scale: 0.7, opacity: 0 }}
         animate={{ scale: [0.86, 1.05, 0.9], opacity: [0.32, 0.66, 0.38] }}
         exit={{ opacity: 0, scale: 0.82 }}
-        transition={{ duration: 1.45, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 1.75, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute left-1/2 top-[34%] h-66 w-66 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(254,240,138,0.74),rgba(254,240,138,0.25),transparent_72%)]"
         initial={{ scale: 0.72, opacity: 0 }}
         animate={{ scale: [0.84, 1.08, 0.9], opacity: [0.6, 0.98, 0.66] }}
         exit={{ opacity: 0, scale: 0.84 }}
-        transition={{ duration: 1.25, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute left-1/2 top-[34%] h-84 w-84 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[conic-gradient(from_0deg,rgba(254,249,195,0),rgba(254,249,195,0.42),rgba(254,249,195,0))]"
         initial={{ rotate: 0, opacity: 0 }}
         animate={{ rotate: 360, opacity: [0.18, 0.4, 0.18] }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 5.6, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 6.2, repeat: Infinity, ease: "linear" }}
       />
 
       {LIGHT_RAYS.map((ray) => (
@@ -109,7 +133,7 @@ export function StarCelebration({ stars }: StarCelebrationProps) {
           }}
           exit={{ opacity: 0, scale: 0.2 }}
           transition={{
-            duration: 1.55,
+            duration: 1.9,
             delay: glint.delay,
             repeat: Infinity,
             ease: "easeInOut",
@@ -127,15 +151,15 @@ export function StarCelebration({ stars }: StarCelebrationProps) {
           animate={{ opacity: 1, x: offsetX, y: 0, scale: 1, rotate: 0 }}
           exit={{ opacity: 0, scale: 0.86 }}
           transition={{
-            duration: 1.05,
-            delay: index * 0.08,
+            duration: 1.25,
+            delay: index * 0.1,
             ease: [0.2, 0.85, 0.2, 1],
           }}
         >
           <motion.div
             className="absolute left-1/2 top-1/2 h-26 w-26 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100/72 blur-2xl"
             animate={{ opacity: [0.52, 0.9, 0.58], scale: [0.9, 1.12, 0.95] }}
-            transition={{ duration: 1.38, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
             animate={{
@@ -143,8 +167,8 @@ export function StarCelebration({ stars }: StarCelebrationProps) {
               rotate: [-4, 6, -4, 5, -4],
             }}
             transition={{
-              duration: 1.62,
-              delay: 0.95 + index * 0.1,
+              duration: 1.88,
+              delay: 1.05 + index * 0.1,
               repeat: Infinity,
               ease: "easeInOut",
             }}

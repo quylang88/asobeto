@@ -8,15 +8,18 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mascot } from "../components/beto-mascot";
+import {
+  BrokenHeartCelebration,
+  StarCelebration,
+  SuccessCelebrationOverlay,
+} from "@/components/celebrations";
 import { getStoredLessonStars } from "@/lib/floor-progress";
 import { type LessonContent } from "../data/game-config";
 import {
-  SuccessCelebrationOverlay,
   LessonActiveRenderer,
   GameButton,
   LessonCompletionView,
   LessonPassivePreviewRenderer,
-  StarCelebration,
   LessonTopBar,
   type TraceEvaluation,
   WordBuildDragGhost,
@@ -97,7 +100,7 @@ export function LessonInterface({
   const currentLessonId = currentLesson?.id;
   const currentLessonIntroVoice = currentLesson?.introVoice;
   const currentLessonMainAudio = currentLesson?.mainAudio;
-  const { playAudio, playOneShotAudio, stopAudio } = useLessonAudio({
+  const { playAudio, stopAudio } = useLessonAudio({
     currentStep,
     currentLessonId,
     currentLessonIntroVoice,
@@ -275,7 +278,6 @@ export function LessonInterface({
     wordBuildSlotTokenIds,
     lessonStarsThisAttemptRef,
     stopAudio,
-    playOneShotAudio,
     resetSpeechSession: callResetSpeechSession,
     resetWordBuildDragState,
     setCurrentStep,
@@ -366,6 +368,9 @@ export function LessonInterface({
     <div className="relative w-full h-dvh bg-linear-to-b from-blue-soft/20 via-background to-green-bright/10 flex flex-col overflow-hidden">
       <AnimatePresence>
         {isCorrect === true && <SuccessCelebrationOverlay />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isCorrect === false && <BrokenHeartCelebration />}
       </AnimatePresence>
       <AnimatePresence>
         {celebrationStars && <StarCelebration stars={celebrationStars} />}

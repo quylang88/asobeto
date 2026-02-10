@@ -14,7 +14,8 @@ export type LessonKind =
   | "vocab_listen_look"
   | "vocab_listen_repeat"
   | "vocab_word_build"
-  | "vocab_trace_practice";
+  | "vocab_trace_practice"
+  | "bubble_pop_challenge";
 export type AudioPlaybackSpeed = "slow" | "normal" | "fast";
 export type ScoringMetric =
   | "none"
@@ -51,6 +52,42 @@ export interface WordToken {
   kind: "letter" | "tone";
 }
 
+export type BubblePopLevelId = "easy" | "normal" | "hard";
+
+export interface BubblePopLevelConfig {
+  id: BubblePopLevelId;
+  label: string;
+  starsReward: 1 | 2 | 3;
+  durationSeconds: number;
+  targetScore: number;
+  minLivesToPass: number;
+  targetBubbleRatio: number;
+  emptyBubbleRatio: number;
+  bubbleSize: number;
+  spawnIntervalMs: {
+    min: number;
+    max: number;
+  };
+  speedRange: {
+    min: number;
+    max: number;
+  };
+  allowPairSpawn?: boolean;
+  pairSpawnChance?: number;
+}
+
+export interface BubblePopGameConfig {
+  title?: string;
+  instruction?: string;
+  rules: string[];
+  rulesAudioText: string;
+  startLives: number;
+  targetLetters: [string, string];
+  laneCount: number;
+  minSpawnVerticalGap: number;
+  levels: BubblePopLevelConfig[];
+}
+
 export interface LessonAnswer {
   id: string;
   text?: string;
@@ -80,6 +117,7 @@ export interface LessonContent {
   targetTokens?: WordToken[];
   tokenPool?: WordToken[];
   relatedLetters?: string[];
+  bubblePopGame?: BubblePopGameConfig;
   gating?: LessonGating;
   scoring?: LessonScoring;
 

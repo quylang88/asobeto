@@ -1,7 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CONFETTI_PIECES } from "../constants";
+
+const CONFETTI_COLORS = ["#22c55e", "#f59e0b", "#38bdf8", "#fb7185", "#f97316"];
+
+const CONFETTI_PIECES = Array.from({ length: 26 }, (_, index) => ({
+  id: index,
+  left: (index * 17) % 100,
+  delay: (index % 7) * 0.07,
+  duration: 1.4 + (index % 5) * 0.32,
+  xDrift: (index % 2 === 0 ? 1 : -1) * (12 + (index % 4) * 8),
+  rotate: (index * 43) % 360,
+  color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+}));
 
 export function SuccessCelebrationOverlay() {
   return (
