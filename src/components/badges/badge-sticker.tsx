@@ -43,6 +43,7 @@ interface TowerBadgeStickerProps {
   size?: "sm" | "md" | "lg";
   highlight?: boolean;
   className?: string;
+  variant?: "framed" | "badgeOnly";
 }
 
 function getBadgeSizeClasses(size: "sm" | "md" | "lg"): {
@@ -84,10 +85,52 @@ export function TowerBadgeSticker({
   size = "md",
   highlight = false,
   className,
+  variant = "framed",
 }: TowerBadgeStickerProps) {
   const palette = BADGE_PALETTES[badge.paletteIndex % BADGE_PALETTES.length];
   const badgeSize = getBadgeSizeClasses(size);
   const showGlow = highlight && badge.unlocked;
+
+  if (variant === "badgeOnly") {
+    return (
+      <div
+        className={`relative flex items-center justify-center ${badgeSize.wrapper} ${className ?? ""}`}
+      >
+        {showGlow && (
+          <motion.div
+            className={`pointer-events-none absolute -inset-6 rounded-full blur-2xl ${palette.glow}`}
+            animate={{ opacity: [0.34, 0.84, 0.34], scale: [0.96, 1.08, 0.96] }}
+            transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
+        {badge.unlocked ? (
+          badge.badgeImageSrc ? (
+            <div
+              className="relative h-full w-full overflow-hidden rounded-full border-4 border-transparent"
+            >
+              <Image
+                src={badge.badgeImageSrc}
+                alt={`Huy hiệu chữ ${badge.towerName}`}
+                fill
+                sizes={size === "lg" ? "208px" : size === "md" ? "136px" : "80px"}
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div
+              className={`flex h-full w-full items-center justify-center rounded-full bg-linear-to-br ${palette.surface} border-4 ${palette.border} shadow-xl`}
+            >
+              <Medal className={`${badgeSize.icon} ${palette.icon}`} strokeWidth={2.2} />
+            </div>
+          )
+        ) : (
+          <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-slate-300 bg-slate-200 grayscale shadow-xl">
+            <Lock className={`${badgeSize.lock} text-slate-600`} strokeWidth={2.4} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -121,7 +164,7 @@ export function TowerBadgeSticker({
               >
                 <Image
                   src={badge.badgeImageSrc}
-                  alt={`Huy hiệu tháp ${badge.towerName}`}
+                  alt={`Huy hiệu chữ ${badge.towerName}`}
                   fill
                   sizes={size === "lg" ? "208px" : size === "md" ? "136px" : "80px"}
                   className="object-cover"

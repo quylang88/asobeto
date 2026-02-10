@@ -2,6 +2,44 @@ import type { Tower } from "@/data/game-config";
 
 const TOWER_BADGE_STORAGE_KEY = "asobeto-tower-badges-v1";
 const FORCE_UNLOCK_ALL_BADGES_FOR_TESTING = true;
+const LETTER_BADGE_CODES = [
+  "A",
+  "AW",
+  "AA",
+  "B",
+  "C",
+  "D",
+  "DD",
+  "E",
+  "EE",
+  "G",
+  "H",
+  "I",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "OO",
+  "OW",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "UW",
+  "V",
+  "X",
+  "Y",
+] as const;
+
+const LETTER_BADGE_IMAGE_BY_CODE: Partial<Record<(typeof LETTER_BADGE_CODES)[number], string>> =
+  {
+    A: "/assets/images/badges/anpanman.webp",
+    AW: "/assets/images/badges/sailor-moon-v2.webp",
+    AA: "/assets/images/badges/rapunzel.webp",
+  };
 
 interface StoredTowerBadge {
   unlockedAt: string;
@@ -169,4 +207,26 @@ export function getTowerBadgeCollection({
         unlockedAt,
       });
     });
+}
+
+export function getLetterBadgeCollection(): TowerBadgeRecord[] {
+  const data = readBadgeData();
+  const unlockedCount = FORCE_UNLOCK_ALL_BADGES_FOR_TESTING
+    ? LETTER_BADGE_CODES.length
+    : Math.min(LETTER_BADGE_CODES.length, Object.keys(data.badges).length);
+
+  return LETTER_BADGE_CODES.map((badgeCode, index) => {
+    const unlocked = index < unlockedCount;
+    return {
+      key: `letter:${badgeCode}`,
+      worldId: 1,
+      towerId: index + 1,
+      towerName: badgeCode,
+      towerLetters: badgeCode,
+      paletteIndex: index,
+      badgeImageSrc: LETTER_BADGE_IMAGE_BY_CODE[badgeCode] ?? null,
+      unlockedAt: unlocked ? `letter-unlocked-${badgeCode}` : null,
+      unlocked,
+    };
+  });
 }

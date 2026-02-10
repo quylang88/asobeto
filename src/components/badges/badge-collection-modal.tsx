@@ -64,13 +64,11 @@ export function TowerBadgeCollectionModal({
                     key={badge.key}
                     type="button"
                     onClick={() => setFocusedBadge(badge)}
-                    className="flex flex-col items-center rounded-2xl border border-emerald-100 bg-emerald-50/70 p-1.5 ios-button"
+                    aria-label={`Xem huy hiệu ${badge.towerName}`}
+                    className="flex items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50/70 p-1 ios-button"
                     whileTap={{ scale: 0.96 }}
                   >
                     <TowerBadgeSticker badge={badge} size="sm" />
-                    <p className="mt-1 text-center text-sm font-hp-special font-black text-emerald-900">
-                      Tháp {badge.towerName}
-                    </p>
                   </motion.button>
                 ))}
               </div>

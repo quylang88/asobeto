@@ -370,3 +370,89 @@ Validation
     - `/assets/audio/feedback/success-answer.mp3` (HTTP 206)
     - `/assets/audio/feedback/wrong-answer.mp3` (HTTP 206)
 - `node $WEB_GAME_CLIENT ...` still cannot run in this environment because that script cannot resolve package `playwright` in its import path.
+
+---
+
+Update (World-map badge counter relocation + 29-letter collection pass)
+
+TODO
+- [x] Remove `HUY HIỆU` text and white icon chip from badge counter; keep icon + number only.
+- [x] Move badge access from tower-map to world-map header (next to mascot, star-counter style).
+- [x] Remove all tower-name labels below badge cells in collection modal.
+- [x] Expand collection to 29 badges (29 Vietnamese letters via transliteration codes).
+- [x] Set second badge (`AW`) image to `sailor-moon.webp`.
+- [x] Update zoom preview to show badge only (no square frame style, no title text, no "chạm vào để tiếp tục").
+
+Notes
+- Added `getLetterBadgeCollection()` in `src/lib/tower-badges.ts` with 29 badge codes:
+  - `A, AW, AA, B, C, D, DD, E, EE, G, H, I, K, L, M, N, O, OO, OW, P, Q, R, S, T, U, UW, V, X, Y`
+- Badge image mapping now includes:
+  - `A -> /assets/images/badges/anpanman.webp`
+  - `AW -> /assets/images/badges/sailor-moon.webp`
+- World-map header now includes clickable badge counter (`Medal + count`) and opens `TowerBadgeCollectionModal`.
+- Removed badge floating CTA and modal mount from `tower-map` screen.
+- Badge modal cell cards now render sticker only (no name caption below).
+- `TowerBadgeSticker` now supports `variant="badgeOnly"` for preview mode.
+- Preview overlay (`mode="preview"`) now renders only badge artwork (no extra text lines).
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright smoke:
+  - world-map header shows badge counter beside mascot with icon + number only.
+  - badge modal opens from world-map; grid contains `29` entries.
+  - no `Tháp ...` labels under badge items.
+  - AW badge image resolves to `/assets/images/badges/sailor-moon.webp`.
+  - preview overlay text is empty (no title / no “Chạm vào màn hình để tiếp tục”).
+  - tower-map no longer shows badge entry button.
+
+---
+
+Update (Remove circular ring in badge zoom preview)
+
+TODO
+- [x] Remove circular ring/background artifacts behind badge when zooming in preview mode.
+
+Notes
+- In `TowerBadgeAwardOverlay`, preview mode no longer renders the extra circular glow layer.
+- In `TowerBadgeSticker` (`variant="badgeOnly"`), removed circular border classes around the badge image/icon/lock variants.
+- Preview now shows cleaner badge-only zoom without ring behind.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Keep glow pulse in preview while removing white circular border)
+
+TODO
+- [x] Remove white circular border behind zoomed badge in preview mode.
+- [x] Keep soft pulsing glow effect during preview.
+
+Notes
+- `TowerBadgeAwardOverlay` now keeps animated glow in preview mode with emerald-tinted blur, preserving mờ-sáng pulse.
+- `TowerBadgeSticker` (`variant="badgeOnly"`) removed white border classes around preview badge image/icon/lock.
+- Added slight image zoom (`scale-[1.06]`) in badge-only preview to hide edge artifacts from source assets.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright check confirms:
+  - overlay glow layer exists in preview
+  - preview badge container has no `border-white` classes.
+
+---
+
+Update (Make zoomed badge white ring transparent)
+
+TODO
+- [x] Keep existing preview effects and make the white circular border transparent.
+
+Notes
+- Updated preview badge image wrapper in `badgeOnly` variant from `border-white/80` to `border-transparent`.
+- All glow/scale animations remain unchanged.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.

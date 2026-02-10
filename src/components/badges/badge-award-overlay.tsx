@@ -39,13 +39,14 @@ export function TowerBadgeAwardOverlay({
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <TowerBadgeSticker badge={badge} size="lg" highlight />
+        <TowerBadgeSticker
+          badge={badge}
+          size="lg"
+          highlight
+          variant={isPreviewMode ? "badgeOnly" : "framed"}
+        />
 
-        {isPreviewMode ? (
-          <p className="relative rounded-full bg-white/95 px-4 py-2 font-hp-special text-lg font-black text-slate-900 shadow-lg">
-            Tháp {badge.towerName}
-          </p>
-        ) : (
+        {!isPreviewMode && (
           <motion.p
             className="relative rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-slate-800 shadow-lg"
             animate={{ opacity: [0.7, 1, 0.7] }}
@@ -54,10 +55,6 @@ export function TowerBadgeAwardOverlay({
             Bé nhận được huy hiệu mới!
           </motion.p>
         )}
-
-        <p className="relative text-xs font-semibold uppercase tracking-[0.12em] text-slate-200">
-          Chạm vào màn hình để tiếp tục
-        </p>
       </motion.div>
     </motion.button>
   );
