@@ -16,10 +16,16 @@ export const floor4Lessons: LessonContent[] = [
       title: "Chọn mức độ",
       headerTitle: "Bóng bay chữ cái",
       instruction: "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.",
+      introAudio: "/assets/audio/games/bubble-pop/intro-general.mp3",
       rules: ["Chạm đúng bóng bay chữ theo yêu cầu."],
       rulesAudioText: "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.",
+      rulesAudio: "/assets/audio/games/bubble-pop/rules.mp3",
       startLives: 3,
       targetLetters: ["a", "c"],
+      targetLetterAudioMap: {
+        a: "/assets/audio/games/bubble-pop/target-a.mp3",
+        c: "/assets/audio/games/bubble-pop/target-c.mp3",
+      },
       laneCount: 5,
       minSpawnVerticalGap: 94,
       levels: [

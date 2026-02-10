@@ -80,10 +80,13 @@ export interface BubblePopGameConfig {
   title?: string;
   headerTitle?: string;
   instruction?: string;
+  introAudio?: string;
   rules: string[];
   rulesAudioText: string;
+  rulesAudio?: string;
   startLives: number;
   targetLetters: [string, string];
+  targetLetterAudioMap?: Record<string, string>;
   laneCount: number;
   minSpawnVerticalGap: number;
   levels: BubblePopLevelConfig[];

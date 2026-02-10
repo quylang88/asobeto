@@ -230,6 +230,7 @@ export function Floor4BubbleChallenge({
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
   const audioContextRef = useRef<AudioContext | null>(null);
+  const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
@@ -268,10 +269,25 @@ export function Floor4BubbleChallenge({
     lastFrameAtRef.current = 0;
   }, []);
 
-  const stopSpeech = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.speechSynthesis?.cancel();
+  const stopAudio = useCallback(() => {
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current = null;
+    }
   }, []);
+
+  const playAudio = useCallback(
+    (src: string | undefined) => {
+      if (typeof window === "undefined" || !src) return;
+      stopAudio();
+      const audio = new Audio(src);
+      playbackAudioRef.current = audio;
+      audio.play().catch(() => {
+        // Ignore autoplay errors
+      });
+    },
+    [stopAudio],
+  );
 
   const clearCelebrations = useCallback(() => {
     passSequenceRef.current = false;
@@ -282,23 +298,6 @@ export function Floor4BubbleChallenge({
       passCelebrationTimeoutRef.current = null;
     }
   }, []);
-
-  const speakText = useCallback(
-    (text: string) => {
-      if (typeof window === "undefined") return;
-      const content = text.trim();
-      if (!content) return;
-      const synth = window.speechSynthesis;
-      if (!synth) return;
-      synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(content);
-      utterance.lang = "vi-VN";
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
-      synth.speak(utterance);
-    },
-    [],
-  );
 
   const getAudioContext = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -688,7 +687,7 @@ export function Floor4BubbleChallenge({
 
   const startGameplay = useCallback(() => {
     if (!bubbleConfig || !selectedLevel) return;
-    stopSpeech();
+    stopAudio();
     stopGameLoop();
     clearCelebrations();
     setPhase("playing");
@@ -719,7 +718,6 @@ export function Floor4BubbleChallenge({
     clearCelebrations,
     selectedLevel,
     stopGameLoop,
-    stopSpeech,
     targetLetter,
   ]);
 
@@ -738,9 +736,10 @@ export function Floor4BubbleChallenge({
         setLastEarnedStars(0);
         setCountdownValue(3);
         targetLetterRef.current = nextTargetLetter;
-        speakText(
-          `Mức ${LEVEL_LABEL[level.id]}. Hãy chạm vào bóng bay chữ ${nextTargetLetter}.`,
-        );
+
+        const targetAudio = bubbleConfig?.targetLetterAudioMap?.[nextTargetLetter];
+        playAudio(targetAudio);
+
         setPhase("countdown");
       };
 
@@ -766,8 +765,9 @@ export function Floor4BubbleChallenge({
       levelMap,
       pendingUnlockLevelId,
       pickRandomTargetLetter,
-      speakText,
+      playAudio,
       stopGameLoop,
+      bubbleConfig,
     ],
   );
 
@@ -814,8 +814,8 @@ export function Floor4BubbleChallenge({
 
   const replayRulesAudio = useCallback(() => {
     if (!bubbleConfig) return;
-    speakText(bubbleConfig.rulesAudioText);
-  }, [bubbleConfig, speakText]);
+    playAudio(bubbleConfig.rulesAudio);
+  }, [bubbleConfig, playAudio]);
 
   useEffect(() => {
     const playfield = playfieldRef.current;
@@ -855,8 +855,8 @@ export function Floor4BubbleChallenge({
   useEffect(() => {
     if (!bubbleConfig) return;
     if (phase !== "select") return;
-    speakText(bubbleConfig.rulesAudioText);
-  }, [bubbleConfig, phase, speakText]);
+    playAudio(bubbleConfig.introAudio);
+  }, [bubbleConfig, phase, playAudio]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -909,7 +909,7 @@ export function Floor4BubbleChallenge({
   useEffect(() => {
     return () => {
       stopGameLoop();
-      stopSpeech();
+      stopAudio();
       if (passCelebrationTimeoutRef.current !== null) {
         window.clearTimeout(passCelebrationTimeoutRef.current);
         passCelebrationTimeoutRef.current = null;
@@ -922,7 +922,7 @@ export function Floor4BubbleChallenge({
       audioContextRef.current.close().catch(() => undefined);
       audioContextRef.current = null;
     };
-  }, [stopGameLoop, stopSpeech]);
+  }, [stopGameLoop, stopAudio]);
 
   if (!bubbleConfig || levelList.length === 0) {
     return (
