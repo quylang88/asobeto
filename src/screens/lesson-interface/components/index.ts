@@ -7,5 +7,4 @@ export {
 } from "./letter-tracing-canvas";
 export { GameButton } from "./button";
 export { FogRevealOverlay } from "./fog-reveal-overlay";
-export { LessonCompletionView } from "./completion-view";
 export { LessonTopBar } from "./top-bar";

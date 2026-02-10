@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import { Mascot } from "@/components/beto-mascot";
-import { GameButton } from ".";
+import { GameButton } from "@/screens/lesson-interface/components";
 
 const COMPLETION_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
 const COMPLETION_FAIL_AUDIO = "/assets/audio/feedback/try-again.mp3";
@@ -16,6 +16,11 @@ interface LessonCompletionViewProps {
   activeLessonsTotalStars: number;
   floorMaxStars: number;
   onComplete: () => void;
+  successTitle?: string;
+  failTitle?: string;
+  successSummary?: string;
+  failSummary?: string;
+  continueLabel?: string;
 }
 
 export function LessonCompletionView({
@@ -25,14 +30,20 @@ export function LessonCompletionView({
   activeLessonsTotalStars,
   floorMaxStars,
   onComplete,
+  successTitle,
+  failTitle,
+  successSummary,
+  failSummary,
+  continueLabel = "Tiếp Tục",
 }: LessonCompletionViewProps) {
-  // Tách màn hoàn thành thành component riêng để LessonInterface chỉ còn vai trò điều phối state.
   const displayedStarCount = Math.max(1, floorMaxStars);
   const starSizeClass =
     displayedStarCount > 3 ? "w-11 h-11 md:w-12 md:h-12" : "w-16 h-16";
   const noStarsEarned = stars <= 0;
-  const completionTitle = noStarsEarned ? "Cố lên bé nhé!" : "Tuyệt Vời!";
-  const completionSummary =
+  const completionTitle = noStarsEarned
+    ? (failTitle ?? "Cố lên bé nhé!")
+    : (successTitle ?? "Tuyệt Vời!");
+  const defaultSummary =
     activeLessonsCount > 0
       ? noStarsEarned
         ? `Bé đã làm đúng ${score}/${activeLessonsCount} câu. Không sao, bé luyện thêm một chút nữa để lần sau nhận sao nhé!`
@@ -40,6 +51,9 @@ export function LessonCompletionView({
       : noStarsEarned
         ? "Bé đã hoàn thành bài học rồi. Mình thử lại để săn sao nhé!"
         : "Bé đã hoàn thành bài học!";
+  const completionSummary = noStarsEarned
+    ? (failSummary ?? defaultSummary)
+    : (successSummary ?? defaultSummary);
   const completionAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -133,7 +147,7 @@ export function LessonCompletionView({
             className="rounded-3xl"
             frontClassName="px-12 py-4 text-xl"
           >
-            Tiếp Tục
+            {continueLabel}
           </GameButton>
         </motion.div>
       </motion.div>

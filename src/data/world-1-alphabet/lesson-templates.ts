@@ -164,8 +164,24 @@ export function createVocabFloorLessons(
     reviewLetters,
     reviewMode,
   } = config;
-  const reviewPrefix = reviewMode ? "Ôn tập: " : "";
-  const isFloor3SpeakingFlow = !reviewMode;
+  const isReviewMode = Boolean(reviewMode);
+  const reviewPrefix = isReviewMode ? "Ôn tập: " : "";
+  const listenLookTitle = isReviewMode
+    ? `${reviewPrefix}Nghe và nhìn "${word}"`
+    : `${reviewPrefix}Nghe và nhìn`;
+  const listenRepeatTitle = isReviewMode
+    ? `${reviewPrefix}Nghe và nói lại`
+    : `${reviewPrefix}Nghe đánh vần và nói lại`;
+  const listenRepeatAudio = isReviewMode
+    ? `/assets/audio/words/${wordAssetKey}.mp3`
+    : `/assets/audio/words/${wordAssetKey}-spelling.mp3`;
+  const listenRepeatPassPolicy: "always" | "threshold" = isReviewMode
+    ? "always"
+    : "threshold";
+  const listenRepeatPassThreshold = isReviewMode ? undefined : 0.5;
+  const listenRepeatOneStar = isReviewMode ? 0.78 : 0.5;
+  const listenRepeatTwoStars = isReviewMode ? undefined : 0.75;
+  const listenRepeatMaxStars = isReviewMode ? 1 : 2;
   const introAudioBase = `/assets/audio/intro-words/${wordAssetKey}`;
 
   return [
@@ -173,12 +189,10 @@ export function createVocabFloorLessons(
       id: `${lessonPrefix}-l1`,
       type: "passive",
       lessonKind: "vocab_listen_look",
-      title: isFloor3SpeakingFlow
-        ? `${reviewPrefix}Nghe và nhìn`
-        : `${reviewPrefix}Nghe và nhìn "${word}"`,
-      instruction: isFloor3SpeakingFlow
-        ? undefined
-        : `Bé hãy nghe và nhìn từ "${word}" nhé.`,
+      title: listenLookTitle,
+      instruction: isReviewMode
+        ? `Bé hãy nghe và nhìn từ "${word}" nhé.`
+        : undefined,
       introVoice: `${introAudioBase}-l1.mp3`,
       mainAudio: `/assets/audio/words/${wordAssetKey}.mp3`,
       mainImage: `/assets/images/${wordAssetKey}.png`,
@@ -194,28 +208,24 @@ export function createVocabFloorLessons(
       id: `${lessonPrefix}-l2`,
       type: "active",
       lessonKind: "vocab_listen_repeat",
-      title: isFloor3SpeakingFlow
-        ? `${reviewPrefix}Nghe đánh vần và nói lại`
-        : `${reviewPrefix}Nghe và nói lại`,
-      instruction: isFloor3SpeakingFlow
-        ? undefined
-        : `Bé hãy nghe và nói lại từ "${word}".`,
+      title: listenRepeatTitle,
+      instruction: isReviewMode
+        ? `Bé hãy nghe và nói lại từ "${word}".`
+        : undefined,
       introVoice: `${introAudioBase}-l2.mp3`,
-      mainAudio: isFloor3SpeakingFlow
-        ? `/assets/audio/words/${wordAssetKey}-spelling.mp3`
-        : `/assets/audio/words/${wordAssetKey}.mp3`,
+      mainAudio: listenRepeatAudio,
       mainImage: `/assets/images/${wordAssetKey}-with-word.png`,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {
         metric: "speech_similarity",
-        passPolicy: isFloor3SpeakingFlow ? "threshold" : "always",
-        passThreshold: isFloor3SpeakingFlow ? 0.5 : undefined,
+        passPolicy: listenRepeatPassPolicy,
+        passThreshold: listenRepeatPassThreshold,
         starThresholds: {
-          oneStar: isFloor3SpeakingFlow ? 0.5 : 0.78,
-          twoStars: isFloor3SpeakingFlow ? 0.75 : undefined,
+          oneStar: listenRepeatOneStar,
+          twoStars: listenRepeatTwoStars,
         },
-        maxStars: isFloor3SpeakingFlow ? 2 : 1,
+        maxStars: listenRepeatMaxStars,
       },
     },
     {
@@ -223,11 +233,10 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_word_build",
       title: `${reviewPrefix}Kéo thả để tạo từ "${word}"`,
-      instruction: isFloor3SpeakingFlow
-        ? undefined
-        : `Bé hãy ghép đúng từ "${word}" nhé.`,
+      instruction: isReviewMode
+        ? `Bé hãy ghép đúng từ "${word}" nhé.`
+        : undefined,
       introVoice: `${introAudioBase}-l3.mp3`,
-      question: ``,
       targetText: word,
       targetTokens: wordTokens,
       tokenPool: wordTokenPool,
@@ -246,9 +255,9 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_trace_practice",
       title: `${reviewPrefix}Viết từ "${word}"`,
-      instruction: isFloor3SpeakingFlow
-        ? undefined
-        : `Bé hãy viết lại từ "${word}" theo nét mờ.`,
+      instruction: isReviewMode
+        ? `Bé hãy viết lại từ "${word}" theo nét mờ.`
+        : undefined,
       introVoice: `${introAudioBase}-l4.mp3`,
       mainImage: `/assets/tracing/words/${wordAssetKey}-guide.png`,
       targetText: word,

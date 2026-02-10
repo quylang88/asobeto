@@ -13,12 +13,12 @@ import {
   StarCelebration,
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
+import { LessonCompletionView } from "@/components/completion";
 import { getStoredLessonStars } from "@/lib/floor-progress";
 import { type LessonContent } from "../data/game-config";
 import {
   LessonActiveRenderer,
   GameButton,
-  LessonCompletionView,
   LessonPassivePreviewRenderer,
   LessonTopBar,
   type TraceEvaluation,

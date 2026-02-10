@@ -13,7 +13,8 @@ export const floor4Lessons: LessonContent[] = [
       maxStars: 6,
     },
     bubblePopGame: {
-      title: "Chọn Mức Độ",
+      title: "Chọn mức độ",
+      headerTitle: "Bóng bay chữ cái",
       instruction: "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.",
       rules: ["Chạm đúng bóng bay chữ theo yêu cầu."],
       rulesAudioText: "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.",

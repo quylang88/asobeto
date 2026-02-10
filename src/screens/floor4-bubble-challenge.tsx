@@ -8,7 +8,15 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, Heart, Lock, Sparkles, Star, Volume2 } from "lucide-react";
+import {
+  ChevronLeft,
+  Flame,
+  Heart,
+  Lock,
+  Sparkles,
+  Star,
+  Volume2,
+} from "lucide-react";
 import type {
   BubblePopLevelConfig,
   BubblePopLevelId,
@@ -21,6 +29,7 @@ import {
   StarCelebration,
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
+import { LessonCompletionView } from "@/components/completion";
 import { GameButton } from "@/screens/lesson-interface/components";
 
 const LEVEL_ORDER: BubblePopLevelId[] = ["easy", "normal", "hard"];
@@ -34,8 +43,16 @@ const LEVEL_COLOR: Record<BubblePopLevelId, string> = {
   normal: "from-amber-300 to-orange-500",
   hard: "from-rose-300 to-rose-500",
 };
-const RESULT_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
-const RESULT_FAIL_AUDIO = "/assets/audio/feedback/try-again.mp3";
+const LEVEL_ICON_BG: Record<BubblePopLevelId, string> = {
+  easy: "from-emerald-100 to-cyan-100",
+  normal: "from-amber-100 to-orange-100",
+  hard: "from-rose-100 to-fuchsia-100",
+};
+const LEVEL_ICON_COLOR: Record<BubblePopLevelId, string> = {
+  easy: "text-emerald-700",
+  normal: "text-orange-700",
+  hard: "text-rose-700",
+};
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
 
@@ -197,6 +214,8 @@ export function Floor4BubbleChallenge({
   const [showFailCelebration, setShowFailCelebration] = useState(false);
   const [recentlyUnlockedLevelId, setRecentlyUnlockedLevelId] =
     useState<BubblePopLevelId | null>(null);
+  const [pendingUnlockLevelId, setPendingUnlockLevelId] =
+    useState<BubblePopLevelId | null>(null);
   const [levelStars, setLevelStars] = useState<Record<BubblePopLevelId, number>>(
     () =>
       getInitialLevelStars({
@@ -211,7 +230,6 @@ export function Floor4BubbleChallenge({
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
   const audioContextRef = useRef<AudioContext | null>(null);
-  const resultAudioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
@@ -230,8 +248,8 @@ export function Floor4BubbleChallenge({
   const targetLetterRef = useRef<"a" | "c">("a");
 
   const selectedLevel = selectedLevelId ? levelMap.get(selectedLevelId) ?? null : null;
-
-  const totalStars = useMemo(() => sumStars(levelStars), [levelStars]);
+  const challengeHeaderTitle =
+    bubbleConfig?.headerTitle?.trim() || floorName;
   const isLevelUnlocked = useCallback(
     (levelId: BubblePopLevelId) => {
       if (levelId === "easy") return true;
@@ -400,7 +418,7 @@ export function Floor4BubbleChallenge({
           !isLevelUnlockedByStars(nextLevelId, previous) &&
           isLevelUnlockedByStars(nextLevelId, next)
         ) {
-          setRecentlyUnlockedLevelId(nextLevelId);
+          setPendingUnlockLevelId(nextLevelId);
         }
         persistProgress(next);
         return next;
@@ -710,22 +728,43 @@ export function Floor4BubbleChallenge({
       if (!isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
-      stopGameLoop();
-      clearCelebrations();
-      const nextTargetLetter = pickRandomTargetLetter();
-      setSelectedLevelId(levelId);
-      setTargetLetter(nextTargetLetter);
-      setDidPass(null);
-      setLastEarnedStars(0);
-      setCountdownValue(3);
-      targetLetterRef.current = nextTargetLetter;
-      speakText(`Mức ${LEVEL_LABEL[level.id]}. Hãy chạm vào bóng bay chữ ${nextTargetLetter}.`);
-      setPhase("countdown");
+      const beginCountdown = () => {
+        stopGameLoop();
+        clearCelebrations();
+        const nextTargetLetter = pickRandomTargetLetter();
+        setSelectedLevelId(levelId);
+        setTargetLetter(nextTargetLetter);
+        setDidPass(null);
+        setLastEarnedStars(0);
+        setCountdownValue(3);
+        targetLetterRef.current = nextTargetLetter;
+        speakText(
+          `Mức ${LEVEL_LABEL[level.id]}. Hãy chạm vào bóng bay chữ ${nextTargetLetter}.`,
+        );
+        setPhase("countdown");
+      };
+
+      if (pendingUnlockLevelId === levelId) {
+        setRecentlyUnlockedLevelId(levelId);
+        setPendingUnlockLevelId(null);
+        if (unlockAnimationTimeoutRef.current !== null) {
+          window.clearTimeout(unlockAnimationTimeoutRef.current);
+        }
+        unlockAnimationTimeoutRef.current = window.setTimeout(() => {
+          unlockAnimationTimeoutRef.current = null;
+          setRecentlyUnlockedLevelId(null);
+          beginCountdown();
+        }, 920);
+        return;
+      }
+
+      beginCountdown();
     },
     [
       clearCelebrations,
       isLevelUnlocked,
       levelMap,
+      pendingUnlockLevelId,
       pickRandomTargetLetter,
       speakText,
       stopGameLoop,
@@ -820,46 +859,6 @@ export function Floor4BubbleChallenge({
   }, [bubbleConfig, phase, speakText]);
 
   useEffect(() => {
-    if (phase !== "select" || !recentlyUnlockedLevelId) return;
-    if (unlockAnimationTimeoutRef.current !== null) {
-      window.clearTimeout(unlockAnimationTimeoutRef.current);
-    }
-    unlockAnimationTimeoutRef.current = window.setTimeout(() => {
-      setRecentlyUnlockedLevelId((current) =>
-        current === recentlyUnlockedLevelId ? null : current,
-      );
-      unlockAnimationTimeoutRef.current = null;
-    }, 1800);
-
-    return () => {
-      if (unlockAnimationTimeoutRef.current !== null) {
-        window.clearTimeout(unlockAnimationTimeoutRef.current);
-        unlockAnimationTimeoutRef.current = null;
-      }
-    };
-  }, [phase, recentlyUnlockedLevelId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (phase !== "result" || didPass === null) return;
-    if (resultAudioRef.current) {
-      resultAudioRef.current.pause();
-      resultAudioRef.current.currentTime = 0;
-      resultAudioRef.current = null;
-    }
-    const audio = new Audio(didPass ? RESULT_SUCCESS_AUDIO : RESULT_FAIL_AUDIO);
-    resultAudioRef.current = audio;
-    audio.play().catch(() => undefined);
-
-    return () => {
-      if (!resultAudioRef.current) return;
-      resultAudioRef.current.pause();
-      resultAudioRef.current.currentTime = 0;
-      resultAudioRef.current = null;
-    };
-  }, [didPass, phase]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
 
     window.render_game_to_text = () => {
@@ -911,11 +910,6 @@ export function Floor4BubbleChallenge({
     return () => {
       stopGameLoop();
       stopSpeech();
-      if (resultAudioRef.current) {
-        resultAudioRef.current.pause();
-        resultAudioRef.current.currentTime = 0;
-        resultAudioRef.current = null;
-      }
       if (passCelebrationTimeoutRef.current !== null) {
         window.clearTimeout(passCelebrationTimeoutRef.current);
         passCelebrationTimeoutRef.current = null;
@@ -949,85 +943,19 @@ export function Floor4BubbleChallenge({
 
   if (phase === "result" && selectedLevel && didPass !== null) {
     return (
-      <div className="relative w-full h-dvh bg-linear-to-b from-yellow-bright/30 via-background to-green-bright/20 flex flex-col items-center justify-center p-6 pt-safe pb-safe overflow-hidden">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", duration: 0.8 }}
-          className="text-center"
-        >
-          <Mascot
-            size="lg"
-            emotion={didPass ? "excited" : "sad"}
-            className="mx-auto"
-          />
-
-          <motion.h1
-            className={`mt-8 text-4xl md:text-5xl font-bold ${
-              didPass ? "text-foreground" : "text-amber-700"
-            }`}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            {didPass ? "Tuyệt Vời!" : "Cố lên bé nhé!"}
-          </motion.h1>
-
-          <motion.div
-            className="flex justify-center gap-3 mt-6"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            {[...Array(selectedLevel.starsReward)].map((_, starIndex) => (
-              <motion.div
-                key={`floor4-result-star-${starIndex}`}
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.7 + starIndex * 0.2, type: "spring" }}
-              >
-                <Star
-                  className={`w-16 h-16 ${
-                    starIndex < lastEarnedStars
-                      ? "text-yellow-bright fill-yellow-bright"
-                      : "text-gray-300 fill-gray-200"
-                  }`}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.p
-            className="mt-4 text-xl text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.1 }}
-          >
-            {didPass
-              ? `Bé đã hoàn thành mức ${LEVEL_LABEL[selectedLevel.id]} với ${score} điểm!`
-              : `Bé đạt ${score}/${selectedLevel.targetScore} điểm. Mình thử lại mức ${LEVEL_LABEL[selectedLevel.id]} nhé!`}
-          </motion.p>
-
-          <motion.div
-            className="mt-8 inline-block"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <GameButton
-              onClick={() => {
-                setDidPass(null);
-                setPhase("select");
-              }}
-              className="rounded-3xl"
-              frontClassName="px-12 py-4 text-xl"
-            >
-              Tiếp Tục
-            </GameButton>
-          </motion.div>
-        </motion.div>
-      </div>
+      <LessonCompletionView
+        stars={lastEarnedStars}
+        score={score}
+        activeLessonsCount={selectedLevel.targetScore}
+        activeLessonsTotalStars={selectedLevel.starsReward}
+        floorMaxStars={selectedLevel.starsReward}
+        successSummary={`Bé đã hoàn thành mức ${LEVEL_LABEL[selectedLevel.id]} với ${score} điểm!`}
+        failSummary={`Bé đạt ${score}/${selectedLevel.targetScore} điểm. Mình thử lại mức ${LEVEL_LABEL[selectedLevel.id]} nhé!`}
+        onComplete={() => {
+          setDidPass(null);
+          setPhase("select");
+        }}
+      />
     );
   }
 
@@ -1046,36 +974,52 @@ export function Floor4BubbleChallenge({
           <motion.button
             onClick={onBack}
             className="rounded-2xl bg-green-bright p-3 text-white shadow-lg ios-button"
+            initial={{ x: -16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
             whileTap={{ scale: 0.95 }}
             aria-label="Quay lại chọn tầng"
           >
             <ChevronLeft className="h-6 w-6" />
           </motion.button>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-bold text-foreground font-hp-special">
-              {floorName}
+          <motion.div
+            className="min-w-0 flex-1 pr-2"
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3, ease: "easeOut", delay: 0.06 }}
+          >
+            <h1 className="truncate text-2xl font-bold leading-[1.2] text-foreground font-hp-special">
+              {challengeHeaderTitle}
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Tổng sao: {totalStars}/{floorMaxStars}
-            </p>
-          </div>
-          <Mascot
-            size="sm"
-            emotion={
-              phase === "playing"
-                ? "excited"
-                : didPass === false
-                  ? "thinking"
-                  : "happy"
-            }
-          />
+          </motion.div>
+          <motion.div
+            initial={{ x: 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.32, ease: "easeOut", delay: 0.1 }}
+          >
+            <Mascot
+              size="sm"
+              emotion={
+                phase === "playing"
+                  ? "excited"
+                  : didPass === false
+                    ? "thinking"
+                    : "happy"
+              }
+            />
+          </motion.div>
         </div>
       </div>
 
       <div className="flex-1 app-scroll overflow-y-auto px-4 pb-safe pt-4">
         {phase === "select" && (
           <div className="mx-auto flex w-full max-w-md flex-col gap-4 pb-6">
-            <div className="relative overflow-hidden rounded-4xl border-4 border-cyan-200 bg-linear-to-b from-cyan-50 via-white to-emerald-50 p-5 shadow-lg">
+            <motion.div
+              className="relative overflow-hidden rounded-4xl border-4 border-cyan-200 bg-linear-to-b from-cyan-50 via-white to-emerald-50 p-5 shadow-lg"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: "easeOut" }}
+            >
               <motion.div
                 className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-200/70"
                 animate={{ y: [0, -6, 0] }}
@@ -1092,7 +1036,7 @@ export function Floor4BubbleChallenge({
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
               />
               <p className="relative mb-1 text-2xl font-black text-foreground font-hp-special">
-                {bubbleConfig.title ?? "Chọn Mức Độ"}
+                {bubbleConfig.title ?? "Chọn mức độ"}
               </p>
               <p className="relative text-sm text-muted-foreground">
                 {bubbleConfig.instruction}
@@ -1106,7 +1050,7 @@ export function Floor4BubbleChallenge({
                   <Volume2 className="h-4 w-4" /> Nghe Luật
                 </GameButton>
               </div>
-            </div>
+            </motion.div>
 
             <div className="relative space-y-3">
               <motion.span
@@ -1119,7 +1063,7 @@ export function Floor4BubbleChallenge({
                 animate={{ y: [0, -3, 0], x: [0, -2, 0] }}
                 transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut" }}
               />
-              {LEVEL_ORDER.map((levelId) => {
+              {LEVEL_ORDER.map((levelId, levelIndex) => {
                 const level = levelMap.get(levelId);
                 if (!level) return null;
                 const unlocked = isLevelUnlocked(levelId);
@@ -1127,113 +1071,131 @@ export function Floor4BubbleChallenge({
                 const isRecentlyUnlocked = recentlyUnlockedLevelId === level.id;
 
                 return (
-                  <motion.button
+                  <motion.div
                     key={level.id}
-                    onClick={() => startLevelCountdown(level.id)}
-                    disabled={!unlocked}
-                    initial={false}
-                    animate={
-                      isRecentlyUnlocked
-                        ? { scale: [1, 1.03, 1], y: [0, -2, 0] }
-                        : { scale: 1, y: 0 }
-                    }
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      duration: isRecentlyUnlocked ? 0.7 : 0.2,
+                      duration: 0.32,
                       ease: "easeOut",
+                      delay: 0.1 + levelIndex * 0.08,
                     }}
-                    className={`relative w-full overflow-hidden rounded-[1.75rem] border-2 p-1.5 text-left ios-button ${
-                      unlocked
-                        ? "border-cyan-300 bg-white shadow-lg"
-                        : "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500 grayscale"
-                    }`}
-                    whileTap={unlocked ? { scale: 0.95 } : {}}
                   >
-                    <span
-                      className={`pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-r ${
-                        unlocked ? LEVEL_COLOR[level.id] : "from-slate-300 to-slate-400"
-                      } opacity-25`}
+                    <motion.button
+                      onClick={() => startLevelCountdown(level.id)}
+                      disabled={!unlocked}
+                      initial={false}
+                      animate={
+                        isRecentlyUnlocked
+                          ? { scale: [1, 1.03, 1], y: [0, -2, 0] }
+                          : { scale: 1, y: 0 }
+                      }
+                      transition={{
+                        duration: isRecentlyUnlocked ? 0.7 : 0.2,
+                        ease: "easeOut",
+                      }}
+                      className={`relative w-full overflow-hidden rounded-[1.75rem] border-2 p-1.5 text-left ios-button ${
+                        unlocked
+                          ? "border-cyan-300 bg-white shadow-lg"
+                          : "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500 grayscale"
+                      }`}
+                      whileTap={unlocked ? { scale: 0.95 } : {}}
                     >
-                    </span>
-                    <span className="relative flex items-center gap-3 rounded-[22px] px-4 py-3">
                       <span
-                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 ${
-                          unlocked
-                            ? "border-white/80 bg-white/80"
-                            : "border-slate-300 bg-slate-300"
-                        }`}
+                        className={`pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-r ${
+                          unlocked ? LEVEL_COLOR[level.id] : "from-slate-300 to-slate-400"
+                        } opacity-25`}
                       >
-                        {unlocked ? (
-                          <span className="text-lg font-black text-slate-800">
-                            {level.starsReward}⭐
-                          </span>
-                        ) : (
-                          <Lock className="h-5 w-5 text-slate-600" />
-                        )}
                       </span>
+                      <span className="relative flex items-center gap-3 rounded-[22px] px-4 py-3">
+                        <span
+                          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 ${
+                            unlocked
+                              ? "border-white/80 bg-white/80"
+                              : "border-slate-300 bg-slate-300"
+                          }`}
+                        >
+                          {unlocked ? (
+                            <span
+                              className={`flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br ${LEVEL_ICON_BG[level.id]} ${LEVEL_ICON_COLOR[level.id]}`}
+                            >
+                              {level.id === "easy" ? (
+                                <Heart className="h-5 w-5 fill-current" />
+                              ) : level.id === "normal" ? (
+                                <Sparkles className="h-5 w-5" />
+                              ) : (
+                                <Flame className="h-5 w-5" />
+                              )}
+                            </span>
+                          ) : (
+                            <Lock className="h-5 w-5 text-slate-600" />
+                          )}
+                        </span>
 
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className={`block text-base font-bold ${
-                            unlocked ? "text-slate-900" : "text-slate-500"
-                          }`}
-                        >
-                          Mức {LEVEL_LABEL[level.id]}
-                        </span>
-                        <span
-                          className={`block text-xs ${
-                            unlocked ? "text-slate-600" : "text-slate-500"
-                          }`}
-                        >
-                          {level.durationSeconds}s • {level.targetScore} điểm
-                        </span>
-                        <span className="mt-1.5 flex gap-0.5">
-                        {[...Array(level.starsReward)].map((_, starIndex) => (
-                          <Star
-                            key={`${level.id}-star-${starIndex}`}
-                            className={`h-3.5 w-3.5 ${
-                              starIndex < earnedStars
-                                ? "fill-yellow-300 text-yellow-300"
-                                : "fill-slate-200 text-slate-300"
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={`block text-base font-bold ${
+                              unlocked ? "text-slate-900" : "text-slate-500"
                             }`}
-                          />
-                        ))}
+                          >
+                            Mức {LEVEL_LABEL[level.id]}
+                          </span>
+                          <span
+                            className={`block text-xs ${
+                              unlocked ? "text-slate-600" : "text-slate-500"
+                            }`}
+                          >
+                            {level.durationSeconds}s • {level.targetScore} điểm
+                          </span>
+                          <span className="mt-1.5 flex gap-0.5">
+                            {[...Array(level.starsReward)].map((_, starIndex) => (
+                              <Star
+                                key={`${level.id}-star-${starIndex}`}
+                                className={`h-3.5 w-3.5 ${
+                                  starIndex < earnedStars
+                                    ? "fill-yellow-300 text-yellow-300"
+                                    : "fill-slate-200 text-slate-300"
+                                }`}
+                              />
+                            ))}
+                          </span>
+                        </span>
+
+                        <span className="shrink-0">
+                          {unlocked ? (
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                              Chơi
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-slate-300 px-3 py-1 text-xs font-semibold text-slate-600">
+                              Khóa
+                            </span>
+                          )}
                         </span>
                       </span>
 
-                      <span className="shrink-0">
-                        {unlocked ? (
-                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                            Chơi
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-slate-300 px-3 py-1 text-xs font-semibold text-slate-600">
-                            Khóa
-                          </span>
-                        )}
-                      </span>
-                    </span>
-
-                    <AnimatePresence>
-                      {isRecentlyUnlocked && (
-                        <motion.span
-                          initial={{ opacity: 0, scale: 0.85 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.85 }}
-                          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-emerald-400/25"
-                        >
+                      <AnimatePresence>
+                        {isRecentlyUnlocked && (
                           <motion.span
-                            initial={{ y: 8, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: -8, opacity: 0 }}
-                            className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-emerald-700 shadow-lg"
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.85 }}
+                            className="pointer-events-none absolute inset-0 flex items-center justify-center bg-emerald-400/25"
                           >
-                            <Sparkles className="h-4 w-4" />
-                            Mở khóa!
+                            <motion.span
+                              initial={{ y: 8, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              exit={{ y: -8, opacity: 0 }}
+                              className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-emerald-700 shadow-lg"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                              Mở khóa!
+                            </motion.span>
                           </motion.span>
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1266,7 +1228,7 @@ export function Floor4BubbleChallenge({
               <div>
                 <p className="text-xs text-muted-foreground">Yêu cầu</p>
                 <p className="text-sm font-semibold text-foreground">
-                  Hãy chạm vào bóng bay chữ{" "}
+                  Chạm vào bóng bay {" "}
                   <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
                     &quot;{targetLetter}&quot;
                   </span>
@@ -1382,7 +1344,6 @@ export function Floor4BubbleChallenge({
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

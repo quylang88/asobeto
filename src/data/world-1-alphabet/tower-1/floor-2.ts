@@ -3,7 +3,7 @@ import { createLetterFloorLessons } from "../lesson-templates";
 
 export const floor2Lessons: LessonContent[] = createLetterFloorLessons({
   lessonPrefix: "t1-f2",
-  letter: "C",
+  letter: "c",
   letterAssetKey: "c",
-  distractors: ["A", "B"],
+  distractors: ["a", "b"],
 });

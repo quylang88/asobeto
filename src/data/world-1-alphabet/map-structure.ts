@@ -78,6 +78,7 @@ export interface BubblePopLevelConfig {
 
 export interface BubblePopGameConfig {
   title?: string;
+  headerTitle?: string;
   instruction?: string;
   rules: string[];
   rulesAudioText: string;
@@ -95,6 +96,8 @@ export interface LessonAnswer {
   audio?: string;
   isCorrect: boolean;
 }
+
+export type FloorSelectionIcon = "letter_block" | "fish_orange";
 
 export interface LessonContent {
   id: string;
@@ -133,6 +136,7 @@ export interface Floor {
   descriptionUnlocked: string;
   descriptionLocked?: string;
   letter?: string;
+  selectionIcon?: FloorSelectionIcon;
   color?: string;
   bgColor?: string;
   borderColor?: string;
@@ -180,8 +184,8 @@ export interface TowerConnection {
 export const towers: Tower[] = [
   {
     id: 1,
-    name: "A-C",
-    letters: "A, C",
+    name: "a",
+    letters: "a, c",
     stars: 3,
     maxStars: 12,
     completed: true,
@@ -192,8 +196,8 @@ export const towers: Tower[] = [
   },
   {
     id: 2,
-    name: "Ă-N",
-    letters: "Ă, N",
+    name: "ă",
+    letters: "ă, n",
     stars: 2,
     maxStars: 12,
     completed: true,
@@ -204,8 +208,8 @@ export const towers: Tower[] = [
   },
   {
     id: 3,
-    name: "E-M",
-    letters: "E, M",
+    name: "e",
+    letters: "e, m",
     stars: 3,
     maxStars: 12,
     completed: true,
@@ -216,8 +220,8 @@ export const towers: Tower[] = [
   },
   {
     id: 4,
-    name: "O-B",
-    letters: "O, B",
+    name: "o",
+    letters: "o, b",
     stars: 0,
     maxStars: 12,
     completed: false,
@@ -228,8 +232,8 @@ export const towers: Tower[] = [
   },
   {
     id: 5,
-    name: "Ô-B",
-    letters: "Ô, B",
+    name: "ô",
+    letters: "ô, b",
     stars: 0,
     maxStars: 12,
     completed: false,

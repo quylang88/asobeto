@@ -61,12 +61,6 @@ export function BrokenHeartCelebration({
       />
 
       <motion.div
-        className="absolute left-1/2 top-[35%] h-58 w-58 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-200/35 blur-xl"
-        animate={{ scale: [0.86, 1.08, 0.92], opacity: [0.24, 0.64, 0.38] }}
-        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      <motion.div
         className="absolute left-1/2 top-[35%] -translate-x-1/2 -translate-y-1/2"
         initial={{ scale: 0.68, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -79,7 +73,10 @@ export function BrokenHeartCelebration({
             initial={{ x: 0, y: 0, rotate: 0 }}
             animate={{ x: -18, y: 6, rotate: -14 }}
             transition={{ duration: 0.46, ease: "easeOut", delay: 0.14 }}
-            style={{ clipPath: "polygon(0 0, 64% 0, 48% 100%, 0 100%)" }}
+            style={{
+              clipPath:
+                "polygon(0 0, 62% 0, 57% 13%, 64% 24%, 53% 39%, 60% 52%, 49% 68%, 55% 82%, 50% 100%, 0 100%)",
+            }}
           >
             <Heart className="h-32 w-32 fill-rose-500 text-rose-100 drop-shadow-[0_0_44px_rgba(251,113,133,0.9)]" />
           </motion.span>
@@ -88,18 +85,13 @@ export function BrokenHeartCelebration({
             initial={{ x: 0, y: 0, rotate: 0 }}
             animate={{ x: 18, y: 8, rotate: 12 }}
             transition={{ duration: 0.46, ease: "easeOut", delay: 0.14 }}
-            style={{ clipPath: "polygon(50% 0, 100% 0, 100% 100%, 36% 100%)" }}
+            style={{
+              clipPath:
+                "polygon(62% 0, 100% 0, 100% 100%, 50% 100%, 44% 82%, 51% 68%, 40% 52%, 47% 39%, 36% 24%, 43% 13%)",
+            }}
           >
             <Heart className="h-32 w-32 fill-rose-500 text-rose-100 drop-shadow-[0_0_44px_rgba(251,113,133,0.9)]" />
           </motion.span>
-
-          <motion.span
-            className="absolute left-1/2 top-[8%] h-[86%] w-0.75 -translate-x-1/2 bg-white/90"
-            initial={{ scaleY: 0 }}
-            animate={{ scaleY: 1 }}
-            transition={{ duration: 0.36, delay: 0.1 }}
-            style={{ transformOrigin: "top center", rotate: "12deg" }}
-          />
         </div>
       </motion.div>
 
