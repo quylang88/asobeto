@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Star, Lock } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
@@ -22,8 +22,54 @@ interface TowerSelectionProps {
 
 // Helper tạo đường cong SVG cho các kết nối
 function getCurvedPath(x1: number, y1: number, x2: number, y2: number): string {
-  const midY = (y1 + y2) / 2;
-  return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  const verticalDistance = Math.abs(y2 - y1);
+  const curveStrength = Math.max(4, verticalDistance * 0.35);
+  const controlY1 = y1 + curveStrength;
+  const controlY2 = y2 - curveStrength;
+  return `M ${x1} ${y1} C ${x1} ${controlY1}, ${x2} ${controlY2}, ${x2} ${y2}`;
+}
+
+function getRegularTowerAnchorOffsetPx(
+  anchor: "top" | "bottom",
+  isMdViewport: boolean,
+): number {
+  const starRowHeight = isMdViewport ? 20 : 16;
+  const starRowBottomMargin = 4;
+  const svgHeight = isMdViewport ? 96 : 80;
+  const buttonHeight = starRowHeight + starRowBottomMargin + svgHeight;
+  const svgTopOffset = -buttonHeight / 2 + starRowHeight + starRowBottomMargin;
+  const svgAnchorY = anchor === "top" ? 5 : 93;
+  return svgTopOffset + (svgAnchorY / 100) * svgHeight;
+}
+
+function getBossTowerAnchorOffsetPx(
+  anchor: "top" | "bottom",
+  isMdViewport: boolean,
+): number {
+  const svgHeight = isMdViewport ? 128 : 112;
+  const svgCenterOffset = -svgHeight / 2;
+  // Top lấy theo phần trang trí đỉnh gần nhất (vòng tròn đỉnh nằm từ y=3)
+  const svgAnchorY = anchor === "top" ? 3 : 115;
+  return svgCenterOffset + (svgAnchorY / 120) * svgHeight;
+}
+
+function getTowerAnchorY(
+  tower: Tower,
+  anchor: "top" | "bottom",
+  mapHeightPx: number,
+  isMdViewport: boolean,
+): number {
+  if (mapHeightPx <= 0) {
+    if (tower.isBoss) {
+      return tower.position.y + (anchor === "top" ? -9 : 8.5);
+    }
+    return tower.position.y + (anchor === "top" ? -5 : 8);
+  }
+
+  const offsetPx = tower.isBoss
+    ? getBossTowerAnchorOffsetPx(anchor, isMdViewport)
+    : getRegularTowerAnchorOffsetPx(anchor, isMdViewport);
+  return tower.position.y + (offsetPx / mapHeightPx) * 100;
 }
 
 // Component Sao bay cho hiệu ứng mở khóa
@@ -222,19 +268,8 @@ function TowerNode({
             )}
           </svg>
 
-          {/* Nhãn yêu cầu sao */}
-          <div
-            className={`absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold ${
-              canUnlock
-                ? "bg-yellow-bright text-amber-900"
-                : "bg-gray-200 text-gray-600"
-            }`}
-          >
-            {canUnlock ? "MỞ NGAY" : `Cần ${requiredStars} Ngôi Sao`}
-          </div>
-
           {/* Hiển thị số sao hiện tại */}
-          <div className="absolute -top-3 -right-3 flex items-center gap-1 bg-white rounded-full px-2 py-1 shadow-lg">
+          <div className="absolute -top-2 -right-10 md:-right-12 flex items-center gap-1 bg-white rounded-full px-2 py-1 shadow-lg z-10">
             <Star className="w-4 h-4 text-yellow-bright fill-yellow-bright" />
             <span className="text-xs font-bold text-foreground">
               {totalStars}/{requiredStars}
@@ -371,6 +406,19 @@ function TowerNode({
             fill={tower.unlocked ? "#8B5A2B" : "#4B5563"}
           />
 
+          {/* Tên tháp ở giữa tháp */}
+          <text
+            x="40"
+            y="56"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className={`text-[12px] font-extrabold font-hp-special tracking-wide ${
+              tower.unlocked ? "fill-emerald-900" : "fill-gray-500"
+            }`}
+          >
+            {tower.name}
+          </text>
+
           {/* Lớp phủ khóa */}
           {!tower.unlocked && (
             <g>
@@ -386,21 +434,6 @@ function TowerNode({
           )}
         </svg>
       </div>
-
-      {/* Nhãn tháp */}
-      <div
-        className={`mt-1 px-3 py-1 rounded-xl text-center ${
-          tower.unlocked ? "bg-white" : "bg-gray-100"
-        } shadow-md`}
-      >
-        <p
-          className={`text-sm font-bold font-hp-special ${
-            tower.unlocked ? "text-foreground" : "text-gray-400"
-          }`}
-        >
-          {tower.name}
-        </p>
-      </div>
     </motion.button>
   );
 }
@@ -409,10 +442,16 @@ function TowerNode({
 function ConnectionLinesSVG({
   towers,
   connections,
+  mapHeightPx,
+  mapWidthPx,
 }: {
   towers: Tower[];
   connections: TowerConnection[];
+  mapHeightPx: number;
+  mapWidthPx: number;
 }) {
+  const isMdViewport = mapWidthPx >= 768;
+
   return (
     <svg
       className="absolute inset-0 w-full h-full pointer-events-none"
@@ -426,30 +465,38 @@ function ConnectionLinesSVG({
         if (!fromTower || !toTower) return null;
 
         const x1 = fromTower.position.x;
-        const y1 = fromTower.position.y + 8;
+        const y1 = getTowerAnchorY(
+          fromTower,
+          "bottom",
+          mapHeightPx,
+          isMdViewport,
+        );
         const x2 = toTower.position.x;
-        const y2 = toTower.position.y - 8;
+        const y2 = getTowerAnchorY(toTower, "top", mapHeightPx, isMdViewport);
 
         const isUnlocked = fromTower.completed;
 
         return (
-          <motion.path
-            key={index}
-            d={getCurvedPath(x1, y1, x2, y2)}
-            stroke={isUnlocked ? "#4ADE80" : "#9CA3AF"}
-            strokeWidth="0.8"
-            strokeDasharray={isUnlocked ? "0" : "2 2"}
-            fill="none"
-            strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-            style={{
-              filter: isUnlocked
-                ? "drop-shadow(0 0.5px 1px rgba(74, 222, 128, 0.5))"
-                : "none",
-            }}
-          />
+          <g key={index}>
+            <motion.path
+              d={getCurvedPath(x1, y1, x2, y2)}
+              stroke={isUnlocked ? "#4ADE80" : "#9CA3AF"}
+              strokeWidth="1.3"
+              strokeDasharray={isUnlocked ? "0" : "2.5 2.5"}
+              fill="none"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
+              style={{
+                filter: isUnlocked
+                  ? "drop-shadow(0 0.5px 1px rgba(74, 222, 128, 0.5))"
+                  : "none",
+              }}
+            />
+            <circle cx={x1} cy={y1} r="0.75" fill={isUnlocked ? "#4ADE80" : "#9CA3AF"} />
+            <circle cx={x2} cy={y2} r="0.75" fill={isUnlocked ? "#4ADE80" : "#9CA3AF"} />
+          </g>
         );
       })}
     </svg>
@@ -462,6 +509,7 @@ export function TowerSelection({
   onSelectTower,
   onBack,
 }: TowerSelectionProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
   const worldData = getWorldData(worldId);
   const towerState = useMemo(
     () =>
@@ -476,10 +524,40 @@ export function TowerSelection({
     { id: number; startX: number; startY: number; endX: number; endY: number }[]
   >([]);
   const [showFlash, setShowFlash] = useState(false);
+  const [mapDimensions, setMapDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
 
   const totalStars = getTotalStars(towerState.filter((t) => !t.isBoss));
   const requiredStars = 15;
   const isBossUnlockable = canUnlockBoss(towerState, requiredStars);
+
+  useEffect(() => {
+    const element = mapRef.current;
+    if (!element) return;
+
+    const updateDimensions = () => {
+      const rect = element.getBoundingClientRect();
+      setMapDimensions({
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+
+    updateDimensions();
+
+    const observer = new ResizeObserver(() => {
+      updateDimensions();
+    });
+    observer.observe(element);
+
+    window.addEventListener("resize", updateDimensions);
+    return () => {
+      window.removeEventListener("resize", updateDimensions);
+      observer.disconnect();
+    };
+  }, []);
 
   const handleBossUnlock = useCallback(() => {
     if (isUnlocking) return;
@@ -559,12 +637,14 @@ export function TowerSelection({
       </div>
 
       {/* Bản đồ tháp - Khu vực cuộn */}
-      <div className="flex-1 relative pb-safe overflow-hidden">
+      <div ref={mapRef} className="flex-1 relative pb-safe overflow-hidden">
         <div className="relative w-full h-full">
           {/* Đường kết nối */}
           <ConnectionLinesSVG
             towers={towerState}
             connections={worldData.towerConnections}
+            mapHeightPx={mapDimensions.height}
+            mapWidthPx={mapDimensions.width}
           />
 
           {/* Các node tháp */}
