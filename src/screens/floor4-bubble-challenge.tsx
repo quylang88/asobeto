@@ -57,7 +57,7 @@ const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
 
 type BubbleKind = "target" | "wrong" | "empty";
-type BubbleLetter = "a" | "c" | "";
+type BubbleLetter = string;
 type ChallengePhase = "select" | "countdown" | "playing" | "result";
 
 interface BubbleEntity {
@@ -196,12 +196,24 @@ export function Floor4BubbleChallenge({
     () => new Map(levelList.map((level) => [level.id, level])),
     [levelList],
   );
+  const targetLetters = useMemo<[string, string]>(() => {
+    if (!bubbleConfig) return ["a", "c"];
+
+    const normalizedLetters = bubbleConfig.targetLetters
+      .map((letter) => letter.trim().toLocaleLowerCase("vi-VN"))
+      .filter((letter) => letter.length > 0);
+    const first = normalizedLetters[0] ?? "a";
+    const second =
+      normalizedLetters.find((letter) => letter !== first) ??
+      (first === "a" ? "c" : "a");
+    return [first, second];
+  }, [bubbleConfig]);
 
   const [phase, setPhase] = useState<ChallengePhase>("select");
   const [selectedLevelId, setSelectedLevelId] = useState<BubblePopLevelId | null>(
     "easy",
   );
-  const [targetLetter, setTargetLetter] = useState<"a" | "c">("a");
+  const [targetLetter, setTargetLetter] = useState<string>(targetLetters[0]);
   const [countdownValue, setCountdownValue] = useState(3);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -245,11 +257,17 @@ export function Floor4BubbleChallenge({
   const livesRef = useRef(3);
   const timeLeftRef = useRef(0);
   const currentLevelRef = useRef<BubblePopLevelConfig | null>(null);
-  const targetLetterRef = useRef<"a" | "c">("a");
+  const targetLetterRef = useRef<string>(targetLetters[0]);
 
   const selectedLevel = selectedLevelId ? levelMap.get(selectedLevelId) ?? null : null;
   const challengeHeaderTitle =
     bubbleConfig?.headerTitle?.trim() || floorName;
+
+  useEffect(() => {
+    const [firstLetter] = targetLetters;
+    targetLetterRef.current = firstLetter;
+  }, [targetLetters]);
+
   const isLevelUnlocked = useCallback(
     (levelId: BubblePopLevelId) => {
       if (levelId === "easy") return true;
@@ -469,13 +487,10 @@ export function Floor4BubbleChallenge({
     [finalizeLevel, stopGameLoop],
   );
 
-  const pickRandomTargetLetter = useCallback((): "a" | "c" => {
-    if (!bubbleConfig) return "a";
-    const [firstRaw, secondRaw] = bubbleConfig.targetLetters;
-    const first = firstRaw.toLocaleLowerCase("vi-VN") === "c" ? "c" : "a";
-    const second = secondRaw.toLocaleLowerCase("vi-VN") === "a" ? "a" : "c";
+  const pickRandomTargetLetter = useCallback((): string => {
+    const [first, second] = targetLetters;
     return Math.random() < 0.5 ? first : second;
-  }, [bubbleConfig]);
+  }, [targetLetters]);
 
   const getLaneCenterX = useCallback(
     (lane: number) => {
@@ -552,7 +567,13 @@ export function Floor4BubbleChallenge({
       );
       const lane = forcedLane ?? pickSpawnLane(bubbleSize);
       const target = targetLetterRef.current;
-      const wrong = target === "a" ? "c" : "a";
+      const [firstLetter, secondLetter] = targetLetters;
+      const wrong =
+        target === firstLetter
+          ? secondLetter
+          : target === secondLetter
+            ? firstLetter
+            : secondLetter;
       const roll = Math.random();
       let kind: BubbleKind = "wrong";
       if (roll <= level.emptyBubbleRatio) {
@@ -576,7 +597,7 @@ export function Floor4BubbleChallenge({
       bubbleIdRef.current += 1;
       return bubble;
     },
-    [bubbleConfig, getLaneCenterX, pickSpawnLane],
+    [bubbleConfig, getLaneCenterX, pickSpawnLane, targetLetters],
   );
 
   const spawnWave = useCallback(

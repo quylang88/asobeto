@@ -55,9 +55,9 @@ export const tower4Floors: Floor[] = [
   },
   {
     id: 4,
-    nameUnlocked: "Ôn tập bò",
+    nameUnlocked: "Bóng bay chữ",
     nameLocked: "Điều Bí Ẩn",
-    descriptionUnlocked: "Ôn nhẹ và chơi vui với từ bò",
+    descriptionUnlocked: "Mini game",
     descriptionLocked: "Chờ bạn tới khám phá!",
     letter: "?",
     color: "text-yellow-bright",
@@ -66,7 +66,7 @@ export const tower4Floors: Floor[] = [
     completed: false,
     unlocked: true,
     stars: 0,
-    maxStars: 3,
+    maxStars: 6,
     content: floor4Lessons,
   },
 ];

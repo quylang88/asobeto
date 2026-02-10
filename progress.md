@@ -155,3 +155,33 @@ Notes
   - `pnpm lint` pass
   - `pnpm exec tsc --noEmit` pass
   - Manual Playwright smoke: floor4 header visible with back button + title + mascot.
+
+---
+
+Update (Remove review mode + move tower 2-5 floor4 to bubble minigame)
+
+TODO
+- [x] Remove `reviewMode` from vocab lesson template config and generation logic.
+- [x] Convert `tower-2..5/floor-4` from vocab review lessons to `bubble_pop_challenge`.
+- [x] Keep floor-4 card metadata aligned with minigame (`nameUnlocked`, `descriptionUnlocked`, `maxStars`).
+- [x] Make floor-4 bubble challenge support arbitrary `targetLetters` (not hardcoded `a/c`).
+- [x] Re-run lint + typecheck and smoke test one converted tower flow.
+
+Notes
+- `createVocabFloorLessons` no longer has any `reviewMode` branch; floor-3 remains standard vocab lesson template usage.
+- Converted floor-4 minigame configs:
+  - tower 2 target letters: `ă`, `n`
+  - tower 3 target letters: `e`, `m`
+  - tower 4 target letters: `o`, `b`
+  - tower 5 target letters: `ô`, `b`
+- Updated floor card labels for tower 2-5 floor-4 to match tower-1 style:
+  - `nameUnlocked: "Bóng bay chữ"`
+  - `descriptionUnlocked: "Mini game"`
+  - `maxStars: 6`
+- `Floor4BubbleChallenge` now normalizes and uses dynamic `targetLetters` from config for both target/wrong bubble generation.
+
+Validation
+- `pnpm lint` pass
+- `pnpm exec tsc --noEmit` pass
+- Playwright smoke (tower 2 floor 4): `render_game_to_text` shows `targetLetter: "ă"` and spawned bubbles include both `ă` and `n`.
+- `node $WEB_GAME_CLIENT ...` could not run in this env because package `playwright` is missing for that script import path.
