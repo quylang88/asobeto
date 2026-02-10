@@ -195,7 +195,7 @@ export function createVocabFloorLessons(
         : undefined,
       introVoice: `${introAudioBase}-l1.mp3`,
       mainAudio: `/assets/audio/words/${wordAssetKey}.mp3`,
-      mainImage: `/assets/images/${wordAssetKey}.png`,
+      mainImage: `/assets/images/${wordAssetKey}.webp`,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {
@@ -214,7 +214,7 @@ export function createVocabFloorLessons(
         : undefined,
       introVoice: `${introAudioBase}-l2.mp3`,
       mainAudio: listenRepeatAudio,
-      mainImage: `/assets/images/${wordAssetKey}-with-word.png`,
+      mainImage: `/assets/images/${wordAssetKey}-with-word.webp`,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {
@@ -259,7 +259,7 @@ export function createVocabFloorLessons(
         ? `Bé hãy viết lại từ "${word}" theo nét mờ.`
         : undefined,
       introVoice: `${introAudioBase}-l4.mp3`,
-      mainImage: `/assets/tracing/words/${wordAssetKey}-guide.png`,
+      mainImage: `/assets/tracing/words/${wordAssetKey}-guide.webp`,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {

@@ -969,8 +969,8 @@ export function Floor4BubbleChallenge({
       </AnimatePresence>
       <AnimatePresence>{showFailCelebration && <BrokenHeartCelebration />}</AnimatePresence>
 
-      <div className="sticky top-0 z-20 bg-white/90 shadow-sm backdrop-blur-md pt-safe">
-        <div className="flex items-center gap-3 p-4">
+      <div className="sticky top-0 z-20 bg-white/90 shadow-sm backdrop-blur-md pt-safe pl-safe pr-safe">
+        <div className="flex items-center gap-3 px-4 pb-4 pt-3">
           <motion.button
             onClick={onBack}
             className="rounded-2xl bg-green-bright p-3 text-white shadow-lg ios-button"
@@ -983,12 +983,12 @@ export function Floor4BubbleChallenge({
             <ChevronLeft className="h-6 w-6" />
           </motion.button>
           <motion.div
-            className="min-w-0 flex-1 pr-2"
+            className="min-w-0 flex-1 pr-1"
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.3, ease: "easeOut", delay: 0.06 }}
           >
-            <h1 className="truncate text-2xl font-bold leading-[1.2] text-foreground font-hp-special">
+            <h1 className="text-[1.7rem] font-bold leading-[1.3] text-foreground font-hp-special">
               {challengeHeaderTitle}
             </h1>
           </motion.div>

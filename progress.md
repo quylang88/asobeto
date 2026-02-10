@@ -131,3 +131,27 @@ Notes
 - Playwright verification:
   - pass: `passCelebration=true`, title `Tuyệt Vời!`, `Tiếp Tục` available, no `Tổng sao` header text
   - fail: `failCelebration=true`, title `Cố lên bé nhé!`, no `Tổng sao` header text
+
+---
+
+Update (Migrate PNG -> WebP + fix floor4 title header overlap)
+
+TODO
+- [x] Replace remaining `.png` image references with `.webp` across app metadata + lesson templates.
+- [x] Remove old png icon/image files no longer used.
+- [x] Update manifest/icon MIME types from `image/png` to `image/webp`.
+- [x] Fix floor4 mini game top title header being obscured in narrow/mobile layout.
+- [x] Re-run lint/typecheck + quick UI smoke check.
+
+Notes
+- Updated app icons in metadata + manifest to `fish.webp` with `image/webp`.
+- Updated vocab lesson image paths to `.webp` variants (`mainImage` and tracing guide path).
+- Removed obsolete png files:
+  - `public/assets/images/fish.png`
+  - `public/assets/images/fish-with-word.png`
+  - `public/asobeto-icon.png`
+- Floor4 header now uses safe-area top padding and stronger flex constraints so title does not get clipped by notch/mascot.
+- Validation:
+  - `pnpm lint` pass
+  - `pnpm exec tsc --noEmit` pass
+  - Manual Playwright smoke: floor4 header visible with back button + title + mascot.
