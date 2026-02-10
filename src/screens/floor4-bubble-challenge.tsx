@@ -52,6 +52,8 @@ const LEVEL_ICON_COLOR: Record<BubblePopLevelId, string> = {
 };
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
+const TARGET_BUBBLE_HIT_AUDIO = "/assets/audio/game/bubble-pop/pop.mp3";
+const WRONG_BUBBLE_HIT_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 
 type BubbleKind = "target" | "wrong" | "empty";
 type BubbleLetter = string;
@@ -243,7 +245,6 @@ export function Floor4BubbleChallenge({
 
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
-  const audioContextRef = useRef<AudioContext | null>(null);
   const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
@@ -321,65 +322,12 @@ export function Floor4BubbleChallenge({
     [stopNarration],
   );
 
-  const getAudioContext = useCallback(() => {
-    if (typeof window === "undefined") return null;
-    if (!audioContextRef.current) {
-      const AudioContextCtor =
-        window.AudioContext ??
-        (window as Window & { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!AudioContextCtor) return null;
-      audioContextRef.current = new AudioContextCtor();
-    }
-    return audioContextRef.current;
+  const playTapFeedbackAudio = useCallback((kind: "target" | "wrong") => {
+    const src =
+      kind === "target" ? TARGET_BUBBLE_HIT_AUDIO : WRONG_BUBBLE_HIT_AUDIO;
+    const audio = new Audio(src);
+    audio.play().catch(() => undefined);
   }, []);
-
-  const playSound = useCallback(
-    (kind: "pop" | "buzz" | "empty") => {
-      const context = getAudioContext();
-      if (!context) return;
-
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-
-      const now = context.currentTime;
-      if (kind === "pop") {
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(780, now);
-        oscillator.frequency.exponentialRampToValueAtTime(1100, now + 0.08);
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-        oscillator.start(now);
-        oscillator.stop(now + 0.12);
-        return;
-      }
-
-      if (kind === "buzz") {
-        oscillator.type = "square";
-        oscillator.frequency.setValueAtTime(170, now);
-        oscillator.frequency.exponentialRampToValueAtTime(118, now + 0.18);
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.exponentialRampToValueAtTime(0.2, now + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        oscillator.start(now);
-        oscillator.stop(now + 0.22);
-        return;
-      }
-
-      oscillator.type = "triangle";
-      oscillator.frequency.setValueAtTime(320, now);
-      oscillator.frequency.exponentialRampToValueAtTime(410, now + 0.06);
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-      oscillator.start(now);
-      oscillator.stop(now + 0.1);
-    },
-    [getAudioContext],
-  );
 
   const enqueuePopup = useCallback(
     (x: number, y: number, label: string, tone: "good" | "bad") => {
@@ -818,14 +766,12 @@ export function Floor4BubbleChallenge({
 
       if (bubble.kind === "target") {
         scoreRef.current += 1;
-        playSound("pop");
+        playTapFeedbackAudio("target");
         enqueuePopup(bubble.x, bubble.y, "+1", "good");
       } else if (bubble.kind === "wrong") {
         livesRef.current = Math.max(0, livesRef.current - 1);
-        playSound("buzz");
+        playTapFeedbackAudio("wrong");
         enqueuePopup(bubble.x, bubble.y, "-1❤", "bad");
-      } else {
-        playSound("empty");
       }
 
       setBubbles([...bubblesRef.current]);
@@ -842,7 +788,13 @@ export function Floor4BubbleChallenge({
         triggerLevelPass(level);
       }
     },
-    [enqueuePopup, phase, playSound, triggerLevelFail, triggerLevelPass],
+    [
+      enqueuePopup,
+      phase,
+      playTapFeedbackAudio,
+      triggerLevelFail,
+      triggerLevelPass,
+    ],
   );
 
   const replayRulesAudio = useCallback(() => {
@@ -957,9 +909,6 @@ export function Floor4BubbleChallenge({
         window.clearTimeout(unlockAnimationTimeoutRef.current);
         unlockAnimationTimeoutRef.current = null;
       }
-      if (!audioContextRef.current) return;
-      audioContextRef.current.close().catch(() => undefined);
-      audioContextRef.current = null;
     };
   }, [stopGameLoop, stopNarration]);
 

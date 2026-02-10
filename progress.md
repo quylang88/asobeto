@@ -246,3 +246,32 @@ Validation
 - Manual Playwright smoke:
   - Tower-1 floor-1 lesson-1: button label is `Tiếp Theo` and appears directly below preview frame.
   - Tower-1 floor-4 select: network requests show `intro.mp3` auto-played; `rules.mp3` is no longer auto-played on enter.
+
+---
+
+Update (Bubble tap SFX switch to mp3 assets)
+
+TODO
+- [x] Replace procedural bubble tap tones with file-based SFX.
+- [x] Correct bubble tap (`kind: target`) now plays `pop.mp3`.
+- [x] Wrong bubble tap (`kind: wrong`) now plays `wrong-answer.mp3`.
+- [x] Empty bubble tap (`kind: empty`) stays silent (no SFX trigger).
+
+Notes
+- Removed `AudioContext`/oscillator logic from `Floor4BubbleChallenge` and switched to `new Audio(src)` one-shot playback for tap feedback.
+- Added constants:
+  - `TARGET_BUBBLE_HIT_AUDIO = /assets/audio/game/bubble-pop/pop.mp3`
+  - `WRONG_BUBBLE_HIT_AUDIO = /assets/audio/feedback/wrong-answer.mp3`
+- In `handleBubbleTap`:
+  - target -> `playTapFeedbackAudio("target")`
+  - wrong -> `playTapFeedbackAudio("wrong")`
+  - empty -> no call (silent)
+
+Validation
+- `pnpm lint` pass
+- `pnpm exec tsc --noEmit` pass
+- Manual Playwright smoke on tower-1 floor-4:
+  - tapped target and wrong bubbles via runtime state helper
+  - observed audio requests:
+    - `/assets/audio/game/bubble-pop/pop.mp3` (HTTP 206)
+    - `/assets/audio/feedback/wrong-answer.mp3` (HTTP 206)
