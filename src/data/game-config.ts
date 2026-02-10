@@ -11,6 +11,7 @@ export type {
   LessonContent,
   LessonAnswer,
   BubblePopLevelId,
+  BubblePassStarRule,
   BubblePopLevelConfig,
   BubblePopGameConfig,
 } from "./world-1-alphabet";

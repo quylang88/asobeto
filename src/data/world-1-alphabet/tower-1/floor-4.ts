@@ -1,4 +1,5 @@
 import { LessonContent } from "../map-structure";
+import { BUBBLE_PASS_STAR_RULES_BY_LEVEL } from "../bubble-star-rules";
 
 export const floor4Lessons: LessonContent[] = [
   {
@@ -52,6 +53,7 @@ export const floor4Lessons: LessonContent[] = [
           id: "normal",
           label: "Vừa",
           starsReward: 2,
+          passStarRules: BUBBLE_PASS_STAR_RULES_BY_LEVEL.normal,
           durationSeconds: 35,
           targetScore: 15,
           minLivesToPass: 2,
@@ -71,6 +73,7 @@ export const floor4Lessons: LessonContent[] = [
           id: "hard",
           label: "Khó",
           starsReward: 3,
+          passStarRules: BUBBLE_PASS_STAR_RULES_BY_LEVEL.hard,
           durationSeconds: 30,
           targetScore: 20,
           minLivesToPass: 2,

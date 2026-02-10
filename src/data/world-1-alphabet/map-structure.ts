@@ -47,10 +47,19 @@ export interface WordToken {
 
 export type BubblePopLevelId = "easy" | "normal" | "hard";
 
+export interface BubblePassStarRule {
+  stars: 1 | 2 | 3;
+  minLivesLost?: number;
+  maxLivesLost?: number;
+  minTimeLeftExclusive?: number;
+  maxTimeLeftInclusive?: number;
+}
+
 export interface BubblePopLevelConfig {
   id: BubblePopLevelId;
   label: string;
   starsReward: 1 | 2 | 3;
+  passStarRules?: BubblePassStarRule[];
   durationSeconds: number;
   targetScore: number;
   minLivesToPass: number;

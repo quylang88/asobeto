@@ -12,6 +12,7 @@ import {
   Volume2,
 } from "lucide-react";
 import type {
+  BubblePassStarRule,
   BubblePopLevelConfig,
   BubblePopLevelId,
   LessonContent,
@@ -103,6 +104,42 @@ function clampInteger(value: number, min: number, max: number): number {
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
+}
+
+function doesPassStarRuleMatch({
+  rule,
+  livesLost,
+  timeLeft,
+}: {
+  rule: BubblePassStarRule;
+  livesLost: number;
+  timeLeft: number;
+}): boolean {
+  if (
+    typeof rule.minLivesLost === "number" &&
+    livesLost < rule.minLivesLost
+  ) {
+    return false;
+  }
+  if (
+    typeof rule.maxLivesLost === "number" &&
+    livesLost > rule.maxLivesLost
+  ) {
+    return false;
+  }
+  if (
+    typeof rule.minTimeLeftExclusive === "number" &&
+    timeLeft <= rule.minTimeLeftExclusive
+  ) {
+    return false;
+  }
+  if (
+    typeof rule.maxTimeLeftInclusive === "number" &&
+    timeLeft > rule.maxTimeLeftInclusive
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function sumStars(stars: Record<BubblePopLevelId, number>): number {
@@ -372,13 +409,36 @@ export function Floor4BubbleChallenge({
     [floorId, floorMaxStars, lesson.id, towerId, worldId],
   );
 
+  const getEarnedStarsOnPass = useCallback(
+    (level: BubblePopLevelConfig): number => {
+      if (!bubbleConfig) return level.starsReward;
+      if (!level.passStarRules?.length) return level.starsReward;
+
+      const livesLost = Math.max(0, bubbleConfig.startLives - livesRef.current);
+      const timeLeft = timeLeftRef.current;
+      for (const rule of level.passStarRules) {
+        if (!doesPassStarRuleMatch({ rule, livesLost, timeLeft })) continue;
+        return clampInteger(rule.stars, 1, level.starsReward);
+      }
+
+      return level.starsReward;
+    },
+    [bubbleConfig],
+  );
+
   const finalizeLevel = useCallback(
-    (passed: boolean, level: BubblePopLevelConfig) => {
+    (
+      passed: boolean,
+      level: BubblePopLevelConfig,
+      computedStars?: number,
+    ) => {
       clearCelebrations();
       stopGameLoop();
       setPhase("result");
       setDidPass(passed);
-      const earnedStars = passed ? level.starsReward : 0;
+      const earnedStars = passed
+        ? clampInteger(computedStars ?? level.starsReward, 1, level.starsReward)
+        : 0;
       setLastEarnedStars(earnedStars);
       setBubbles([]);
       bubblesRef.current = [];
@@ -409,9 +469,10 @@ export function Floor4BubbleChallenge({
     (level: BubblePopLevelConfig) => {
       if (passSequenceRef.current) return;
       passSequenceRef.current = true;
+      const earnedStars = getEarnedStarsOnPass(level);
       stopGameLoop();
       setShowFailCelebration(false);
-      setPassCelebrationStars(level.starsReward);
+      setPassCelebrationStars(earnedStars);
 
       if (passCelebrationTimeoutRef.current !== null) {
         window.clearTimeout(passCelebrationTimeoutRef.current);
@@ -420,10 +481,10 @@ export function Floor4BubbleChallenge({
         passCelebrationTimeoutRef.current = null;
         setPassCelebrationStars(0);
         passSequenceRef.current = false;
-        finalizeLevel(true, level);
+        finalizeLevel(true, level, earnedStars);
       }, PASS_EFFECT_HOLD_MS);
     },
-    [finalizeLevel, stopGameLoop],
+    [finalizeLevel, getEarnedStarsOnPass, stopGameLoop],
   );
 
   const triggerLevelFail = useCallback(

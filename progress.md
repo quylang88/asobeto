@@ -456,3 +456,60 @@ Notes
 Validation
 - `pnpm lint` pass.
 - `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Bubble floor-4 star rules by lives/time)
+
+TODO
+- [x] Change `normal` star logic: pass with no life lost => 2 stars; pass with >=1 life lost => 1 star.
+- [x] Change `hard` star logic: no life lost + timeLeft > 9s => 3 stars; no life lost + timeLeft <= 9s => 2 stars; >=1 life lost => 1 star.
+- [x] Use computed stars consistently for pass celebration and final result persistence (instead of fixed `starsReward`).
+- [x] Re-run lint and typecheck.
+- [x] Re-validate gameplay outcomes via Playwright MCP state-driven runs.
+
+Notes
+- Implemented `getEarnedStarsOnPass(level)` in `src/screens/floor4-bubble-challenge.tsx` using `livesRef` and `timeLeftRef`.
+- `triggerLevelPass` now computes stars once and passes that value through celebration + finalize flow.
+- `finalizeLevel` now accepts optional computed stars and clamps pass result to `[1..level.starsReward]`.
+
+Validation
+- Static checks:
+  - `pnpm lint` pass
+  - `pnpm exec tsc --noEmit` pass
+- Runtime checks (Playwright MCP, using `render_game_to_text` + localStorage):
+  - Normal, no life lost: `lives=3`, `timeLeft=11.75`, stored `normal=2`.
+  - Normal, lost 1 life: `lives=2`, `timeLeft=5.04`, stored `normal=1`.
+  - Hard, lost 1 life: `lives=2`, `timeLeft=13.06`, stored `hard=1`.
+  - Hard, no life lost and `timeLeft=12.44 (>9)`: stored `hard=3`.
+  - Hard, no life lost and `timeLeft=5.65 (<=9)`: stored `hard=2`.
+- `node $WEB_GAME_CLIENT` still cannot run in this environment because skill script dependency `playwright` is missing at `/Users/quylang/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js`.
+
+---
+
+Update (Bubble star logic moved to data config)
+
+TODO
+- [x] Add data schema for pass-star rules per bubble level.
+- [x] Move star-award logic in `Floor4BubbleChallenge` to read rules from level config.
+- [x] Add shared rule constants and wire `normal` / `hard` floor-4 levels across towers 1..5.
+- [x] Re-run lint and typecheck.
+- [x] Re-verify runtime behavior for key star-award branches.
+
+Notes
+- Added `BubblePassStarRule` and `passStarRules` to bubble level config schema in `src/data/world-1-alphabet/map-structure.ts`.
+- Added shared rule data in `src/data/world-1-alphabet/bubble-star-rules.ts`:
+  - `normal`: no life lost => 2 stars, lost >=1 life => 1 star.
+  - `hard`: no life lost + `timeLeft > 9` => 3 stars, no life lost + `timeLeft <= 9` => 2 stars, lost >=1 life => 1 star.
+- Floor-4 data for tower 1..5 now references these rules directly, so future tuning only needs data edits.
+- `Floor4BubbleChallenge` now evaluates rule list in order and falls back to `starsReward` when no rule matches.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright MCP runtime checks (state from `render_game_to_text` + localStorage):
+  - Normal, no life lost: `lives=3`, stored `normalStars=2`.
+  - Normal, lost 1 life: `lives=2`, stored `normalStars=1`.
+  - Hard, no life lost and `timeLeft=18.03 (>9)`: stored `hardStars=3`.
+  - Hard, no life lost and `timeLeft=8.55 (<=9)`: stored `hardStars=2`.
+  - Hard, lost 1 life: `lives=2`, stored `hardStars=1`.

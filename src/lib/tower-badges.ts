@@ -39,6 +39,11 @@ const LETTER_BADGE_IMAGE_BY_CODE: Partial<Record<(typeof LETTER_BADGE_CODES)[num
     A: "/assets/images/badges/anpanman.webp",
     AW: "/assets/images/badges/sailor-moon-v2.webp",
     AA: "/assets/images/badges/rapunzel.webp",
+    B: "/assets/images/badges/baymax.webp",
+    C: "/assets/images/badges/chopper.webp",
+    D: "/assets/images/badges/doraemon.webp",
+    DD: "/assets/images/badges/team-rocket.webp",
+    E: "/assets/images/badges/eevee.webp",
   };
 
 interface StoredTowerBadge {
