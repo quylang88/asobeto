@@ -1,0 +1,27 @@
+
+> asobeto@0.1.0 dev /app
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1076ms
+○ Compiling / ...
+ GET / 200 in 6.8s (compile: 6.1s, render: 711ms)
+ GET / 200 in 143ms (compile: 12ms, render: 131ms)
+ GET / 200 in 76ms (compile: 7ms, render: 69ms)
+ GET / 200 in 67ms (compile: 4ms, render: 62ms)
+ GET /assets/audio/intro-letters/n/intro-1.mp3 404 in 1419ms (compile: 1199ms, render: 220ms)
+ GET /assets/audio/intro-letters/n/intro-1.mp3 404 in 160ms (compile: 37ms, render: 123ms)
+ GET /assets/audio/letters/n.mp3 404 in 87ms (compile: 8ms, render: 80ms)
+ GET /assets/audio/intro-letters/n/intro-2.mp3 404 in 129ms (compile: 27ms, render: 102ms)
+ GET /assets/audio/letters/n.mp3 404 in 115ms (compile: 25ms, render: 90ms)
+ GET /assets/audio/intro-letters/n/intro-3.mp3 404 in 125ms (compile: 24ms, render: 101ms)
+ GET /assets/audio/intro-letters/n/intro-4.mp3 404 in 51ms (compile: 9ms, render: 41ms)
