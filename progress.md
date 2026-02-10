@@ -225,3 +225,24 @@ Validation
     - select phase: `/assets/audio/game/bubble-pop/intro.mp3` and `rules.mp3` (HTTP 206)
     - countdown phase after starting level: `/assets/audio/game/bubble-pop/target-c.mp3` (HTTP 206)
 - `node $WEB_GAME_CLIENT ...` still cannot run in this env because package `playwright` is not installed for that client script.
+
+---
+
+Update (Follow-up UX/audio fixes from review)
+
+TODO
+- [x] Change floor-4 select auto narration to play intro only (do not auto-play rules).
+- [x] Keep `Nghe Luật` button mapped to `rules.mp3`.
+- [x] Rename all continue CTAs from `Tiếp Tục` -> `Tiếp Theo`.
+- [x] Revert passive `letter_listen` next-button pin-to-bottom behavior; position should match floor-3 lesson-1 (immediately under preview frame).
+
+Notes
+- Removed the temporary `pinNextButtonToBottom`/`pinPassiveNextButtonToBottom` layout override added in previous pass.
+- Passive next button now uses standard `mt-4` placement under lesson preview for all passive lessons.
+
+Validation
+- `pnpm lint` pass
+- `pnpm exec tsc --noEmit` pass
+- Manual Playwright smoke:
+  - Tower-1 floor-1 lesson-1: button label is `Tiếp Theo` and appears directly below preview frame.
+  - Tower-1 floor-4 select: network requests show `intro.mp3` auto-played; `rules.mp3` is no longer auto-played on enter.

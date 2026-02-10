@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mascot } from "../components/beto-mascot";
 import {
@@ -111,7 +106,8 @@ export function LessonInterface({
   const isVocabTracePracticeLesson =
     isVocabTracePracticeLessonKind(currentLessonKind);
   const isWordBuildLesson = isWordBuildLessonKind(currentLessonKind);
-  const isLetterTraceDemoLesson = isLetterTraceDemoLessonKind(currentLessonKind);
+  const isLetterTraceDemoLesson =
+    isLetterTraceDemoLessonKind(currentLessonKind);
   const isVocabListenRepeatLesson =
     isVocabListenRepeatLessonKind(currentLessonKind);
   const isFloor3ListenLookLesson = isFloor3ListenLookLessonKind(
@@ -119,22 +115,23 @@ export function LessonInterface({
     Boolean(currentLesson?.instruction),
   );
   const shouldUseLargerVocabImage = Boolean(
-    currentLesson?.mainImage && shouldUseLargerVocabImageKind(currentLessonKind),
+    currentLesson?.mainImage &&
+    shouldUseLargerVocabImageKind(currentLessonKind),
   );
   const isThresholdSpeechLesson = Boolean(
     isVocabListenRepeatLesson &&
-      currentLesson?.scoring?.passPolicy === "threshold",
+    currentLesson?.scoring?.passPolicy === "threshold",
   );
   // Gom nhóm 4 lesson chữ cái để dùng chung cách hiển thị instruction trên cùng
   const shouldPromoteTitleToInstruction =
     shouldPromoteTitleToInstructionKind(currentLessonKind);
   const isTitlePromotedToTop = Boolean(
     shouldPromoteTitleToInstruction ||
-      (!currentLesson?.instruction && currentLesson?.title),
+    (!currentLesson?.instruction && currentLesson?.title),
   );
   const topInstructionText = shouldPromoteTitleToInstruction
     ? currentLesson?.title
-    : currentLesson?.instruction ?? currentLesson?.title;
+    : (currentLesson?.instruction ?? currentLesson?.title);
   const topInstructionClassName = isTitlePromotedToTop
     ? "text-xl md:text-2xl text-foreground font-bold mb-5"
     : "text-lg text-muted-foreground mb-2";
@@ -152,11 +149,13 @@ export function LessonInterface({
     ? (currentLesson?.targetTokens ?? [])
     : [];
   const wordBuildSourceTokens = isWordBuildLesson
-    ? (currentLesson?.instruction
-        ? (currentLesson?.tokenPool ?? currentLesson?.targetTokens ?? [])
-        : (currentLesson?.targetTokens ?? []))
+    ? currentLesson?.instruction
+      ? (currentLesson?.tokenPool ?? currentLesson?.targetTokens ?? [])
+      : (currentLesson?.targetTokens ?? [])
     : [];
-  const wordBuildSourceTokenIds = wordBuildSourceTokens.map((token) => token.id);
+  const wordBuildSourceTokenIds = wordBuildSourceTokens.map(
+    (token) => token.id,
+  );
   const {
     wordBuildActiveDrag,
     wordBuildGhostRef,
@@ -172,7 +171,9 @@ export function LessonInterface({
     (token) => token.id,
   );
   const wordBuildPlacedTokenIds = new Set(
-    wordBuildSlotTokenIds.filter((tokenId): tokenId is string => tokenId !== null),
+    wordBuildSlotTokenIds.filter(
+      (tokenId): tokenId is string => tokenId !== null,
+    ),
   );
   const wordBuildTokenMap = new Map(
     [...wordBuildSourceTokens, ...wordBuildExpectedTokens].map((token) => [
@@ -194,8 +195,12 @@ export function LessonInterface({
     isWordBuildLesson &&
     wordBuildSlotTokenIds.length === wordBuildTargetTokenIds.length &&
     wordBuildSlotTokenIds.length > 0 &&
-    wordBuildSlotTokenIds.every((tokenId): tokenId is string => tokenId !== null);
-  const wordBuildSlotLayout = getWordBuildSlotPlacements(wordBuildExpectedTokens);
+    wordBuildSlotTokenIds.every(
+      (tokenId): tokenId is string => tokenId !== null,
+    );
+  const wordBuildSlotLayout = getWordBuildSlotPlacements(
+    wordBuildExpectedTokens,
+  );
   const wordBuildPlacementBySlotIndex = new Map(
     wordBuildSlotLayout.placements.map((placement) => [
       placement.slotIndex,

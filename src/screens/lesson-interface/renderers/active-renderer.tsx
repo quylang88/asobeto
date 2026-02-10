@@ -395,7 +395,7 @@ export function LessonActiveRenderer({
               className="rounded-3xl"
               frontClassName="px-12 py-4 text-xl flex items-center gap-2"
             >
-              Tiếp Tục <ArrowRight className="w-6 h-6" />
+              Tiếp Theo <ArrowRight className="w-6 h-6" />
             </GameButton>
           </motion.div>
         )}

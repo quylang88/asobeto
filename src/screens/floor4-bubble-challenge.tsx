@@ -249,7 +249,6 @@ export function Floor4BubbleChallenge({
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
   const narrationSequenceIdRef = useRef(0);
-  const hasPlayedSelectIntroRef = useRef(false);
   const spawnCooldownMsRef = useRef(0);
   const passCelebrationTimeoutRef = useRef<number | null>(null);
   const unlockAnimationTimeoutRef = useRef<number | null>(null);
@@ -318,50 +317,6 @@ export function Floor4BubbleChallenge({
       const audio = new Audio(src);
       narrationAudioRef.current = audio;
       audio.play().catch(() => undefined);
-    },
-    [stopNarration],
-  );
-
-  const playNarrationSequence = useCallback(
-    (audioSources: Array<string | undefined>) => {
-      const clips = audioSources
-        .map((audioSrc) => audioSrc?.trim())
-        .filter((audioSrc): audioSrc is string => Boolean(audioSrc));
-      if (clips.length === 0) return;
-
-      stopNarration();
-      const sequenceId = narrationSequenceIdRef.current;
-      let clipIndex = 0;
-
-      const playClip = () => {
-        if (sequenceId !== narrationSequenceIdRef.current) return;
-        const clip = clips[clipIndex];
-        if (!clip) return;
-
-        const audio = new Audio(clip);
-        narrationAudioRef.current = audio;
-        let handled = false;
-
-        const handleDone = () => {
-          if (handled) return;
-          handled = true;
-          if (sequenceId !== narrationSequenceIdRef.current) return;
-          clipIndex += 1;
-          if (clipIndex >= clips.length) {
-            narrationAudioRef.current = null;
-            return;
-          }
-          playClip();
-        };
-
-        audio.addEventListener("ended", handleDone, { once: true });
-        audio.addEventListener("error", handleDone, { once: true });
-        audio.play().catch(() => {
-          handleDone();
-        });
-      };
-
-      playClip();
     },
     [stopNarration],
   );
@@ -933,13 +888,8 @@ export function Floor4BubbleChallenge({
   useEffect(() => {
     if (!bubbleConfig) return;
     if (phase !== "select") return;
-    if (!hasPlayedSelectIntroRef.current) {
-      hasPlayedSelectIntroRef.current = true;
-      playNarrationSequence([bubbleConfig.introAudio, bubbleConfig.rulesAudio]);
-      return;
-    }
-    playNarration(bubbleConfig.rulesAudio);
-  }, [bubbleConfig, phase, playNarration, playNarrationSequence]);
+    playNarration(bubbleConfig.introAudio);
+  }, [bubbleConfig, phase, playNarration]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

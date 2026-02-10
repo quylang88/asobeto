@@ -34,7 +34,7 @@ export function LessonCompletionView({
   failTitle,
   successSummary,
   failSummary,
-  continueLabel = "Tiếp Tục",
+  continueLabel = "Tiếp Theo",
 }: LessonCompletionViewProps) {
   const displayedStarCount = Math.max(1, floorMaxStars);
   const starSizeClass =

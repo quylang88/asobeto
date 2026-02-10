@@ -231,7 +231,7 @@ export function LessonPassivePreviewRenderer({
           >
             {passiveReady ? (
               <>
-                Tiếp Tục <ArrowRight className="w-6 h-6" />
+                Tiếp Theo <ArrowRight className="w-6 h-6" />
               </>
             ) : (
               "Đang xem mẫu..."
