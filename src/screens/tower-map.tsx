@@ -12,6 +12,8 @@ import {
   type TowerConnection,
 } from "../data/game-config";
 import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
+import { TowerBadgeCollectionModal } from "@/components/badges";
+import { getTowerBadgeCollection } from "@/lib/tower-badges";
 
 interface TowerSelectionProps {
   worldId: number;
@@ -476,10 +478,20 @@ export function TowerSelection({
     { id: number; startX: number; startY: number; endX: number; endY: number }[]
   >([]);
   const [showFlash, setShowFlash] = useState(false);
+  const [isBadgeCollectionOpen, setIsBadgeCollectionOpen] = useState(false);
 
   const totalStars = getTotalStars(towerState.filter((t) => !t.isBoss));
   const requiredStars = 15;
   const isBossUnlockable = canUnlockBoss(towerState, requiredStars);
+  const towerBadges = useMemo(
+    () =>
+      getTowerBadgeCollection({
+        worldId,
+        towers: towerState,
+      }),
+    [towerState, worldId],
+  );
+  const unlockedBadgeCount = towerBadges.filter((badge) => badge.unlocked).length;
 
   const handleBossUnlock = useCallback(() => {
     if (isUnlocking) return;
@@ -554,6 +566,17 @@ export function TowerSelection({
             <Star className="w-5 h-5 text-yellow-bright fill-yellow-bright" />
             <span className="font-bold text-foreground">{totalStars}</span>
           </div>
+          <motion.button
+            onClick={() => setIsBadgeCollectionOpen(true)}
+            className="flex min-w-14 flex-col items-center rounded-2xl bg-cyan-100 px-2 py-1.5 text-cyan-700 shadow-sm ios-button"
+            whileTap={{ scale: 0.95 }}
+            aria-label="Xem bộ sưu tập huy hiệu"
+          >
+            <Star className="h-4 w-4 fill-yellow-300 text-yellow-500" />
+            <span className="text-[0.62rem] font-bold leading-tight">
+              {unlockedBadgeCount}/{towerBadges.length}
+            </span>
+          </motion.button>
           <Mascot size="sm" emotion="happy" />
         </div>
       </div>
@@ -610,6 +633,16 @@ export function TowerSelection({
             animate={{ opacity: [0, 1, 0] }}
             transition={{ duration: 0.6 }}
             onAnimationComplete={() => setShowFlash(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isBadgeCollectionOpen && (
+          <TowerBadgeCollectionModal
+            worldName={worldName}
+            badges={towerBadges}
+            onClose={() => setIsBadgeCollectionOpen(false)}
           />
         )}
       </AnimatePresence>

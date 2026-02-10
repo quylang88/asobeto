@@ -2,6 +2,7 @@ import type { Floor, Tower } from "@/data/game-config";
 
 const FLOOR_PROGRESS_STORAGE_KEY = "asobeto-floor-progress-v1";
 const DEFAULT_FLOOR_MAX_STARS = 3;
+const MAX_FLOOR_STARS_STORAGE_CAP = 99;
 
 export interface StoredFloorProgress {
   stars: number;
@@ -51,7 +52,7 @@ function getFloorStorageKey({
 
 function normalizeFloorProgress(
   value: unknown,
-  maxStars: number = DEFAULT_FLOOR_MAX_STARS,
+  maxStars: number = MAX_FLOOR_STARS_STORAGE_CAP,
 ): StoredFloorProgress | null {
   if (!value || typeof value !== "object") return null;
   const source = value as {

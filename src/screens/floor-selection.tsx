@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { getWorldData } from "../data/game-config";
 import type { Floor } from "../data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
+import { TowerBadgeAwardOverlay } from "@/components/badges";
+import {
+  createTowerBadgeRecord,
+  type TowerBadgeRecord,
+  unlockTowerBadge,
+} from "@/lib/tower-badges";
 
 interface FloorSelectionProps {
   worldId: number;
@@ -540,6 +546,7 @@ export function FloorSelection({
 }: FloorSelectionProps) {
   const worldData = getWorldData(worldId);
   const currentTower = worldData.towers.find((t) => t.id === towerId);
+  const [earnedBadge, setEarnedBadge] = useState<TowerBadgeRecord | null>(null);
   const floors = useMemo(
     () =>
       hydrateFloorsWithStoredProgress({
@@ -549,6 +556,35 @@ export function FloorSelection({
       }),
     [currentTower?.floors, towerId, worldId],
   );
+
+  useEffect(() => {
+    if (!currentTower || currentTower.isBoss || floors.length === 0) {
+      return;
+    }
+
+    const isTowerAtFullStars = floors.every((floor) => {
+      const maxStars = floor.maxStars ?? 3;
+      return (floor.stars ?? 0) >= maxStars;
+    });
+    if (!isTowerAtFullStars) {
+      return;
+    }
+
+    const unlockResult = unlockTowerBadge({ worldId, towerId });
+    if (!unlockResult.newlyUnlocked) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setEarnedBadge(
+        createTowerBadgeRecord({
+          worldId,
+          tower: currentTower,
+          unlockedAt: unlockResult.unlockedAt,
+        }),
+      );
+    });
+  }, [currentTower, floors, towerId, worldId]);
 
   return (
     <div className="relative w-full h-dvh flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
@@ -708,6 +744,15 @@ export function FloorSelection({
           </motion.div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {earnedBadge && (
+          <TowerBadgeAwardOverlay
+            badge={earnedBadge}
+            onDismiss={() => setEarnedBadge(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

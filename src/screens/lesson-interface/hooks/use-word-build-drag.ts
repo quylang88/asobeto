@@ -32,6 +32,8 @@ export function useWordBuildDrag({
   const wordBuildDragPositionRef = useRef({ clientX: 0, clientY: 0 });
   const wordBuildDragFrameRef = useRef<number | null>(null);
   const wordBuildGhostRef = useRef<HTMLDivElement | null>(null);
+  const wordBuildDragCaptureTargetRef = useRef<HTMLElement | null>(null);
+  const previousBodyTouchActionRef = useRef<string | null>(null);
 
   const syncWordBuildGhostPosition = useCallback(() => {
     wordBuildDragFrameRef.current = null;
@@ -39,7 +41,23 @@ export function useWordBuildDrag({
     if (!ghost) return;
 
     const { clientX, clientY } = wordBuildDragPositionRef.current;
-    ghost.style.transform = `translate3d(${clientX - WORD_BUILD_TILE_SIZE_PX / 2}px, ${clientY - WORD_BUILD_TILE_SIZE_PX / 2}px, 0)`;
+    const ghostX = Math.round(clientX - WORD_BUILD_TILE_SIZE_PX / 2);
+    const ghostY = Math.round(clientY - WORD_BUILD_TILE_SIZE_PX / 2);
+    ghost.style.transform = `translate3d(${ghostX}px, ${ghostY}px, 0)`;
+  }, []);
+
+  const lockBodyTouchActionForDrag = useCallback(() => {
+    if (typeof document === "undefined") return;
+    if (previousBodyTouchActionRef.current !== null) return;
+    previousBodyTouchActionRef.current = document.body.style.touchAction;
+    document.body.style.touchAction = "none";
+  }, []);
+
+  const restoreBodyTouchActionAfterDrag = useCallback(() => {
+    if (typeof document === "undefined") return;
+    if (previousBodyTouchActionRef.current === null) return;
+    document.body.style.touchAction = previousBodyTouchActionRef.current;
+    previousBodyTouchActionRef.current = null;
   }, []);
 
   const scheduleWordBuildGhostPositionSync = useCallback(() => {
@@ -50,13 +68,27 @@ export function useWordBuildDrag({
   }, [syncWordBuildGhostPosition]);
 
   const resetWordBuildDragState = useCallback(() => {
+    const pointerId = wordBuildDragPointerIdRef.current;
+    const captureTarget = wordBuildDragCaptureTargetRef.current;
+    if (captureTarget && pointerId !== null) {
+      try {
+        if (captureTarget.hasPointerCapture(pointerId)) {
+          captureTarget.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // Ignore release errors on browsers without stable pointer capture support.
+      }
+    }
+
+    wordBuildDragCaptureTargetRef.current = null;
     wordBuildDragPointerIdRef.current = null;
     if (wordBuildDragFrameRef.current !== null) {
       window.cancelAnimationFrame(wordBuildDragFrameRef.current);
       wordBuildDragFrameRef.current = null;
     }
+    restoreBodyTouchActionAfterDrag();
     setWordBuildActiveDrag(null);
-  }, []);
+  }, [restoreBodyTouchActionAfterDrag]);
 
   const getWordBuildSlotIndexFromPoint = useCallback(
     (clientX: number, clientY: number): number | null => {
@@ -95,12 +127,23 @@ export function useWordBuildDrag({
         clientX: event.clientX,
         clientY: event.clientY,
       };
+      const pointerTarget = event.currentTarget;
+      if (pointerTarget instanceof HTMLElement) {
+        try {
+          pointerTarget.setPointerCapture(event.pointerId);
+          wordBuildDragCaptureTargetRef.current = pointerTarget;
+        } catch {
+          wordBuildDragCaptureTargetRef.current = null;
+        }
+      }
+      lockBodyTouchActionForDrag();
       setWordBuildActiveDrag({ tokenId, sourceSlotIndex });
       scheduleWordBuildGhostPositionSync();
     },
     [
       isCorrect,
       isWordBuildLesson,
+      lockBodyTouchActionForDrag,
       scheduleWordBuildGhostPositionSync,
       wordBuildActiveDrag,
     ],
@@ -192,13 +235,26 @@ export function useWordBuildDrag({
 
   useEffect(() => {
     return () => {
+      const pointerId = wordBuildDragPointerIdRef.current;
+      const captureTarget = wordBuildDragCaptureTargetRef.current;
+      if (captureTarget && pointerId !== null) {
+        try {
+          if (captureTarget.hasPointerCapture(pointerId)) {
+            captureTarget.releasePointerCapture(pointerId);
+          }
+        } catch {
+          // Ignore release errors on cleanup.
+        }
+      }
+      wordBuildDragCaptureTargetRef.current = null;
       wordBuildDragPointerIdRef.current = null;
       if (wordBuildDragFrameRef.current !== null) {
         window.cancelAnimationFrame(wordBuildDragFrameRef.current);
         wordBuildDragFrameRef.current = null;
       }
+      restoreBodyTouchActionAfterDrag();
     };
-  }, []);
+  }, [restoreBodyTouchActionAfterDrag]);
 
   return {
     wordBuildActiveDrag,

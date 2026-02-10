@@ -250,6 +250,7 @@ export function Floor4BubbleChallenge({
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
   const narrationSequenceIdRef = useRef(0);
+  const hasPlayedSelectIntroRef = useRef(false);
   const spawnCooldownMsRef = useRef(0);
   const passCelebrationTimeoutRef = useRef<number | null>(null);
   const unlockAnimationTimeoutRef = useRef<number | null>(null);
@@ -840,6 +841,8 @@ export function Floor4BubbleChallenge({
   useEffect(() => {
     if (!bubbleConfig) return;
     if (phase !== "select") return;
+    if (hasPlayedSelectIntroRef.current) return;
+    hasPlayedSelectIntroRef.current = true;
     playNarration(bubbleConfig.introAudio);
   }, [bubbleConfig, phase, playNarration]);
 

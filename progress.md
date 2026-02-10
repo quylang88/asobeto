@@ -275,3 +275,46 @@ Validation
   - observed audio requests:
     - `/assets/audio/game/bubble-pop/pop.mp3` (HTTP 206)
     - `/assets/audio/feedback/wrong-answer.mp3` (HTTP 206)
+
+---
+
+Update (Lesson 3 drag stability + Bubble intro gating + Tower badge collection)
+
+TODO
+- [x] Fix lesson 3 word-build drag jitter near top-left/X area by hardening pointer handling.
+- [x] Change floor-4 bubble intro audio so it only auto-plays once when entering from floor selection.
+- [x] Add collectible tower badge unlock when a tower reaches full stars on all floors.
+- [x] Add badge unlock popup overlay (dimmed background + pulsing glow) that dismisses only on tap.
+- [x] Add a place to review collected badges from tower map header.
+- [x] Re-validate lint/typecheck and interactive smoke flows.
+
+Notes
+- Lesson 3 drag hook (`use-word-build-drag`) now:
+  - uses pointer capture during drag
+  - temporarily forces `document.body.style.touchAction = "none"` while dragging and restores on release/cancel/unmount
+  - rounds ghost coordinates before `translate3d` to reduce visual jitter
+- Floor 4 bubble intro audio now uses a mount-lifetime guard (`hasPlayedSelectIntroRef`) so returning from result -> select does not replay intro.
+- New badge storage module: `src/lib/tower-badges.ts`.
+  - key: `asobeto-tower-badges-v1`
+  - unlock key format: `${worldId}:${towerId}`
+- New badge UI components:
+  - `src/components/badges/tower-badge-sticker.tsx`
+  - `src/components/badges/tower-badge-award-overlay.tsx`
+  - `src/components/badges/tower-badge-collection-modal.tsx`
+- Floor selection now auto-awards badge when all floors in the selected non-boss tower are at max stars and shows immediate popup.
+- Tower map now has a header button to open the badge collection modal and show unlocked count (`x/y`).
+- Important fix for high-star floors:
+  - `src/lib/floor-progress.ts` now preserves stored floor stars above 3 when reading from localStorage (storage cap 99), then clamps per-floor max at hydration/read sites.
+  - This prevents losing floor-3/floor-4 stars and is required for full-tower badge unlock logic.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright MCP smoke checks:
+  - Word-build drag across top-left close button zone keeps `app-scroll` `scrollTop` unchanged (`0 -> 0`) and drop still works.
+  - Bubble intro audio count (`/assets/audio/game/bubble-pop/intro.mp3`) stays at `1` after fail -> result -> back to level select.
+  - Badge popup appears immediately after opening a fully-maxed tower and dismisses on tap.
+  - Badge collection modal on tower map shows unlocked progress and unlocked tower sticker state.
+
+Follow-up suggestion
+- Optional: add a compact CTA label near the tower-map badge icon (e.g. "Huy hiệu") for clearer discoverability on first use.
