@@ -72,6 +72,21 @@ function getTowerAnchorY(
   return tower.position.y + (offsetPx / mapHeightPx) * 100;
 }
 
+function getTowerAnchorX(
+  tower: Tower,
+  mapWidthPx: number,
+  isMdViewport: boolean,
+): number {
+  // Tower boss giữ nguyên để không ảnh hưởng điểm cân hiện tại.
+  if (tower.isBoss) return tower.position.x;
+
+  const offsetPx = isMdViewport ? -4 : -2.5;
+  if (mapWidthPx <= 0) {
+    return tower.position.x + (isMdViewport ? -0.3 : -0.6);
+  }
+  return tower.position.x + (offsetPx / mapWidthPx) * 100;
+}
+
 // Component Sao bay cho hiệu ứng mở khóa
 function FlyingStar({
   startX,
@@ -464,14 +479,14 @@ function ConnectionLinesSVG({
 
         if (!fromTower || !toTower) return null;
 
-        const x1 = fromTower.position.x;
+        const x1 = getTowerAnchorX(fromTower, mapWidthPx, isMdViewport);
         const y1 = getTowerAnchorY(
           fromTower,
           "bottom",
           mapHeightPx,
           isMdViewport,
         );
-        const x2 = toTower.position.x;
+        const x2 = getTowerAnchorX(toTower, mapWidthPx, isMdViewport);
         const y2 = getTowerAnchorY(toTower, "top", mapHeightPx, isMdViewport);
 
         const isUnlocked = fromTower.completed;
@@ -494,8 +509,18 @@ function ConnectionLinesSVG({
                   : "none",
               }}
             />
-            <circle cx={x1} cy={y1} r="0.75" fill={isUnlocked ? "#4ADE80" : "#9CA3AF"} />
-            <circle cx={x2} cy={y2} r="0.75" fill={isUnlocked ? "#4ADE80" : "#9CA3AF"} />
+            <circle
+              cx={x1}
+              cy={y1}
+              r="0.75"
+              fill={isUnlocked ? "#4ADE80" : "#9CA3AF"}
+            />
+            <circle
+              cx={x2}
+              cy={y2}
+              r="0.75"
+              fill={isUnlocked ? "#4ADE80" : "#9CA3AF"}
+            />
           </g>
         );
       })}

@@ -16,5 +16,5 @@ export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
     { id: "c", text: "c", kind: "letter" },
     { id: "m", text: "m", kind: "letter" },
   ],
-  reviewLetters: ["Ă", "N", "A", "C"],
+  reviewLetters: ["ă", "n", "a", "c"],
 });

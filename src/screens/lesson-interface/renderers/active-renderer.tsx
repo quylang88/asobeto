@@ -16,6 +16,7 @@ import { getWordBuildTokenDisplayText } from "../utils";
 interface LessonActiveRendererProps {
   currentLesson: LessonContent;
   hasAnswerOptions: boolean;
+  answerOptions: LessonAnswer[];
   selectedAnswer: string | null;
   handleAnswer: (answer: LessonAnswer) => void;
   isWordBuildLesson: boolean;
@@ -58,6 +59,7 @@ interface LessonActiveRendererProps {
 export function LessonActiveRenderer({
   currentLesson,
   hasAnswerOptions,
+  answerOptions,
   selectedAnswer,
   handleAnswer,
   isWordBuildLesson,
@@ -93,7 +95,7 @@ export function LessonActiveRenderer({
     <>
       {currentLesson.type === "active" && hasAnswerOptions && (
         <div className="flex justify-center gap-4 flex-wrap">
-          {currentLesson.answers!.map((answer, index) => {
+          {answerOptions.map((answer, index) => {
             const isSelected = selectedAnswer === answer.id;
             const isCorrectAnswer = answer.isCorrect;
             const showResult = selectedAnswer !== null;

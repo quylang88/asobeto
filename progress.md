@@ -513,3 +513,144 @@ Validation
   - Hard, no life lost and `timeLeft=18.03 (>9)`: stored `hardStars=3`.
   - Hard, no life lost and `timeLeft=8.55 (<=9)`: stored `hardStars=2`.
   - Hard, lost 1 life: `lives=2`, stored `hardStars=1`.
+
+---
+
+Update (Randomize answer order for lesson 2 quiz)
+
+TODO
+- [x] Randomize answer positions for `letter_quiz` so the correct option is no longer fixed at index 1.
+- [x] Keep answer order stable while staying in the same lesson step (avoid reshuffle mid-question).
+- [x] Preserve existing scoring logic by still passing full `LessonAnswer` object to `handleAnswer`.
+- [x] Re-run lint and typecheck.
+
+Notes
+- Added local answer shuffle helper in `src/screens/lesson-interface.tsx`.
+- Added `getDisplayAnswersForLesson` to apply shuffle only for `letter_quiz`.
+- Introduced `answerOptions` state that refreshes when `currentLesson` changes, ensuring each new lesson entry can have a new answer order.
+- Updated `LessonActiveRenderer` to render from `answerOptions` prop instead of directly from `currentLesson.answers`.
+
+Validation
+- `pnpm lint -- src/screens/lesson-interface.tsx src/screens/lesson-interface/renderers/active-renderer.tsx` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Add tracing data for letters "ă" and "n")
+
+TODO
+- [x] Add tracing stroke definition for letter `ă` by reusing `a` and adding one breve mark above.
+- [x] Add tracing stroke definition for letter `n` with 2 distinct strokes following the provided writing flow.
+- [x] Register `ă` and `n` in `LETTER_STROKE_MAP`.
+- [x] Re-run typecheck and lint for changed files.
+- [x] Attempt web-game Playwright loop from skill workflow.
+
+Notes
+- Added `src/data/tracing/letters/aw.ts`:
+  - Reuses `letterStrokeA.strokes`.
+  - Adds one extra breve stroke above the base glyph so `ă` keeps the same base flow as `a`.
+- Added `src/data/tracing/letters/n.ts`:
+  - Uses `layout.columns = 4` / `rows = 4` to match the 4-box horizontal structure from the reference.
+  - Stroke 1 is constrained inside box 1.
+  - Stroke 2 starts in box 2, loops down then up, and ends around half of box 4.
+- Updated `src/data/tracing/letters/index.ts` mapping:
+  - `"ă" -> letterStrokeAw`
+  - `"n" -> letterStrokeN`
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/data/tracing/letters/aw.ts src/data/tracing/letters/n.ts src/data/tracing/letters/index.ts` pass.
+- `node $WEB_GAME_CLIENT ...` failed in this environment because skill script dependency `playwright` is missing:
+  - `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from /Users/quylang/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js`.
+
+---
+
+Update (Adjust `ă` breve direction/size + refine `n` tracing shape)
+
+TODO
+- [x] Flip `ă` breve direction to match requested shape.
+- [x] Shift breve slightly left and reduce its size.
+- [x] Redraw `n` to better match provided reference (2 separate strokes and end position in box 4).
+- [x] Re-run typecheck and lint.
+
+Notes
+- Updated `src/data/tracing/letters/aw.ts`:
+  - breve now uses a downward-bending arc (fixed orientation),
+  - moved left by ~10px,
+  - reduced width/height for a tighter accent mark.
+- Updated `src/data/tracing/letters/n.ts`:
+  - stroke 1 kept compact in cell 1, with short downward finish,
+  - stroke 2 starts in cell 2, drops to baseline, arches, then returns and ends around half-height in cell 4.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/data/tracing/letters/aw.ts src/data/tracing/letters/n.ts` pass.
+
+---
+
+Update (Reposition `n` strictly by user ĐK coordinates)
+
+TODO
+- [x] Rebuild stroke 1 for `n` from left edge of box 1, start between ĐK2-ĐK3, touch ĐK3, then descend along left edge of box 2 to ĐK1.
+- [x] Rebuild stroke 2 for `n` from intersection of ĐK2 and left edge box 2, rise to middle of box 3, descend lightly curved to ĐK1, then hook up to ĐK2 at center of box 4.
+- [x] Keep `ă` breve previous left/size reduction unchanged.
+- [x] Re-run lint/typecheck.
+
+Notes
+- Updated `src/data/tracing/letters/n.ts` coordinates:
+  - Stroke 1 start: `{ x: 18, y: 176 }`, touches ĐK3 at `{ y: 140 }`, ends ĐK1 at `{ x: 70, y: 280 }`.
+  - Stroke 2 start: `{ x: 70, y: 210 }` (ĐK2 + left edge box 2), rises to `{ x: 176, y: 175 }` (middle box 3), descends to `{ x: 214, y: 280 }` (ĐK1), ends `{ x: 245, y: 210 }` (ĐK2 center box 4).
+- This pass prioritizes geometric placement by the user’s ĐK instructions over previous freehand approximation.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/data/tracing/letters/n.ts src/data/tracing/letters/aw.ts` pass.
+
+---
+
+Update (Smooth curvature pass for letter `n`)
+
+TODO
+- [x] Keep user-locked ĐK anchors for `n` and soften all curve transitions.
+- [x] Smooth stroke-1 top turn and downstroke entry.
+- [x] Smooth stroke-2 arch, downstroke, and bottom hook-up return.
+- [x] Re-run typecheck and lint.
+
+Notes
+- Updated `src/data/tracing/letters/n.ts` control points for softer bezier flow:
+  - Stroke 1 now transitions from top loop into downstroke without the previous bend kink.
+  - Stroke 1 endpoint is restored to đáy ĐK1 (`y: 280`) for consistency.
+  - Stroke 2 keeps start/end anchors but uses gentler control handles for:
+    - rise to middle of box 3,
+    - near-straight slight-curved descent to ĐK1,
+    - smooth bottom turn and return to ĐK2 center of box 4.
+- Geometric anchors from the user spec remain unchanged:
+  - stroke 2 start `{ x: 70, y: 210 }`
+  - stroke 2 end `{ x: 245, y: 210 }`
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/data/tracing/letters/n.ts` pass.
+
+---
+
+Update (Further adjust `ă` breve + rebuild `n` stroke flow by ĐK instructions)
+
+TODO
+- [x] Move `ă` breve further left and make it a bit smaller.
+- [x] Redraw `n` stroke 1 as a smoother, short móc xuôi ending on ĐK1.
+- [x] Redraw `n` stroke 2 to start exactly at stroke-1 endpoint, rise near ĐK3, then write móc hai đầu ending on ĐK2.
+- [x] Re-run typecheck and lint.
+
+Notes
+- `src/data/tracing/letters/aw.ts`
+  - breve changed from `(108..178)` to `(100..160)` range and reduced vertical span.
+  - keeps downward-bending arc orientation.
+- `src/data/tracing/letters/n.ts`
+  - Stroke 1 now starts at `y=172` (between middle lines), touches lower line and ends at baseline `y=280`.
+  - Stroke 2 now starts from `{ x: 76, y: 280 }`, rises to near top writing line (`y~154`), descends smoothly, then hooks up and ends at `y=214` (mid line / ĐK2 target).
+  - Curve controls updated to remove kinks and make arch/return more rounded.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/data/tracing/letters/aw.ts src/data/tracing/letters/n.ts` pass.

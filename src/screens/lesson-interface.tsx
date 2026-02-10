@@ -11,7 +11,7 @@ import {
 import { LessonCompletionView } from "@/components/completion";
 import { preloadCelebrationAudio } from "@/lib/celebration-audio";
 import { getStoredLessonStars } from "@/lib/floor-progress";
-import { type LessonContent } from "../data/game-config";
+import { type LessonAnswer, type LessonContent } from "../data/game-config";
 import {
   LessonActiveRenderer,
   GameButton,
@@ -55,6 +55,27 @@ interface LessonInterfaceProps {
   onComplete: () => void;
   onBack: () => void;
 }
+
+function shuffleLessonAnswers(answers: LessonAnswer[]): LessonAnswer[] {
+  const shuffled = [...answers];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+  return shuffled;
+}
+
+function getDisplayAnswersForLesson(
+  lesson: LessonContent | undefined,
+): LessonAnswer[] {
+  if (!lesson?.answers?.length) return [];
+  if (lesson.lessonKind !== "letter_quiz") return lesson.answers;
+  return shuffleLessonAnswers(lesson.answers);
+}
+
 export function LessonInterface({
   worldId,
   towerId,
@@ -84,6 +105,9 @@ export function LessonInterface({
   const [wordBuildSlotTokenIds, setWordBuildSlotTokenIds] = useState<
     Array<string | null>
   >(() => getWordBuildStateForLesson(lessons[0]).slotTokenIds);
+  const [answerOptions, setAnswerOptions] = useState<LessonAnswer[]>(() =>
+    getDisplayAnswersForLesson(lessons[0]),
+  );
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -105,6 +129,10 @@ export function LessonInterface({
     currentLessonIntroVoice,
     currentLessonMainAudio,
   });
+
+  useEffect(() => {
+    setAnswerOptions(getDisplayAnswersForLesson(currentLesson));
+  }, [currentLesson]);
 
   useEffect(() => {
     preloadCelebrationAudio(LESSON_SUCCESS_FEEDBACK_AUDIO);
@@ -152,7 +180,7 @@ export function LessonInterface({
     Boolean(currentLesson?.title) &&
     !shouldPromoteTitleToInstruction &&
     Boolean(currentLesson?.instruction);
-  const hasAnswerOptions = Boolean(currentLesson?.answers?.length);
+  const hasAnswerOptions = answerOptions.length > 0;
   const targetText =
     currentLesson?.targetText ?? currentLesson?.targetLetter ?? "";
   const wordBuildExpectedTokens = isWordBuildLesson
@@ -442,6 +470,7 @@ export function LessonInterface({
             <LessonActiveRenderer
               currentLesson={currentLesson}
               hasAnswerOptions={hasAnswerOptions}
+              answerOptions={answerOptions}
               selectedAnswer={selectedAnswer}
               handleAnswer={handleAnswer}
               isWordBuildLesson={isWordBuildLesson}
