@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeft,
@@ -22,7 +16,10 @@ import type {
   BubblePopLevelId,
   LessonContent,
 } from "@/data/game-config";
-import { getStoredFloorProgress, saveFloorProgress } from "@/lib/floor-progress";
+import {
+  getStoredFloorProgress,
+  saveFloorProgress,
+} from "@/lib/floor-progress";
 import { Mascot } from "@/components/beto-mascot";
 import {
   BrokenHeartCelebration,
@@ -125,7 +122,10 @@ function isLevelUnlockedByStars(
   return stars.normal > 0;
 }
 
-function getLevelStorageKey(lessonId: string, levelId: BubblePopLevelId): string {
+function getLevelStorageKey(
+  lessonId: string,
+  levelId: BubblePopLevelId,
+): string {
   return `${lessonId}:${levelId}`;
 }
 
@@ -159,9 +159,12 @@ function getInitialLevelStars({
   );
   if (!stored) return emptyStars;
 
-  const easyStored = stored.lessonStars[getLevelStorageKey(lessonId, "easy")] ?? 0;
-  const normalStored = stored.lessonStars[getLevelStorageKey(lessonId, "normal")] ?? 0;
-  const hardStored = stored.lessonStars[getLevelStorageKey(lessonId, "hard")] ?? 0;
+  const easyStored =
+    stored.lessonStars[getLevelStorageKey(lessonId, "easy")] ?? 0;
+  const normalStored =
+    stored.lessonStars[getLevelStorageKey(lessonId, "normal")] ?? 0;
+  const hardStored =
+    stored.lessonStars[getLevelStorageKey(lessonId, "hard")] ?? 0;
   const hasPerLevelData = easyStored > 0 || normalStored > 0 || hardStored > 0;
   const fallbackStars = stored.stars;
 
@@ -179,7 +182,6 @@ function getInitialLevelStars({
     hard: fallbackStars >= 6 ? 3 : 0,
   };
 }
-
 
 export function Floor4BubbleChallenge({
   worldId,
@@ -210,9 +212,8 @@ export function Floor4BubbleChallenge({
   }, [bubbleConfig]);
 
   const [phase, setPhase] = useState<ChallengePhase>("select");
-  const [selectedLevelId, setSelectedLevelId] = useState<BubblePopLevelId | null>(
-    "easy",
-  );
+  const [selectedLevelId, setSelectedLevelId] =
+    useState<BubblePopLevelId | null>("easy");
   const [targetLetter, setTargetLetter] = useState<string>(targetLetters[0]);
   const [countdownValue, setCountdownValue] = useState(3);
   const [score, setScore] = useState(0);
@@ -228,23 +229,27 @@ export function Floor4BubbleChallenge({
     useState<BubblePopLevelId | null>(null);
   const [pendingUnlockLevelId, setPendingUnlockLevelId] =
     useState<BubblePopLevelId | null>(null);
-  const [levelStars, setLevelStars] = useState<Record<BubblePopLevelId, number>>(
-    () =>
-      getInitialLevelStars({
-        worldId,
-        towerId,
-        floorId,
-        floorMaxStars,
-        lessonId: lesson.id,
-      }),
+  const [levelStars, setLevelStars] = useState<
+    Record<BubblePopLevelId, number>
+  >(() =>
+    getInitialLevelStars({
+      worldId,
+      towerId,
+      floorId,
+      floorMaxStars,
+      lessonId: lesson.id,
+    }),
   );
 
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
   const audioContextRef = useRef<AudioContext | null>(null);
+  const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
+  const narrationSequenceIdRef = useRef(0);
+  const hasPlayedSelectIntroRef = useRef(false);
   const spawnCooldownMsRef = useRef(0);
   const passCelebrationTimeoutRef = useRef<number | null>(null);
   const unlockAnimationTimeoutRef = useRef<number | null>(null);
@@ -259,9 +264,10 @@ export function Floor4BubbleChallenge({
   const currentLevelRef = useRef<BubblePopLevelConfig | null>(null);
   const targetLetterRef = useRef<string>(targetLetters[0]);
 
-  const selectedLevel = selectedLevelId ? levelMap.get(selectedLevelId) ?? null : null;
-  const challengeHeaderTitle =
-    bubbleConfig?.headerTitle?.trim() || floorName;
+  const selectedLevel = selectedLevelId
+    ? (levelMap.get(selectedLevelId) ?? null)
+    : null;
+  const challengeHeaderTitle = bubbleConfig?.headerTitle?.trim() || floorName;
 
   useEffect(() => {
     const [firstLetter] = targetLetters;
@@ -286,9 +292,12 @@ export function Floor4BubbleChallenge({
     lastFrameAtRef.current = 0;
   }, []);
 
-  const stopSpeech = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.speechSynthesis?.cancel();
+  const stopNarration = useCallback(() => {
+    narrationSequenceIdRef.current += 1;
+    if (!narrationAudioRef.current) return;
+    narrationAudioRef.current.pause();
+    narrationAudioRef.current.currentTime = 0;
+    narrationAudioRef.current = null;
   }, []);
 
   const clearCelebrations = useCallback(() => {
@@ -301,21 +310,60 @@ export function Floor4BubbleChallenge({
     }
   }, []);
 
-  const speakText = useCallback(
-    (text: string) => {
-      if (typeof window === "undefined") return;
-      const content = text.trim();
-      if (!content) return;
-      const synth = window.speechSynthesis;
-      if (!synth) return;
-      synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(content);
-      utterance.lang = "vi-VN";
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
-      synth.speak(utterance);
+  const playNarration = useCallback(
+    (audioSrc?: string | null) => {
+      const src = audioSrc?.trim();
+      if (!src) return;
+      stopNarration();
+      const audio = new Audio(src);
+      narrationAudioRef.current = audio;
+      audio.play().catch(() => undefined);
     },
-    [],
+    [stopNarration],
+  );
+
+  const playNarrationSequence = useCallback(
+    (audioSources: Array<string | undefined>) => {
+      const clips = audioSources
+        .map((audioSrc) => audioSrc?.trim())
+        .filter((audioSrc): audioSrc is string => Boolean(audioSrc));
+      if (clips.length === 0) return;
+
+      stopNarration();
+      const sequenceId = narrationSequenceIdRef.current;
+      let clipIndex = 0;
+
+      const playClip = () => {
+        if (sequenceId !== narrationSequenceIdRef.current) return;
+        const clip = clips[clipIndex];
+        if (!clip) return;
+
+        const audio = new Audio(clip);
+        narrationAudioRef.current = audio;
+        let handled = false;
+
+        const handleDone = () => {
+          if (handled) return;
+          handled = true;
+          if (sequenceId !== narrationSequenceIdRef.current) return;
+          clipIndex += 1;
+          if (clipIndex >= clips.length) {
+            narrationAudioRef.current = null;
+            return;
+          }
+          playClip();
+        };
+
+        audio.addEventListener("ended", handleDone, { once: true });
+        audio.addEventListener("error", handleDone, { once: true });
+        audio.play().catch(() => {
+          handleDone();
+        });
+      };
+
+      playClip();
+    },
+    [stopNarration],
   );
 
   const getAudioContext = useCallback(() => {
@@ -378,14 +426,22 @@ export function Floor4BubbleChallenge({
     [getAudioContext],
   );
 
-  const enqueuePopup = useCallback((x: number, y: number, label: string, tone: "good" | "bad") => {
-    const popupId = popupIdRef.current;
-    popupIdRef.current += 1;
-    setFloatingPopups((current) => [...current, { id: popupId, x, y, label, tone }]);
-    window.setTimeout(() => {
-      setFloatingPopups((current) => current.filter((popup) => popup.id !== popupId));
-    }, 780);
-  }, []);
+  const enqueuePopup = useCallback(
+    (x: number, y: number, label: string, tone: "good" | "bad") => {
+      const popupId = popupIdRef.current;
+      popupIdRef.current += 1;
+      setFloatingPopups((current) => [
+        ...current,
+        { id: popupId, x, y, label, tone },
+      ]);
+      window.setTimeout(() => {
+        setFloatingPopups((current) =>
+          current.filter((popup) => popup.id !== popupId),
+        );
+      }, 780);
+    },
+    [],
+  );
 
   const persistProgress = useCallback(
     (nextLevelStars: Record<BubblePopLevelId, number>) => {
@@ -611,9 +667,10 @@ export function Floor4BubbleChallenge({
       const pairChance = level.pairSpawnChance ?? 0;
       if (Math.random() > pairChance) return;
 
-      const adjacentLaneCandidates = [firstBubble.lane - 1, firstBubble.lane + 1].filter(
-        (lane) => lane >= 0 && lane < bubbleConfig.laneCount,
-      );
+      const adjacentLaneCandidates = [
+        firstBubble.lane - 1,
+        firstBubble.lane + 1,
+      ].filter((lane) => lane >= 0 && lane < bubbleConfig.laneCount);
       if (!adjacentLaneCandidates.length) return;
 
       const lane =
@@ -709,7 +766,7 @@ export function Floor4BubbleChallenge({
 
   const startGameplay = useCallback(() => {
     if (!bubbleConfig || !selectedLevel) return;
-    stopSpeech();
+    stopNarration();
     stopGameLoop();
     clearCelebrations();
     setPhase("playing");
@@ -740,7 +797,7 @@ export function Floor4BubbleChallenge({
     clearCelebrations,
     selectedLevel,
     stopGameLoop,
-    stopSpeech,
+    stopNarration,
     targetLetter,
   ]);
 
@@ -759,9 +816,8 @@ export function Floor4BubbleChallenge({
         setLastEarnedStars(0);
         setCountdownValue(3);
         targetLetterRef.current = nextTargetLetter;
-        speakText(
-          `Mức ${LEVEL_LABEL[level.id]}. Hãy chạm vào bóng bay chữ ${nextTargetLetter}.`,
-        );
+        const targetAudioKey = nextTargetLetter.toLocaleLowerCase("vi-VN");
+        playNarration(bubbleConfig?.targetAudioByLetter?.[targetAudioKey]);
         setPhase("countdown");
       };
 
@@ -787,8 +843,9 @@ export function Floor4BubbleChallenge({
       levelMap,
       pendingUnlockLevelId,
       pickRandomTargetLetter,
-      speakText,
+      playNarration,
       stopGameLoop,
+      bubbleConfig,
     ],
   );
 
@@ -835,8 +892,8 @@ export function Floor4BubbleChallenge({
 
   const replayRulesAudio = useCallback(() => {
     if (!bubbleConfig) return;
-    speakText(bubbleConfig.rulesAudioText);
-  }, [bubbleConfig, speakText]);
+    playNarration(bubbleConfig.rulesAudio);
+  }, [bubbleConfig, playNarration]);
 
   useEffect(() => {
     const playfield = playfieldRef.current;
@@ -876,8 +933,13 @@ export function Floor4BubbleChallenge({
   useEffect(() => {
     if (!bubbleConfig) return;
     if (phase !== "select") return;
-    speakText(bubbleConfig.rulesAudioText);
-  }, [bubbleConfig, phase, speakText]);
+    if (!hasPlayedSelectIntroRef.current) {
+      hasPlayedSelectIntroRef.current = true;
+      playNarrationSequence([bubbleConfig.introAudio, bubbleConfig.rulesAudio]);
+      return;
+    }
+    playNarration(bubbleConfig.rulesAudio);
+  }, [bubbleConfig, phase, playNarration, playNarrationSequence]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -925,12 +987,18 @@ export function Floor4BubbleChallenge({
       delete window.render_game_to_text;
       delete window.advanceTime;
     };
-  }, [passCelebrationStars, phase, runGameStep, selectedLevelId, showFailCelebration]);
+  }, [
+    passCelebrationStars,
+    phase,
+    runGameStep,
+    selectedLevelId,
+    showFailCelebration,
+  ]);
 
   useEffect(() => {
     return () => {
       stopGameLoop();
-      stopSpeech();
+      stopNarration();
       if (passCelebrationTimeoutRef.current !== null) {
         window.clearTimeout(passCelebrationTimeoutRef.current);
         passCelebrationTimeoutRef.current = null;
@@ -943,7 +1011,7 @@ export function Floor4BubbleChallenge({
       audioContextRef.current.close().catch(() => undefined);
       audioContextRef.current = null;
     };
-  }, [stopGameLoop, stopSpeech]);
+  }, [stopGameLoop, stopNarration]);
 
   if (!bubbleConfig || levelList.length === 0) {
     return (
@@ -986,9 +1054,13 @@ export function Floor4BubbleChallenge({
         {passCelebrationStars > 0 && <SuccessCelebrationOverlay />}
       </AnimatePresence>
       <AnimatePresence>
-        {passCelebrationStars > 0 && <StarCelebration stars={passCelebrationStars} />}
+        {passCelebrationStars > 0 && (
+          <StarCelebration stars={passCelebrationStars} />
+        )}
       </AnimatePresence>
-      <AnimatePresence>{showFailCelebration && <BrokenHeartCelebration />}</AnimatePresence>
+      <AnimatePresence>
+        {showFailCelebration && <BrokenHeartCelebration />}
+      </AnimatePresence>
 
       <div className="sticky top-0 z-20 bg-white/90 shadow-sm backdrop-blur-md pt-safe pl-safe pr-safe">
         <div className="flex items-center gap-3 px-4 pb-4 pt-3">
@@ -1044,17 +1116,30 @@ export function Floor4BubbleChallenge({
               <motion.div
                 className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-200/70"
                 animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 3.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
               <motion.div
                 className="pointer-events-none absolute bottom-3 right-8 h-10 w-10 rounded-full bg-pink-200/70"
                 animate={{ y: [0, -4, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
               <motion.div
                 className="pointer-events-none absolute -bottom-9 -left-7 h-24 w-24 rounded-full bg-emerald-200/70"
                 animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.4,
+                }}
               />
               <p className="relative mb-1 text-2xl font-black text-foreground font-hp-special">
                 {bubbleConfig.title ?? "Chọn mức độ"}
@@ -1077,12 +1162,20 @@ export function Floor4BubbleChallenge({
               <motion.span
                 className="pointer-events-none absolute -left-2 top-4 h-6 w-6 rounded-full bg-cyan-200/60"
                 animate={{ y: [0, -4, 0], x: [0, 2, 0] }}
-                transition={{ duration: 2.1, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 2.1,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
               <motion.span
                 className="pointer-events-none absolute right-1 top-20 h-5 w-5 rounded-full bg-amber-200/70"
                 animate={{ y: [0, -3, 0], x: [0, -2, 0] }}
-                transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 2.7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
               {LEVEL_ORDER.map((levelId, levelIndex) => {
                 const level = levelMap.get(levelId);
@@ -1124,10 +1217,11 @@ export function Floor4BubbleChallenge({
                     >
                       <span
                         className={`pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-r ${
-                          unlocked ? LEVEL_COLOR[level.id] : "from-slate-300 to-slate-400"
+                          unlocked
+                            ? LEVEL_COLOR[level.id]
+                            : "from-slate-300 to-slate-400"
                         } opacity-25`}
-                      >
-                      </span>
+                      ></span>
                       <span className="relative flex items-center gap-3 rounded-[22px] px-4 py-3">
                         <span
                           className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 ${
@@ -1169,16 +1263,18 @@ export function Floor4BubbleChallenge({
                             {level.durationSeconds}s • {level.targetScore} điểm
                           </span>
                           <span className="mt-1.5 flex gap-0.5">
-                            {[...Array(level.starsReward)].map((_, starIndex) => (
-                              <Star
-                                key={`${level.id}-star-${starIndex}`}
-                                className={`h-3.5 w-3.5 ${
-                                  starIndex < earnedStars
-                                    ? "fill-yellow-300 text-yellow-300"
-                                    : "fill-slate-200 text-slate-300"
-                                }`}
-                              />
-                            ))}
+                            {[...Array(level.starsReward)].map(
+                              (_, starIndex) => (
+                                <Star
+                                  key={`${level.id}-star-${starIndex}`}
+                                  className={`h-3.5 w-3.5 ${
+                                    starIndex < earnedStars
+                                      ? "fill-yellow-300 text-yellow-300"
+                                      : "fill-slate-200 text-slate-300"
+                                  }`}
+                                />
+                              ),
+                            )}
                           </span>
                         </span>
 
@@ -1249,7 +1345,7 @@ export function Floor4BubbleChallenge({
               <div>
                 <p className="text-xs text-muted-foreground">Yêu cầu</p>
                 <p className="text-sm font-semibold text-foreground">
-                  Chạm vào bóng bay {" "}
+                  Chạm vào bóng bay{" "}
                   <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
                     &quot;{targetLetter}&quot;
                   </span>
@@ -1288,20 +1384,25 @@ export function Floor4BubbleChallenge({
               ref={playfieldRef}
               className="relative h-[58dvh] min-h-105 w-full overflow-hidden rounded-3xl border-4 border-cyan-200 bg-linear-to-b from-cyan-100 via-sky-100 to-blue-200 shadow-lg"
             >
-              {[...Array(Math.max(0, bubbleConfig.laneCount - 1))].map((_, laneIndex) => (
-                <div
-                  key={`lane-${laneIndex}`}
-                  className="pointer-events-none absolute inset-y-0 w-px bg-white/50"
-                  style={{
-                    left: `${((laneIndex + 1) / bubbleConfig.laneCount) * 100}%`,
-                  }}
-                />
-              ))}
+              {[...Array(Math.max(0, bubbleConfig.laneCount - 1))].map(
+                (_, laneIndex) => (
+                  <div
+                    key={`lane-${laneIndex}`}
+                    className="pointer-events-none absolute inset-y-0 w-px bg-white/50"
+                    style={{
+                      left: `${((laneIndex + 1) / bubbleConfig.laneCount) * 100}%`,
+                    }}
+                  />
+                ),
+              )}
 
               {bubbles.map((bubble) => {
                 const isTarget = bubble.kind === "target";
                 const isWrong = bubble.kind === "wrong";
-                const letterFontSize = Math.max(30, Math.round(bubble.size * 0.38));
+                const letterFontSize = Math.max(
+                  30,
+                  Math.round(bubble.size * 0.38),
+                );
                 return (
                   <motion.button
                     key={bubble.id}
@@ -1354,7 +1455,9 @@ export function Floor4BubbleChallenge({
                     animate={{ opacity: 0, y: -26, scale: 1.1 }}
                     exit={{ opacity: 0 }}
                     className={`pointer-events-none absolute text-lg font-bold ${
-                      popup.tone === "good" ? "text-emerald-700" : "text-rose-600"
+                      popup.tone === "good"
+                        ? "text-emerald-700"
+                        : "text-rose-600"
                     }`}
                     style={{ left: popup.x - 16, top: popup.y - 16 }}
                   >

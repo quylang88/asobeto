@@ -12,7 +12,7 @@ import {
   GameButton,
 } from "../components";
 import { LESSON_PREVIEW_CONTROL_OFFSET_CLASS } from "../constants";
-import { getPreviewTextSizeClass, getSpeedLabel } from "../utils";
+import { getPreviewTextSizeClass } from "../utils";
 
 interface LessonPassivePreviewRendererProps {
   currentLesson: LessonContent;
@@ -166,25 +166,6 @@ export function LessonPassivePreviewRenderer({
               </motion.div>
             )}
           </motion.div>
-        )}
-
-      {currentLesson.audioVariants &&
-        currentLesson.audioVariants.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-            {currentLesson.audioVariants.map((variant) => (
-              <GameButton
-                key={variant.speed}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playAudio(variant.audio);
-                }}
-                className="rounded-xl"
-                frontClassName="px-4 py-2 text-sm"
-              >
-                {getSpeedLabel(variant.speed)}
-              </GameButton>
-            ))}
-          </div>
         )}
 
       {showTitleBelowPreview && (

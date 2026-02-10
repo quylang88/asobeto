@@ -1,6 +1,5 @@
 import {
   LessonAnswer,
-  LessonAudioVariant,
   LessonContent,
   WordToken,
 } from "./map-structure";
@@ -21,25 +20,6 @@ interface VocabFloorLessonConfig {
   wordTokens: WordToken[];
   wordTokenPool: WordToken[];
   reviewLetters: string[];
-}
-
-function createLetterAudioVariants(
-  letterAssetKey: string,
-): LessonAudioVariant[] {
-  return [
-    {
-      speed: "slow",
-      audio: `/assets/audio/letters/${letterAssetKey}-slow.mp3`,
-    },
-    {
-      speed: "normal",
-      audio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
-    },
-    {
-      speed: "fast",
-      audio: `/assets/audio/letters/${letterAssetKey}-fast.mp3`,
-    },
-  ];
 }
 
 function createLetterAnswers(
@@ -72,6 +52,8 @@ export function createLetterFloorLessons(
   config: LetterFloorLessonConfig,
 ): LessonContent[] {
   const { lessonPrefix, letter, letterAssetKey, distractors } = config;
+  const introAudioBase = `/assets/audio/intro-letters/${letterAssetKey}`;
+  const mainLetterAudio = `/assets/audio/letters/${letterAssetKey}.mp3`;
   // Chuẩn hóa chữ cái mục tiêu sang chữ thường để áp dụng cho toàn bộ lesson 1-4
   const normalizedLetter = letter.toLocaleLowerCase();
 
@@ -81,13 +63,11 @@ export function createLetterFloorLessons(
       type: "passive",
       lessonKind: "letter_listen",
       title: `Làm quen chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-1.mp3`,
-      mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
-      audioVariants: createLetterAudioVariants(letterAssetKey),
+      introVoice: `${introAudioBase}/intro-1.mp3`,
+      mainAudio: mainLetterAudio,
       targetLetter: normalizedLetter,
       gating: {
         requiredAudioPlays: 3,
-        requiredPlaybackSpeeds: ["slow", "normal", "fast"],
       },
       scoring: {
         metric: "none",
@@ -100,8 +80,8 @@ export function createLetterFloorLessons(
       type: "active",
       lessonKind: "letter_quiz",
       title: "Nghe và chọn chữ cái",
-      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-2.mp3`,
-      mainAudio: `/assets/audio/letters/${letterAssetKey}-normal.mp3`,
+      introVoice: `${introAudioBase}/intro-2.mp3`,
+      mainAudio: mainLetterAudio,
       answers: createLetterAnswers(letter, distractors),
       targetLetter: normalizedLetter,
       scoring: {
@@ -118,7 +98,7 @@ export function createLetterFloorLessons(
       type: "passive",
       lessonKind: "letter_trace_demo",
       title: `Xem cách viết chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-3.mp3`,
+      introVoice: `${introAudioBase}/intro-3.mp3`,
       targetLetter: normalizedLetter,
       targetText: normalizedLetter,
       gating: {
@@ -135,7 +115,7 @@ export function createLetterFloorLessons(
       type: "active",
       lessonKind: "letter_trace_practice",
       title: `Viết lại chữ cái "${normalizedLetter}"`,
-      introVoice: `/assets/audio/intro-letters/${letterAssetKey}-intro-4.mp3`,
+      introVoice: `${introAudioBase}/intro-4.mp3`,
       targetLetter: normalizedLetter,
       targetText: normalizedLetter,
       scoring: {
@@ -162,7 +142,7 @@ export function createVocabFloorLessons(
     wordTokenPool,
     reviewLetters,
   } = config;
-  const listenRepeatAudio = `/assets/audio/words/${wordAssetKey}-spelling.mp3`;
+  const listenRepeatAudio = `/assets/audio/intro-words/${wordAssetKey}/spelling.mp3`;
   const introAudioBase = `/assets/audio/intro-words/${wordAssetKey}`;
 
   return [
@@ -171,7 +151,7 @@ export function createVocabFloorLessons(
       type: "passive",
       lessonKind: "vocab_listen_look",
       title: "Nghe và nhìn",
-      introVoice: `${introAudioBase}-l1.mp3`,
+      introVoice: `${introAudioBase}/intro-1.mp3`,
       mainAudio: `/assets/audio/words/${wordAssetKey}.mp3`,
       mainImage: `/assets/images/${wordAssetKey}.webp`,
       targetText: word,
@@ -187,7 +167,7 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_listen_repeat",
       title: "Nghe đánh vần và nói lại",
-      introVoice: `${introAudioBase}-l2.mp3`,
+      introVoice: `${introAudioBase}/intro-2.mp3`,
       mainAudio: listenRepeatAudio,
       mainImage: `/assets/images/${wordAssetKey}-with-word.webp`,
       targetText: word,
@@ -208,7 +188,7 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_word_build",
       title: `Kéo thả để tạo từ "${word}"`,
-      introVoice: `${introAudioBase}-l3.mp3`,
+      introVoice: `${introAudioBase}/intro-3.mp3`,
       targetText: word,
       targetTokens: wordTokens,
       tokenPool: wordTokenPool,
@@ -227,7 +207,7 @@ export function createVocabFloorLessons(
       type: "active",
       lessonKind: "vocab_trace_practice",
       title: `Viết từ "${word}"`,
-      introVoice: `${introAudioBase}-l4.mp3`,
+      introVoice: `${introAudioBase}/intro-4.mp3`,
       mainImage: `/assets/tracing/words/${wordAssetKey}-guide.webp`,
       targetText: word,
       relatedLetters: reviewLetters,

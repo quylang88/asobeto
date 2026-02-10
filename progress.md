@@ -185,3 +185,43 @@ Validation
 - `pnpm exec tsc --noEmit` pass
 - Playwright smoke (tower 2 floor 4): `render_game_to_text` shows `targetLetter: "ă"` and spawned bubbles include both `ă` and `n`.
 - `node $WEB_GAME_CLIENT ...` could not run in this env because package `playwright` is missing for that script import path.
+
+---
+
+Update (Audio path migration + remove speed variants + bubble mp3 narration)
+
+TODO
+- [x] Remove `slow/normal/fast` variant model and UI buttons in passive preview lessons.
+- [x] Switch letter audio path from `*-normal.mp3` to single-file format (`a.mp3`, `c.mp3`, ...).
+- [x] Switch intro path format for floor 1/2/3 lessons to folder-based paths under `intro-letters/*` and `intro-words/*`.
+- [x] Use the new spelling file path for word `cá` (`intro-words/fish/spelling.mp3`) in listen-repeat.
+- [x] Remove bubble game `speechSynthesis` usage and replace with mp3 playback from `assets/audio/game/bubble-pop` (`intro`, `rules`, `target-*`).
+
+Notes
+- `LessonAudioVariant`, `AudioPlaybackSpeed`, and `requiredPlaybackSpeeds` were removed from world-1 map structure.
+- Passive preview renderer no longer renders speed buttons (`Chậm/Thường/Nhanh`); replay uses one default lesson audio.
+- Letter lesson templates now use:
+  - intro: `/assets/audio/intro-letters/<assetKey>/intro-{1..4}.mp3`
+  - main audio: `/assets/audio/letters/<assetKey>.mp3`
+- Vocabulary templates now use:
+  - intro: `/assets/audio/intro-words/<assetKey>/intro-{1..4}.mp3`
+  - spelling (listen-repeat): `/assets/audio/intro-words/<assetKey>/spelling.mp3`
+- Floor-4 bubble config now has mp3 fields (`introAudio`, `rulesAudio`, `targetAudioByLetter`) and the screen plays:
+  - first open select: intro -> rules
+  - replay button: rules
+  - start countdown: target-letter audio
+
+Validation
+- `pnpm lint` pass
+- `pnpm exec tsc --noEmit` pass
+- Asset existence spot-check pass for updated paths:
+  - `public/assets/audio/letters/a.mp3`, `public/assets/audio/letters/c.mp3`
+  - `public/assets/audio/intro-letters/a/intro-1.mp3`, `public/assets/audio/intro-letters/c/intro-1.mp3`
+  - `public/assets/audio/intro-words/fish/intro-1.mp3`, `public/assets/audio/intro-words/fish/spelling.mp3`
+  - `public/assets/audio/game/bubble-pop/intro.mp3`, `rules.mp3`, `target-a.mp3`, `target-c.mp3`
+- Manual Playwright smoke on running dev app (`http://127.0.0.1:3100`):
+  - Entered tower-1 floor-4 bubble game and opened level-select screen.
+  - Verified network requests for narration audio:
+    - select phase: `/assets/audio/game/bubble-pop/intro.mp3` and `rules.mp3` (HTTP 206)
+    - countdown phase after starting level: `/assets/audio/game/bubble-pop/target-c.mp3` (HTTP 206)
+- `node $WEB_GAME_CLIENT ...` still cannot run in this env because package `playwright` is not installed for that client script.

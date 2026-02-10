@@ -69,12 +69,6 @@ export function getSpeechSimilarity(spokenText: string, targetText: string): num
   return Math.max(directScore, noDiacriticsScore);
 }
 
-export function getSpeedLabel(speed: string): string {
-  if (speed === "slow") return "Chậm";
-  if (speed === "fast") return "Nhanh";
-  return "Thường";
-}
-
 function shuffleArray<T>(items: T[]): T[] {
   const shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {

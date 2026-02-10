@@ -18,6 +18,12 @@ export const floor4Lessons: LessonContent[] = [
       instruction: "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.",
       rules: ["Chạm đúng bóng bay chữ theo yêu cầu."],
       rulesAudioText: "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.",
+      introAudio: "/assets/audio/game/bubble-pop/intro.mp3",
+      rulesAudio: "/assets/audio/game/bubble-pop/rules.mp3",
+      targetAudioByLetter: {
+        a: "/assets/audio/game/bubble-pop/target-a.mp3",
+        c: "/assets/audio/game/bubble-pop/target-c.mp3",
+      },
       startLives: 3,
       targetLetters: ["a", "c"],
       laneCount: 5,

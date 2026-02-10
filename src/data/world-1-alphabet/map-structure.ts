@@ -16,7 +16,6 @@ export type LessonKind =
   | "vocab_word_build"
   | "vocab_trace_practice"
   | "bubble_pop_challenge";
-export type AudioPlaybackSpeed = "slow" | "normal" | "fast";
 export type ScoringMetric =
   | "none"
   | "correct_answer"
@@ -24,14 +23,8 @@ export type ScoringMetric =
   | "trace_accuracy"
   | "word_assembly_accuracy";
 
-export interface LessonAudioVariant {
-  speed: AudioPlaybackSpeed;
-  audio: string;
-}
-
 export interface LessonGating {
   requiredAudioPlays?: number;
-  requiredPlaybackSpeeds?: AudioPlaybackSpeed[];
   requireAnimationComplete?: boolean;
 }
 
@@ -82,6 +75,9 @@ export interface BubblePopGameConfig {
   instruction?: string;
   rules: string[];
   rulesAudioText: string;
+  introAudio?: string;
+  rulesAudio?: string;
+  targetAudioByLetter?: Record<string, string>;
   startLives: number;
   targetLetters: [string, string];
   laneCount: number;
@@ -107,7 +103,6 @@ export interface LessonContent {
   // Display Data
   mainImage?: string;
   mainAudio?: string;
-  audioVariants?: LessonAudioVariant[];
   title?: string;
   instruction?: string;
   introVoice?: string;
