@@ -318,3 +318,55 @@ Validation
 
 Follow-up suggestion
 - Optional: add a compact CTA label near the tower-map badge icon (e.g. "Huy hiệu") for clearer discoverability on first use.
+
+---
+
+Update (Active-lesson celebration audio reliability + badge collection redesign)
+
+TODO
+- [x] Improve `StarCelebration` / `BrokenHeartCelebration` audio reliability in active lessons.
+- [x] Move badge collection trigger outside world-map content area and redesign as colorful badge/collection CTA.
+- [x] Redesign badge collection modal with green tone and larger `Bộ sưu tập huy hiệu` title.
+- [x] Remove old star-style progress (`0/5`), show unlocked badge count only.
+- [x] Replace star iconography with badge-like iconography.
+- [x] Simplify badge card visuals (remove `Huy Hiệu` chip, sparkles, letter overlays, `Chưa mở`).
+- [x] Center and enlarge lock icon for locked badges.
+- [x] Tighten badge card frame and switch modal grid to 3 columns.
+- [x] Use `font-hp-special` for badge tower labels.
+- [x] Temporarily force-unlock all non-boss tower badges for testing.
+- [x] Set tower A badge image to `anpanman.webp`.
+- [x] Add tap-to-preview zoom behavior for each badge in collection.
+
+Notes
+- Added `src/lib/celebration-audio.ts`:
+  - audio element cache by src
+  - preload helper
+  - retry-based `play()` helper for transient play failures.
+- `StarCelebration` and `BrokenHeartCelebration` now use cached/retry playback.
+- `LessonInterface` now preloads celebration success/fail audio when lesson screen mounts.
+- Badge component file names were normalized from `tower-badge-*` to `badge-*` and exports updated.
+- `tower-badges.ts` now includes:
+  - `FORCE_UNLOCK_ALL_BADGES_FOR_TESTING = true`
+  - `badgeImageSrc` in badge record
+  - tower id `1` image override to `/assets/images/badges/anpanman.webp`.
+- Collection modal updates:
+  - green palette
+  - title-only header (`Bộ sưu tập huy hiệu`)
+  - 3-column badge grid
+  - per-badge tap opens centered preview overlay.
+- World map badge CTA now:
+  - fixed outside map area (`bottom-right` floating action style)
+  - medal icon
+  - unlocked-count only (no denominator).
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright smoke on `http://127.0.0.1:3100`:
+  - world map shows floating badge CTA with medal icon and count-only text.
+  - collection modal shows green style + 3-column grid + larger title.
+  - tapping badge opens centered zoom preview overlay and dismisses on tap.
+  - network requests include celebration audio in active lessons:
+    - `/assets/audio/feedback/success-answer.mp3` (HTTP 206)
+    - `/assets/audio/feedback/wrong-answer.mp3` (HTTP 206)
+- `node $WEB_GAME_CLIENT ...` still cannot run in this environment because that script cannot resolve package `playwright` in its import path.

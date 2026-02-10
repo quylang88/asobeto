@@ -1,3 +1,3 @@
-export { TowerBadgeSticker } from "./tower-badge-sticker";
-export { TowerBadgeAwardOverlay } from "./tower-badge-award-overlay";
-export { TowerBadgeCollectionModal } from "./tower-badge-collection-modal";
+export { TowerBadgeSticker } from "./badge-sticker";
+export { TowerBadgeAwardOverlay } from "./badge-award-overlay";
+export { TowerBadgeCollectionModal } from "./badge-collection-modal";

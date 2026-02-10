@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
+import {
+  playCelebrationAudio,
+  preloadCelebrationAudio,
+} from "@/lib/celebration-audio";
 
 const DEFAULT_BROKEN_HEART_SOUND = "/assets/audio/feedback/wrong-answer.mp3";
 
@@ -28,20 +32,10 @@ export function BrokenHeartCelebration({
   muteSound = false,
   soundSrc = DEFAULT_BROKEN_HEART_SOUND,
 }: BrokenHeartCelebrationProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   useEffect(() => {
     if (muteSound || typeof window === "undefined") return;
-    const audio = new Audio(soundSrc);
-    audioRef.current = audio;
-    audio.play().catch(() => undefined);
-
-    return () => {
-      if (!audioRef.current) return;
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    };
+    preloadCelebrationAudio(soundSrc);
+    playCelebrationAudio(soundSrc, { retries: 2, retryDelayMs: 140 });
   }, [muteSound, soundSrc]);
 
   return (

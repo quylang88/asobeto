@@ -9,6 +9,7 @@ import {
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
+import { preloadCelebrationAudio } from "@/lib/celebration-audio";
 import { getStoredLessonStars } from "@/lib/floor-progress";
 import { type LessonContent } from "../data/game-config";
 import {
@@ -40,6 +41,9 @@ import {
   useThresholdSpeech,
   useWordBuildDrag,
 } from "./lesson-interface/index";
+
+const LESSON_SUCCESS_FEEDBACK_AUDIO = "/assets/audio/feedback/success-answer.mp3";
+const LESSON_FAILURE_FEEDBACK_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 
 interface LessonInterfaceProps {
   worldId: number;
@@ -101,6 +105,12 @@ export function LessonInterface({
     currentLessonIntroVoice,
     currentLessonMainAudio,
   });
+
+  useEffect(() => {
+    preloadCelebrationAudio(LESSON_SUCCESS_FEEDBACK_AUDIO);
+    preloadCelebrationAudio(LESSON_FAILURE_FEEDBACK_AUDIO);
+  }, []);
+
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
   const isTracePracticeLesson = isTracePracticeLessonKind(currentLessonKind);
   const isVocabTracePracticeLesson =

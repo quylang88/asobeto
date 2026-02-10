@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
+import {
+  playCelebrationAudio,
+  preloadCelebrationAudio,
+} from "@/lib/celebration-audio";
 
 const DEFAULT_STAR_SOUND = "/assets/audio/feedback/success-answer.mp3";
 
@@ -45,20 +49,11 @@ export function StarCelebration({
   soundSrc = DEFAULT_STAR_SOUND,
 }: StarCelebrationProps) {
   const starOffsets = getStarOffsets(stars);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (muteSound || typeof window === "undefined") return;
-    const audio = new Audio(soundSrc);
-    audioRef.current = audio;
-    audio.play().catch(() => undefined);
-
-    return () => {
-      if (!audioRef.current) return;
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    };
+    preloadCelebrationAudio(soundSrc);
+    playCelebrationAudio(soundSrc, { retries: 2, retryDelayMs: 140 });
   }, [muteSound, soundSrc]);
 
   return (

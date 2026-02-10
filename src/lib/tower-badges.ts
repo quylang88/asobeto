@@ -1,6 +1,7 @@
 import type { Tower } from "@/data/game-config";
 
 const TOWER_BADGE_STORAGE_KEY = "asobeto-tower-badges-v1";
+const FORCE_UNLOCK_ALL_BADGES_FOR_TESTING = true;
 
 interface StoredTowerBadge {
   unlockedAt: string;
@@ -20,6 +21,7 @@ export interface TowerBadgeRecord extends TowerBadgeLocation {
   towerName: string;
   towerLetters: string;
   paletteIndex: number;
+  badgeImageSrc: string | null;
   unlockedAt: string | null;
   unlocked: boolean;
 }
@@ -126,6 +128,14 @@ export function createTowerBadgeRecord({
   tower: Tower;
   unlockedAt: string | null;
 }): TowerBadgeRecord {
+  const isForcedUnlocked = FORCE_UNLOCK_ALL_BADGES_FOR_TESTING && !tower.isBoss;
+  const resolvedUnlockedAt = isForcedUnlocked
+    ? (unlockedAt ?? "force-unlocked-for-test")
+    : unlockedAt;
+
+  const badgeImageSrc =
+    tower.id === 1 ? "/assets/images/badges/anpanman.webp" : null;
+
   return {
     key: getTowerBadgeKey({ worldId, towerId: tower.id }),
     worldId,
@@ -133,8 +143,9 @@ export function createTowerBadgeRecord({
     towerName: tower.name,
     towerLetters: tower.letters,
     paletteIndex: Math.max(0, tower.id - 1),
-    unlockedAt,
-    unlocked: Boolean(unlockedAt),
+    badgeImageSrc,
+    unlockedAt: resolvedUnlockedAt,
+    unlocked: Boolean(resolvedUnlockedAt),
   };
 }
 

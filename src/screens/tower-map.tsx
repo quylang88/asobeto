@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Star, Lock } from "lucide-react";
+import { ChevronLeft, Medal, Star, Lock } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import {
   getWorldData,
@@ -566,17 +566,6 @@ export function TowerSelection({
             <Star className="w-5 h-5 text-yellow-bright fill-yellow-bright" />
             <span className="font-bold text-foreground">{totalStars}</span>
           </div>
-          <motion.button
-            onClick={() => setIsBadgeCollectionOpen(true)}
-            className="flex min-w-14 flex-col items-center rounded-2xl bg-cyan-100 px-2 py-1.5 text-cyan-700 shadow-sm ios-button"
-            whileTap={{ scale: 0.95 }}
-            aria-label="Xem bộ sưu tập huy hiệu"
-          >
-            <Star className="h-4 w-4 fill-yellow-300 text-yellow-500" />
-            <span className="text-[0.62rem] font-bold leading-tight">
-              {unlockedBadgeCount}/{towerBadges.length}
-            </span>
-          </motion.button>
           <Mascot size="sm" emotion="happy" />
         </div>
       </div>
@@ -610,6 +599,29 @@ export function TowerSelection({
         </div>
       </div>
 
+      <motion.button
+        type="button"
+        onClick={() => setIsBadgeCollectionOpen(true)}
+        className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-30 flex items-center gap-2 rounded-3xl border-2 border-emerald-200 bg-linear-to-br from-emerald-100 via-lime-100 to-cyan-100 px-3 py-2 text-emerald-800 shadow-xl ios-button"
+        whileTap={{ scale: 0.95 }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        aria-label="Xem bộ sưu tập huy hiệu"
+      >
+        <span className="relative flex h-9 w-9 items-center justify-center rounded-2xl bg-white/85 shadow-sm">
+          <Medal className="h-5 w-5 text-emerald-600" />
+        </span>
+        <div className="text-left leading-tight">
+          <p className="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Huy hiệu
+          </p>
+          <p className="font-hp-special text-xl font-black text-emerald-900">
+            {unlockedBadgeCount}
+          </p>
+        </div>
+      </motion.button>
+
       {/* Hoạt ảnh sao bay */}
       <AnimatePresence>
         {flyingStars.map((star, index) => (
@@ -640,7 +652,6 @@ export function TowerSelection({
       <AnimatePresence>
         {isBadgeCollectionOpen && (
           <TowerBadgeCollectionModal
-            worldName={worldName}
             badges={towerBadges}
             onClose={() => setIsBadgeCollectionOpen(false)}
           />
