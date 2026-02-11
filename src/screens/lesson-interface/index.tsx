@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mascot } from "../components/beto-mascot";
+import { Mascot } from "../../components/beto-mascot";
 import {
   BrokenHeartCelebration,
   StarCelebration,
@@ -11,20 +11,22 @@ import {
 import { LessonCompletionView } from "@/components/completion";
 import { preloadCelebrationAudio } from "@/lib/celebration-audio";
 import { getStoredLessonStars } from "@/lib/floor-progress";
-import { type LessonAnswer, type LessonContent } from "../data/game-config";
+import { type LessonAnswer, type LessonContent } from "../../data/game-config";
 import {
   LessonActiveRenderer,
-  GameButton,
   LessonPassivePreviewRenderer,
-  LessonTopBar,
-  type TraceEvaluation,
   WordBuildDragGhost,
+} from "./renderers";
+import { GameButton, LessonTopBar, type TraceEvaluation } from "./components";
+import {
   getAttemptFloorStars,
   getLessonMaxStars,
   getTracePracticeLessonIdFromDemoLessonId,
   getWordBuildSlotPlacements,
   getWordBuildStateForLesson,
   getWordBuildTokenDisplayText,
+} from "./utils";
+import {
   isFloor3ListenLookLessonKind,
   isFogRevealLessonKind,
   isLetterGridPreviewLessonKind,
@@ -35,12 +37,14 @@ import {
   isWordBuildLessonKind,
   shouldPromoteTitleToInstructionKind,
   shouldUseLargerVocabImageKind,
+} from "./lesson-kind-guards";
+import {
   useLessonAudio,
   useLessonFlow,
   usePassiveFlow,
   useThresholdSpeech,
   useWordBuildDrag,
-} from "./lesson-interface/index";
+} from "./hooks";
 
 const LESSON_SUCCESS_FEEDBACK_AUDIO =
   "/assets/audio/feedback/success-answer.mp3";
