@@ -4,7 +4,7 @@ import { createVocabFloorLessons } from "../lesson-templates";
 const baseFloor3Lessons = createVocabFloorLessons({
   lessonPrefix: "t1-f3",
   word: "cá",
-  wordAssetKey: "fish",
+  wordAssetKey: "cas",
   wordTokens: [
     { id: "c", text: "c", kind: "letter" },
     { id: "a", text: "a", kind: "letter" },

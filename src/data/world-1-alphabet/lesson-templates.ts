@@ -144,16 +144,18 @@ export function createVocabFloorLessons(
   } = config;
   const listenRepeatAudio = `/assets/audio/intro-words/${wordAssetKey}/spelling.mp3`;
   const introAudioBase = `/assets/audio/intro-words/${wordAssetKey}`;
+  const vocabWordAudio = `/assets/audio/words/${wordAssetKey}.mp3`;
+  const withWordImage = `/assets/images/${wordAssetKey}-with-word.webp`;
 
   return [
     {
       id: `${lessonPrefix}-l1`,
       type: "passive",
       lessonKind: "vocab_listen_look",
-      title: "Nghe và nhìn",
+      title: "Nghe đánh vần và nhìn",
       introVoice: `${introAudioBase}/intro-1.mp3`,
-      mainAudio: `/assets/audio/words/${wordAssetKey}.mp3`,
-      mainImage: `/assets/images/${wordAssetKey}.webp`,
+      mainAudio: listenRepeatAudio,
+      mainImage: withWordImage,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {
@@ -166,10 +168,10 @@ export function createVocabFloorLessons(
       id: `${lessonPrefix}-l2`,
       type: "active",
       lessonKind: "vocab_listen_repeat",
-      title: "Nghe đánh vần và nói lại",
+      title: "Nghe từ vựng và nói lại",
       introVoice: `${introAudioBase}/intro-2.mp3`,
-      mainAudio: listenRepeatAudio,
-      mainImage: `/assets/images/${wordAssetKey}-with-word.webp`,
+      mainAudio: vocabWordAudio,
+      mainImage: withWordImage,
       targetText: word,
       relatedLetters: reviewLetters,
       scoring: {

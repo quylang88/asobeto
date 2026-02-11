@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import { Mascot } from "@/components/beto-mascot";
+import {
+  playCelebrationAudio,
+  preloadCelebrationAudio,
+} from "@/lib/celebration-audio";
 import { GameButton } from "@/screens/lesson-interface/components";
 
 const COMPLETION_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
@@ -54,27 +58,18 @@ export function LessonCompletionView({
   const completionSummary = noStarsEarned
     ? (failSummary ?? defaultSummary)
     : (successSummary ?? defaultSummary);
-  const completionAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (completionAudioRef.current) {
-      completionAudioRef.current.pause();
-      completionAudioRef.current.currentTime = 0;
-      completionAudioRef.current = null;
-    }
-    const audio = new Audio(
-      noStarsEarned ? COMPLETION_FAIL_AUDIO : COMPLETION_SUCCESS_AUDIO,
-    );
-    completionAudioRef.current = audio;
-    audio.play().catch(() => undefined);
-
-    return () => {
-      if (!completionAudioRef.current) return;
-      completionAudioRef.current.pause();
-      completionAudioRef.current.currentTime = 0;
-      completionAudioRef.current = null;
-    };
+    const audioSource = noStarsEarned
+      ? COMPLETION_FAIL_AUDIO
+      : COMPLETION_SUCCESS_AUDIO;
+    preloadCelebrationAudio(audioSource);
+    playCelebrationAudio(audioSource, {
+      retries: 1,
+      retryDelayMs: 120,
+      dedupeWindowMs: 900,
+    });
   }, [noStarsEarned]);
 
   return (

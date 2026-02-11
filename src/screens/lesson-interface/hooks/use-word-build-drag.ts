@@ -30,6 +30,10 @@ export function useWordBuildDrag({
 
   const wordBuildDragPointerIdRef = useRef<number | null>(null);
   const wordBuildDragPositionRef = useRef({ clientX: 0, clientY: 0 });
+  const wordBuildDragPointerOffsetRef = useRef({
+    x: WORD_BUILD_TILE_SIZE_PX / 2,
+    y: WORD_BUILD_TILE_SIZE_PX / 2,
+  });
   const wordBuildDragFrameRef = useRef<number | null>(null);
   const wordBuildGhostRef = useRef<HTMLDivElement | null>(null);
   const wordBuildDragCaptureTargetRef = useRef<HTMLElement | null>(null);
@@ -41,8 +45,10 @@ export function useWordBuildDrag({
     if (!ghost) return;
 
     const { clientX, clientY } = wordBuildDragPositionRef.current;
-    const ghostX = Math.round(clientX - WORD_BUILD_TILE_SIZE_PX / 2);
-    const ghostY = Math.round(clientY - WORD_BUILD_TILE_SIZE_PX / 2);
+    const { x: pointerOffsetX, y: pointerOffsetY } =
+      wordBuildDragPointerOffsetRef.current;
+    const ghostX = Math.round(clientX - pointerOffsetX);
+    const ghostY = Math.round(clientY - pointerOffsetY);
     ghost.style.transform = `translate3d(${ghostX}px, ${ghostY}px, 0)`;
   }, []);
 
@@ -82,6 +88,10 @@ export function useWordBuildDrag({
 
     wordBuildDragCaptureTargetRef.current = null;
     wordBuildDragPointerIdRef.current = null;
+    wordBuildDragPointerOffsetRef.current = {
+      x: WORD_BUILD_TILE_SIZE_PX / 2,
+      y: WORD_BUILD_TILE_SIZE_PX / 2,
+    };
     if (wordBuildDragFrameRef.current !== null) {
       window.cancelAnimationFrame(wordBuildDragFrameRef.current);
       wordBuildDragFrameRef.current = null;
@@ -129,6 +139,17 @@ export function useWordBuildDrag({
       };
       const pointerTarget = event.currentTarget;
       if (pointerTarget instanceof HTMLElement) {
+        const targetRect = pointerTarget.getBoundingClientRect();
+        wordBuildDragPointerOffsetRef.current = {
+          x: Math.min(
+            Math.max(event.clientX - targetRect.left, 0),
+            targetRect.width || WORD_BUILD_TILE_SIZE_PX,
+          ),
+          y: Math.min(
+            Math.max(event.clientY - targetRect.top, 0),
+            targetRect.height || WORD_BUILD_TILE_SIZE_PX,
+          ),
+        };
         try {
           pointerTarget.setPointerCapture(event.pointerId);
           wordBuildDragCaptureTargetRef.current = pointerTarget;
@@ -248,6 +269,10 @@ export function useWordBuildDrag({
       }
       wordBuildDragCaptureTargetRef.current = null;
       wordBuildDragPointerIdRef.current = null;
+      wordBuildDragPointerOffsetRef.current = {
+        x: WORD_BUILD_TILE_SIZE_PX / 2,
+        y: WORD_BUILD_TILE_SIZE_PX / 2,
+      };
       if (wordBuildDragFrameRef.current !== null) {
         window.cancelAnimationFrame(wordBuildDragFrameRef.current);
         wordBuildDragFrameRef.current = null;

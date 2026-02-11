@@ -4,7 +4,7 @@ import { createVocabFloorLessons } from "../lesson-templates";
 export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
   lessonPrefix: "t2-f3",
   word: "ăn",
-  wordAssetKey: "an-short-a",
+  wordAssetKey: "awn",
   wordTokens: [
     { id: "aw", text: "ă", kind: "letter" },
     { id: "n", text: "n", kind: "letter" },

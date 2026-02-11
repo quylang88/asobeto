@@ -1,10 +1,12 @@
 "use client";
 
 const audioCache = new Map<string, HTMLAudioElement>();
+const lastPlayAtCache = new Map<string, number>();
 
 interface PlayCelebrationAudioOptions {
   retries?: number;
   retryDelayMs?: number;
+  dedupeWindowMs?: number;
 }
 
 function normalizeSource(src: string): string {
@@ -34,7 +36,13 @@ export function preloadCelebrationAudio(src: string): void {
   if (!normalizedSource) return;
 
   const audio = getCachedAudio(normalizedSource);
-  audio.load();
+  if (!audio.paused) {
+    // Never force a reload while this source is already playing.
+    return;
+  }
+  if (audio.readyState === 0) {
+    audio.load();
+  }
 }
 
 export function playCelebrationAudio(
@@ -47,7 +55,21 @@ export function playCelebrationAudio(
 
   const retries = Math.max(0, options.retries ?? 1);
   const retryDelayMs = Math.max(40, options.retryDelayMs ?? 120);
+  const dedupeWindowMs = Math.max(0, options.dedupeWindowMs ?? 900);
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const lastPlayedAt = lastPlayAtCache.get(normalizedSource);
+  if (
+    typeof lastPlayedAt === "number" &&
+    dedupeWindowMs > 0 &&
+    now - lastPlayedAt < dedupeWindowMs
+  ) {
+    return;
+  }
+  lastPlayAtCache.set(normalizedSource, now);
   const audio = getCachedAudio(normalizedSource);
+  if (!audio.paused && !audio.ended) {
+    return;
+  }
 
   const attemptPlay = (remainingRetries: number) => {
     try {
