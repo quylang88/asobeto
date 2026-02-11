@@ -68,8 +68,9 @@ function mapPointIntoBounds(
 function remapAnimationToBounds(
   animation: LetterStrokeAnimation,
   target: BoundsTarget,
+  explicitSourceBounds?: StrokeBounds,
 ): LetterStrokePath[] {
-  const sourceBounds = getAnimationBounds(animation);
+  const sourceBounds = explicitSourceBounds || getAnimationBounds(animation);
 
   return animation.strokes.map((stroke) => ({
     ...stroke,
@@ -93,8 +94,8 @@ const awnWordStrokes: LetterStrokePath[] = [
       strokes: letterStrokeA.strokes,
     },
     {
-      minX: 10,
-      maxX: 132,
+      minX: 20,
+      maxX: 136,
       minY: 138,
       maxY: 272,
     },
@@ -105,18 +106,29 @@ const awnWordStrokes: LetterStrokePath[] = [
       strokes: awBreveStroke ? [awBreveStroke] : [],
     },
     {
-      minX: 54,
-      maxX: 108,
-      minY: 92,
-      maxY: 126,
+      // Dời dấu ă sang trái để cân đối hơn trên chữ a (x~71)
+      minX: 48,
+      maxX: 88,
+      minY: 100,
+      maxY: 120,
     },
   ),
-  ...remapAnimationToBounds(letterStrokeN, {
-    minX: 144,
-    maxX: 270,
-    minY: 138,
-    maxY: 272,
-  }),
+  ...remapAnimationToBounds(
+    letterStrokeN,
+    {
+      minX: 144,
+      maxX: 270,
+      minY: 138,
+      maxY: 272,
+    },
+    {
+      // Explicit source bounds để loại bỏ control point y=300 gây lệch baseline
+      minX: 4,
+      maxX: 240,
+      minY: 140,
+      maxY: 270,
+    },
+  ),
 ];
 
 export const wordStrokeAwn: LetterStrokeAnimation = {

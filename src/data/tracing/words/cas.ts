@@ -1,6 +1,5 @@
 import { letterStrokeA } from "../letters/a";
 import { letterStrokeC } from "../letters/c";
-import { wordToneStrokeCaSac } from "./ca-sac";
 import {
   type LetterStrokeAnimation,
   type LetterStrokePath,
@@ -82,6 +81,24 @@ function remapAnimationToBounds(
   }));
 }
 
+// Dấu sắc dùng riêng cho từ "cá": nét ngắn, hướng dựng lên trên rõ hơn.
+export const wordToneStrokeCaSac: LetterStrokeAnimation = {
+  letter: "tone-sac",
+  strokes: [
+    {
+      start: { x: 140, y: 138 },
+      curves: [
+        {
+          control1: { x: 148, y: 114 },
+          control2: { x: 160, y: 92 },
+          end: { x: 170, y: 66 },
+        },
+      ],
+      durationMs: 1400,
+    },
+  ],
+};
+
 // Ghép từ "cá": c nằm ô 1-2, a nằm ô 3-4-5, dấu sắc nằm phía trên chữ a.
 const caWordStrokes: LetterStrokePath[] = [
   ...remapAnimationToBounds(letterStrokeC, {
@@ -105,7 +122,7 @@ const caWordStrokes: LetterStrokePath[] = [
   }),
 ];
 
-export const wordStrokeCa: LetterStrokeAnimation = {
+export const wordStrokeCas: LetterStrokeAnimation = {
   letter: "cá",
   // Dùng lưới 5 cột: c ở ô 1-2, a ở ô 3-4-5.
   layout: {
