@@ -94,8 +94,8 @@ const awnWordStrokes: LetterStrokePath[] = [
       strokes: letterStrokeA.strokes,
     },
     {
-      minX: 10,
-      maxX: 132,
+      minX: 20,
+      maxX: 142,
       minY: 138,
       maxY: 272,
     },
@@ -107,8 +107,8 @@ const awnWordStrokes: LetterStrokePath[] = [
     },
     {
       // Dời dấu ă sang trái để cân đối hơn trên chữ a (x~71)
-      minX: 44,
-      maxX: 98,
+      minX: 54,
+      maxX: 108,
       minY: 92,
       maxY: 126,
     },
