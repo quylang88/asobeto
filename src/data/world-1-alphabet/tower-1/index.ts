@@ -7,7 +7,7 @@ import { floor4Lessons } from "./floor-4";
 export const tower1Floors: Floor[] = [
   {
     id: 1,
-    nameUnlocked: "Chữ cái",
+    nameUnlocked: "Chữ a",
     nameLocked: "Điều Bí Ẩn",
     descriptionUnlocked: "Bắt đầu hành trình",
     descriptionLocked: "Chờ bé tới khám phá!",
@@ -23,7 +23,7 @@ export const tower1Floors: Floor[] = [
   },
   {
     id: 2,
-    nameUnlocked: "Chữ cái",
+    nameUnlocked: "Chữ c",
     nameLocked: "Điều Bí Ẩn",
     descriptionUnlocked: "Nghe và làm quen",
     descriptionLocked: "Chờ bé tới khám phá!",
@@ -44,7 +44,7 @@ export const tower1Floors: Floor[] = [
     descriptionUnlocked: "Ghép từ và luyện viết",
     descriptionLocked: "Chờ bé tới khám phá!",
     letter: "c",
-    selectionIcon: "fish_orange",
+    selectionIcon: "cas-svg",
     color: "text-orange-bright",
     bgColor: "bg-orange-bright",
     borderColor: "border-orange-bright",

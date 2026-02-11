@@ -42,7 +42,8 @@ import {
   useWordBuildDrag,
 } from "./lesson-interface/index";
 
-const LESSON_SUCCESS_FEEDBACK_AUDIO = "/assets/audio/feedback/success-answer.mp3";
+const LESSON_SUCCESS_FEEDBACK_AUDIO =
+  "/assets/audio/feedback/success-answer.mp3";
 const LESSON_FAILURE_FEEDBACK_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 
 interface LessonInterfaceProps {
@@ -271,7 +272,7 @@ export function LessonInterface({
     currentLesson?.title ??
     "?";
 
-  // Filter active lessons for scoring context
+  // Lọc các bài học active cho ngữ cảnh chấm điểm
   const activeLessonsCount = lessons.filter((l) => l.type === "active").length;
   const activeLessonsTotalStars = lessons.reduce(
     (sum, lesson) => sum + getLessonMaxStars(lesson),
@@ -352,6 +353,7 @@ export function LessonInterface({
     targetText,
     clearAdvanceTimeout,
     onScoringResult,
+    stopAudio,
   });
 
   useEffect(() => {
@@ -375,7 +377,7 @@ export function LessonInterface({
     setTraceDemoReplayKey,
   });
 
-  // Guard against empty lessons
+  // Phòng ngừa trường hợp không có bài học nào
   if (!hasLessons || !currentLesson) {
     return (
       <div className="relative w-full h-dvh flex flex-col items-center justify-center bg-background">
