@@ -5,6 +5,5 @@ export {
   LETTER_TRACING_CANVAS_WIDTH,
   type TraceEvaluation,
 } from "./letter-tracing-canvas";
-export { GameButton } from "./button";
 export { FogRevealOverlay } from "./fog-reveal-overlay";
 export { LessonTopBar } from "./top-bar";

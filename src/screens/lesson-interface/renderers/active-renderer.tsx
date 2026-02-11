@@ -7,8 +7,8 @@ import { ArrowRight, Mic, Square } from "lucide-react";
 import {
   LetterTracingCanvas,
   type TraceEvaluation,
-  GameButton,
 } from "../components";
+import { PrimaryButton } from "@/components/common/primary-button";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
 import type { WordBuildActiveDrag, WordBuildSlotPlacement, WordBuildToken } from "../types";
 import { getWordBuildTokenDisplayText } from "../utils";
@@ -122,7 +122,7 @@ export function LessonActiveRenderer({
                 transition={{ delay: index * 0.1 }}
                 whileTap={!selectedAnswer ? { scale: 0.95 } : {}}
               >
-                <GameButton
+                <PrimaryButton
                   tone={answerTone}
                   onClick={() => handleAnswer(answer)}
                   disabled={selectedAnswer !== null}
@@ -147,7 +147,7 @@ export function LessonActiveRenderer({
                       {answer.text}
                     </span>
                   )}
-                </GameButton>
+                </PrimaryButton>
               </motion.div>
             );
           })}
@@ -176,7 +176,7 @@ export function LessonActiveRenderer({
                       <div className="h-full w-full rounded-2xl border-4 border-dashed border-slate-200/80 bg-slate-100/40" />
                     ) : (
                       <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
-                        <GameButton
+                        <PrimaryButton
                           onPointerDown={(event) =>
                             handleWordBuildTokenPointerDown(event, tokenId, null)
                           }
@@ -199,7 +199,7 @@ export function LessonActiveRenderer({
                           >
                             {tokenDisplayText}
                           </span>
-                        </GameButton>
+                        </PrimaryButton>
                       </motion.div>
                     )}
                   </div>
@@ -285,14 +285,14 @@ export function LessonActiveRenderer({
           </div>
 
           <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
-            <GameButton
+            <PrimaryButton
               onClick={handleWordBuildCheck}
               disabled={!isWordBuildReady || isCorrect !== null}
               className="rounded-3xl"
               frontClassName="px-10 py-3 text-lg"
             >
               Kiểm Tra
-            </GameButton>
+            </PrimaryButton>
           </motion.div>
         </div>
       )}
@@ -307,7 +307,7 @@ export function LessonActiveRenderer({
               animate={isMicRecording ? { scale: [1, 1.05, 1] } : {}}
               transition={{ duration: 0.9, repeat: Infinity }}
             >
-              <GameButton
+              <PrimaryButton
                 tone={isMicRecording ? "danger" : "brand"}
                 onClick={handleMicButtonClick}
                 disabled={isMicSubmitting || isCorrect !== null}
@@ -322,7 +322,7 @@ export function LessonActiveRenderer({
                 ) : (
                   <Mic className="h-10 w-10 text-white" />
                 )}
-              </GameButton>
+              </PrimaryButton>
               {isMicRecording && (
                 <motion.span
                   className="pointer-events-none absolute inset-0 rounded-full border-4 border-red-300"
@@ -392,13 +392,13 @@ export function LessonActiveRenderer({
             animate={{ y: 0, opacity: 1 }}
             whileTap={{ scale: 0.95 }}
           >
-            <GameButton
+            <PrimaryButton
               onClick={handleNext}
               className="rounded-3xl"
               frontClassName="px-12 py-4 text-xl flex items-center gap-2"
             >
               Tiếp Theo <ArrowRight className="w-6 h-6" />
-            </GameButton>
+            </PrimaryButton>
           </motion.div>
         )}
 

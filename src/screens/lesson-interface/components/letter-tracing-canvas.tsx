@@ -6,7 +6,7 @@ import {
   type LetterStrokePath,
   type StrokePoint,
 } from "@/data/tracing";
-import { GameButton } from "./button";
+import { PrimaryButton } from "@/components/common/primary-button";
 
 export interface TraceEvaluation {
   score: number;
@@ -831,22 +831,22 @@ export function LetterTracingCanvas({
 
       {mode === "practice" && (
         <div className="flex items-center gap-3">
-          <GameButton
+          <PrimaryButton
             onClick={clearCanvas}
             disabled={disabled}
             className="rounded-2xl"
             frontClassName="px-5 py-2 text-sm"
           >
             Xóa nét
-          </GameButton>
-          <GameButton
+          </PrimaryButton>
+          <PrimaryButton
             onClick={evaluateTrace}
             disabled={disabled || !hasStroke}
             className="rounded-2xl"
             frontClassName="px-6 py-2 text-sm"
           >
             Chấm điểm
-          </GameButton>
+          </PrimaryButton>
         </div>
       )}
     </div>

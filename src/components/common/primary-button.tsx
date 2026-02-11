@@ -2,16 +2,19 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type GameButtonTone = "brand" | "danger";
+type PrimaryButtonTone = "brand" | "danger" | "success" | "neutral";
 
-interface GameButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  tone?: GameButtonTone;
+interface PrimaryButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  tone?: PrimaryButtonTone;
   className?: string;
   frontClassName?: string;
   children: ReactNode;
 }
 
-const TONE_CLASS_MAP: Record<GameButtonTone, { back: string; front: string }> = {
+const TONE_CLASS_MAP: Record<
+  PrimaryButtonTone,
+  { back: string; front: string }
+> = {
   brand: {
     back: "bg-orange-bright",
     front: "bg-green-bright text-white",
@@ -19,6 +22,14 @@ const TONE_CLASS_MAP: Record<GameButtonTone, { back: string; front: string }> = 
   danger: {
     back: "bg-red-600",
     front: "bg-red-500 text-white",
+  },
+  success: {
+    back: "bg-emerald-600",
+    front: "bg-emerald-500 text-white",
+  },
+  neutral: {
+    back: "bg-slate-400",
+    front: "bg-slate-300 text-slate-800",
   },
 };
 
@@ -28,14 +39,14 @@ function joinClassNames(
   return parts.filter(Boolean).join(" ");
 }
 
-export function GameButton({
+export function PrimaryButton({
   tone = "brand",
   className,
   frontClassName,
   children,
   disabled,
   ...props
-}: GameButtonProps) {
+}: PrimaryButtonProps) {
   const toneClass = TONE_CLASS_MAP[tone];
   const buttonType = props.type ?? "button";
 

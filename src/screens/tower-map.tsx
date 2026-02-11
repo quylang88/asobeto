@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Star, Lock } from "lucide-react";
-import { Mascot } from "../components/beto-mascot";
+import { Mascot } from "../components/common/beto-mascot";
 import {
   getWorldData,
   getTotalStars,
@@ -11,6 +11,7 @@ import {
   type Tower,
   type TowerConnection,
 } from "../data/game-config";
+import { PrimaryButton } from "@/components/common/primary-button";
 import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
 
 interface TowerSelectionProps {
@@ -634,13 +635,15 @@ export function TowerSelection({
       {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="flex items-center gap-3 p-4">
-          <motion.button
-            onClick={onBack}
-            className="p-3 bg-green-bright text-white rounded-2xl shadow-lg ios-button"
-            whileTap={{ scale: 0.95 }}
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </motion.button>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <PrimaryButton
+              onClick={onBack}
+              className="rounded-2xl shadow-lg"
+              frontClassName="p-3"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </PrimaryButton>
+          </motion.div>
           <div className="flex-1">
             <h1 className="text-xl md:text-2xl font-bold text-foreground">
               {worldName}

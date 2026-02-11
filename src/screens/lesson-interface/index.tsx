@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mascot } from "../../components/beto-mascot";
+import { Mascot } from "../../components/common/beto-mascot";
 import {
   BrokenHeartCelebration,
   StarCelebration,
@@ -17,7 +17,8 @@ import {
   LessonPassivePreviewRenderer,
   WordBuildDragGhost,
 } from "./renderers";
-import { GameButton, LessonTopBar, type TraceEvaluation } from "./components";
+import { LessonTopBar, type TraceEvaluation } from "./components";
+import { PrimaryButton } from "../../components/common/primary-button";
 import {
   getAttemptFloorStars,
   getLessonMaxStars,
@@ -386,13 +387,13 @@ export function LessonInterface({
     return (
       <div className="relative w-full h-dvh flex flex-col items-center justify-center bg-background">
         <p>No lessons available.</p>
-        <GameButton
+        <PrimaryButton
           onClick={onBack}
           className="mt-4 rounded-2xl"
           frontClassName="px-5 py-2 text-sm"
         >
           Back
-        </GameButton>
+        </PrimaryButton>
       </div>
     );
   }

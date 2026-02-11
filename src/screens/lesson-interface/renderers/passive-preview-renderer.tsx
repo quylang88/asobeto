@@ -8,8 +8,8 @@ import type { LessonContent } from "@/data/game-config";
 import {
   LetterTracingCanvas,
   FogRevealOverlay,
-  GameButton,
 } from "../components";
+import { PrimaryButton } from "@/components/common/primary-button";
 import { LESSON_PREVIEW_CONTROL_OFFSET_CLASS } from "../constants";
 import { getPreviewTextSizeClass } from "../utils";
 
@@ -94,7 +94,7 @@ export function LessonPassivePreviewRenderer({
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <GameButton
+                <PrimaryButton
                   className="rounded-full"
                   frontClassName="h-10 w-10"
                   aria-label="Phát lại âm thanh"
@@ -104,7 +104,7 @@ export function LessonPassivePreviewRenderer({
                   }}
                 >
                   <Volume2 className="w-5 h-5 text-white" />
-                </GameButton>
+                </PrimaryButton>
               </motion.div>
             )}
           </motion.div>
@@ -159,7 +159,7 @@ export function LessonPassivePreviewRenderer({
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <GameButton
+                <PrimaryButton
                   className="rounded-full"
                   frontClassName="h-10 w-10"
                   aria-label="Phát lại âm thanh"
@@ -169,7 +169,7 @@ export function LessonPassivePreviewRenderer({
                   }}
                 >
                   <Volume2 className="w-5 h-5 text-white" />
-                </GameButton>
+                </PrimaryButton>
               </motion.div>
             )}
           </motion.div>
@@ -211,14 +211,14 @@ export function LessonPassivePreviewRenderer({
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
           >
-            <GameButton
+            <PrimaryButton
               className="rounded-full"
               frontClassName="h-10 w-10"
               aria-label="Xem lại nét mẫu"
               onClick={handleReplayTraceDemo}
             >
               <RotateCcw className="w-5 h-5 text-white" />
-            </GameButton>
+            </PrimaryButton>
           </motion.div>
         </div>
       )}
@@ -230,7 +230,7 @@ export function LessonPassivePreviewRenderer({
           animate={{ y: 0, opacity: 1 }}
           whileTap={passiveReady ? { scale: 0.95 } : {}}
         >
-          <GameButton
+          <PrimaryButton
             onClick={handleNext}
             disabled={!passiveReady}
             className="rounded-3xl"
@@ -243,7 +243,7 @@ export function LessonPassivePreviewRenderer({
             ) : (
               "Đang xem mẫu..."
             )}
-          </GameButton>
+          </PrimaryButton>
         </motion.div>
       )}
     </>

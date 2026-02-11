@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, ChevronLeft, Medal } from "lucide-react";
-import { Mascot } from "../components/beto-mascot";
+import { Mascot } from "../components/common/beto-mascot";
 import { worlds } from "../data/game-config";
+import { PrimaryButton } from "@/components/common/primary-button";
 import { TowerBadgeCollectionModal } from "@/components/badges";
 import { getLetterBadgeCollection } from "@/lib/tower-badges";
 
@@ -23,13 +24,15 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
       {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="p-4 flex items-center gap-4">
-          <motion.button
-            onClick={onBack}
-            className="p-3 bg-green-bright text-white rounded-2xl shadow-lg ios-button"
-            whileTap={{ scale: 0.95 }}
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </motion.button>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <PrimaryButton
+              onClick={onBack}
+              className="rounded-2xl shadow-lg"
+              frontClassName="p-3"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </PrimaryButton>
+          </motion.div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             Thế Giới Diệu Kỳ
           </h1>
