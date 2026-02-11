@@ -217,9 +217,10 @@ export function createVocabFloorLessons(
         metric: "trace_accuracy",
         passPolicy: "always",
         starThresholds: {
-          oneStar: 0.6,
+          oneStar: 0.5,
+          twoStars: 0.75,
         },
-        maxStars: 1,
+        maxStars: 2,
       },
     },
   ];
