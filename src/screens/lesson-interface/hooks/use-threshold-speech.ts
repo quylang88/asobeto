@@ -169,7 +169,7 @@ export function useThresholdSpeech({
       return;
     }
 
-    stopAudio(); // Ensure lesson audio stops immediately
+    stopAudio(); // Đảm bảo âm thanh bài học dừng ngay lập tức
     clearAdvanceTimeout();
     speechTranscriptRef.current = "";
     accumulatedTranscriptRef.current = "";
@@ -248,7 +248,7 @@ export function useThresholdSpeech({
             .trim();
           finalizeSpeechAttempt(fullTranscript);
         } else {
-          // Auto-restart if not manually stopped
+          // Tự động khởi động lại nếu không dừng thủ công
           accumulatedTranscriptRef.current = [
             accumulatedTranscriptRef.current,
             speechTranscriptRef.current,
@@ -262,7 +262,7 @@ export function useThresholdSpeech({
             recognition.start();
           } catch (error) {
             console.log("Failed to restart speech recognition:", error);
-            // If restart fails, treat as final to prevent hanging state
+            // Nếu khởi động lại thất bại, coi như kết thúc để tránh bị treo
             finalizeSpeechAttempt(accumulatedTranscriptRef.current);
           }
         }
@@ -291,7 +291,7 @@ export function useThresholdSpeech({
   const submitSpeechCapture = useCallback(() => {
     if (!isMicRecording || isMicSubmitting) return;
 
-    // Mark as manually stopped so onend knows to finalize
+    // Đánh dấu là dừng thủ công để onend biết là cần hoàn tất
     isManualStopRef.current = true;
 
     setIsMicRecording(false);
@@ -303,7 +303,7 @@ export function useThresholdSpeech({
       return;
     }
 
-    // Fallback if recognition is missing for some reason
+    // Dự phòng nếu recognition bị thiếu vì lý do nào đó
     finalizeSpeechAttempt(speechTranscriptRef.current);
   }, [finalizeSpeechAttempt, isMicRecording, isMicSubmitting]);
 
