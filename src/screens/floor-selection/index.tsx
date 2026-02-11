@@ -4,9 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
-import { Mascot } from "../components/beto-mascot";
-import { getWorldData } from "../data/game-config";
-import type { Floor } from "../data/game-config";
+import { Mascot } from "../../components/beto-mascot";
+import { getWorldData } from "../../data/game-config";
+import type { Floor } from "../../data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 import { TowerBadgeAwardOverlay } from "@/components/badges";
 import {
@@ -14,6 +14,7 @@ import {
   type TowerBadgeRecord,
   unlockTowerBadge,
 } from "@/lib/tower-badges";
+import { CatIcon, FishIcon, FloorIconWrapper } from "./components";
 
 interface FloorSelectionProps {
   worldId: number;
@@ -60,39 +61,6 @@ function LetterBlock({
         style={{ backgroundColor: "white" }}
       />
     </div>
-  );
-}
-
-function FishFloorIcon() {
-  return (
-    <motion.div
-      className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-orange-300 bg-linear-to-br from-orange-200 to-amber-300 shadow-lg"
-      animate={{ y: [0, -1.5, 0], rotate: [0, -2, 2, 0] }}
-      transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-    >
-      <div className="absolute inset-1 rounded-lg bg-white/26" />
-      <svg
-        viewBox="0 0 56 56"
-        className="relative z-10 h-full w-full p-1.5 drop-shadow-[0_2px_4px_rgba(124,45,18,0.28)]"
-        aria-label="Cá"
-        role="img"
-      >
-        <ellipse cx="28" cy="29" rx="15" ry="11.5" fill="#F97316" />
-        <path d="M13 29 L4 22 L4 36 Z" fill="#FB923C" />
-        <ellipse cx="34" cy="24.5" rx="5.2" ry="4.2" fill="#FCD34D" opacity="0.88" />
-        <circle cx="35.2" cy="28.4" r="1.75" fill="#7C2D12" />
-        <circle cx="35.8" cy="27.9" r="0.7" fill="#fff" opacity="0.9" />
-        <path
-          d="M21 20 C25 15, 32 15, 35 20"
-          stroke="#FB923C"
-          strokeWidth="2"
-          fill="none"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="pointer-events-none absolute left-2 top-2 h-1.5 w-1.5 rounded-full bg-white/70" />
-      <span className="pointer-events-none absolute right-2 top-3 h-1 w-1 rounded-full bg-white/60" />
-    </motion.div>
   );
 }
 
@@ -174,9 +142,18 @@ function StandardFloorCard({
             <div className="relative">
               {floor.unlocked ? (
                 floor.selectionIcon === "fish_orange" ? (
-                  <FishFloorIcon />
+                  <FloorIconWrapper>
+                    <FishIcon />
+                  </FloorIconWrapper>
+                ) : floor.selectionIcon === "cat_orange" ? (
+                  <FloorIconWrapper>
+                    <CatIcon />
+                  </FloorIconWrapper>
                 ) : (
-                  <LetterBlock letter={floor.letter || "?"} color={blockColor} />
+                  <LetterBlock
+                    letter={floor.letter || "?"}
+                    color={blockColor}
+                  />
                 )
               ) : (
                 <div className="w-14 h-14 rounded-xl bg-gray-200 flex items-center justify-center shadow-inner">

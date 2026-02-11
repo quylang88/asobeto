@@ -102,7 +102,7 @@ export interface LessonAnswer {
   isCorrect: boolean;
 }
 
-export type FloorSelectionIcon = "letter_block" | "fish_orange";
+export type FloorSelectionIcon = "letter_block" | "fish_orange" | "cat_orange";
 
 export interface LessonContent {
   id: string;
