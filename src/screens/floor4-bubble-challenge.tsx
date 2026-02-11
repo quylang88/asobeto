@@ -21,14 +21,14 @@ import {
   getStoredFloorProgress,
   saveFloorProgress,
 } from "@/lib/floor-progress";
-import { Mascot } from "@/components/beto-mascot";
+import { Mascot } from "@/components/common/beto-mascot";
 import {
   BrokenHeartCelebration,
   StarCelebration,
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
-import { GameButton } from "@/screens/lesson-interface/components";
+import { PrimaryButton } from "@/components/common/primary-button";
 
 const LEVEL_ORDER: BubblePopLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
@@ -115,16 +115,10 @@ function doesPassStarRuleMatch({
   livesLost: number;
   timeLeft: number;
 }): boolean {
-  if (
-    typeof rule.minLivesLost === "number" &&
-    livesLost < rule.minLivesLost
-  ) {
+  if (typeof rule.minLivesLost === "number" && livesLost < rule.minLivesLost) {
     return false;
   }
-  if (
-    typeof rule.maxLivesLost === "number" &&
-    livesLost > rule.maxLivesLost
-  ) {
+  if (typeof rule.maxLivesLost === "number" && livesLost > rule.maxLivesLost) {
     return false;
   }
   if (
@@ -427,11 +421,7 @@ export function Floor4BubbleChallenge({
   );
 
   const finalizeLevel = useCallback(
-    (
-      passed: boolean,
-      level: BubblePopLevelConfig,
-      computedStars?: number,
-    ) => {
+    (passed: boolean, level: BubblePopLevelConfig, computedStars?: number) => {
       clearCelebrations();
       stopGameLoop();
       setPhase("result");
@@ -982,13 +972,13 @@ export function Floor4BubbleChallenge({
         <p className="text-center text-foreground">
           Chưa có dữ liệu mini game cho tầng này.
         </p>
-        <GameButton
+        <PrimaryButton
           onClick={onBack}
           className="rounded-2xl"
           frontClassName="px-5 py-2 text-sm"
         >
           Quay Lại
-        </GameButton>
+        </PrimaryButton>
       </div>
     );
   }
@@ -1111,13 +1101,13 @@ export function Floor4BubbleChallenge({
                 {bubbleConfig.instruction}
               </p>
               <div className="relative mt-3">
-                <GameButton
+                <PrimaryButton
                   onClick={replayRulesAudio}
                   className="rounded-2xl"
                   frontClassName="px-4 py-2 text-sm flex items-center gap-2"
                 >
                   <Volume2 className="h-4 w-4" /> Nghe Luật
-                </GameButton>
+                </PrimaryButton>
               </div>
             </motion.div>
 

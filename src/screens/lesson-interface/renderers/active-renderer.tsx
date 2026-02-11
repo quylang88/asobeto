@@ -4,13 +4,14 @@ import { type PointerEvent } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Mic, Square } from "lucide-react";
-import {
-  LetterTracingCanvas,
-  type TraceEvaluation,
-  GameButton,
-} from "../components";
+import { LetterTracingCanvas, type TraceEvaluation } from "../components";
+import { PrimaryButton } from "@/components/common/primary-button";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
-import type { WordBuildActiveDrag, WordBuildSlotPlacement, WordBuildToken } from "../types";
+import type {
+  WordBuildActiveDrag,
+  WordBuildSlotPlacement,
+  WordBuildToken,
+} from "../types";
 import { getWordBuildTokenDisplayText } from "../utils";
 
 interface LessonActiveRendererProps {
@@ -105,13 +106,9 @@ export function LessonActiveRenderer({
 
             // Giữ tone xanh-cam cho đáp án, chỉ đổi đỏ khi bé chọn sai
             const answerTone =
-              showResult && isSelected && !isCorrectAnswer
-                ? "danger"
-                : "brand";
+              showResult && isSelected && !isCorrectAnswer ? "danger" : "brand";
             const fadeUnselectedWrong =
-              showResult && !isCorrectAnswer && !isSelected
-                ? "opacity-80"
-                : "";
+              showResult && !isCorrectAnswer && !isSelected ? "opacity-80" : "";
             const highlightCorrect = showResult && isCorrectAnswer;
 
             return (
@@ -122,7 +119,7 @@ export function LessonActiveRenderer({
                 transition={{ delay: index * 0.1 }}
                 whileTap={!selectedAnswer ? { scale: 0.95 } : {}}
               >
-                <GameButton
+                <PrimaryButton
                   tone={answerTone}
                   onClick={() => handleAnswer(answer)}
                   disabled={selectedAnswer !== null}
@@ -147,7 +144,7 @@ export function LessonActiveRenderer({
                       {answer.text}
                     </span>
                   )}
-                </GameButton>
+                </PrimaryButton>
               </motion.div>
             );
           })}
@@ -175,10 +172,16 @@ export function LessonActiveRenderer({
                     {isPlacedToken || isDraggingFromPool ? (
                       <div className="h-full w-full rounded-2xl border-4 border-dashed border-slate-200/80 bg-slate-100/40" />
                     ) : (
-                      <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
-                        <GameButton
+                      <motion.div
+                        whileTap={isCorrect === null ? { scale: 0.95 } : {}}
+                      >
+                        <PrimaryButton
                           onPointerDown={(event) =>
-                            handleWordBuildTokenPointerDown(event, tokenId, null)
+                            handleWordBuildTokenPointerDown(
+                              event,
+                              tokenId,
+                              null,
+                            )
                           }
                           disabled={isCorrect !== null}
                           className="h-full w-full rounded-2xl touch-none select-none"
@@ -199,7 +202,7 @@ export function LessonActiveRenderer({
                           >
                             {tokenDisplayText}
                           </span>
-                        </GameButton>
+                        </PrimaryButton>
                       </motion.div>
                     )}
                   </div>
@@ -221,7 +224,9 @@ export function LessonActiveRenderer({
                   const expectedToken = wordBuildExpectedTokens[slotIndex];
                   if (!expectedToken) return null;
 
-                  const slotPlacement = wordBuildPlacementBySlotIndex.get(slotIndex) ?? {
+                  const slotPlacement = wordBuildPlacementBySlotIndex.get(
+                    slotIndex,
+                  ) ?? {
                     slotIndex,
                     column: slotIndex + 1,
                     row: 1 as const,
@@ -234,7 +239,8 @@ export function LessonActiveRenderer({
                     : "";
                   const isToneToken = placedToken?.kind === "tone";
                   const isSingleLetter =
-                    placedToken?.kind === "letter" && [...slotDisplayText].length === 1;
+                    placedToken?.kind === "letter" &&
+                    [...slotDisplayText].length === 1;
                   const isDraggingFromCurrentSlot =
                     Boolean(placedTokenId) &&
                     wordBuildActiveDrag?.tokenId === placedTokenId &&
@@ -248,7 +254,11 @@ export function LessonActiveRenderer({
                       data-word-build-slot-index={slotIndex}
                       onPointerDown={(event) => {
                         if (!placedTokenId) return;
-                        handleWordBuildTokenPointerDown(event, placedTokenId, slotIndex);
+                        handleWordBuildTokenPointerDown(
+                          event,
+                          placedTokenId,
+                          slotIndex,
+                        );
                       }}
                       className={`flex items-center justify-center rounded-2xl border-4 border-dashed px-2 text-center transition-colors ${
                         placedToken
@@ -285,14 +295,14 @@ export function LessonActiveRenderer({
           </div>
 
           <motion.div whileTap={isCorrect === null ? { scale: 0.95 } : {}}>
-            <GameButton
+            <PrimaryButton
               onClick={handleWordBuildCheck}
               disabled={!isWordBuildReady || isCorrect !== null}
               className="rounded-3xl"
               frontClassName="px-10 py-3 text-lg"
             >
               Kiểm Tra
-            </GameButton>
+            </PrimaryButton>
           </motion.div>
         </div>
       )}
@@ -307,14 +317,16 @@ export function LessonActiveRenderer({
               animate={isMicRecording ? { scale: [1, 1.05, 1] } : {}}
               transition={{ duration: 0.9, repeat: Infinity }}
             >
-              <GameButton
+              <PrimaryButton
                 tone={isMicRecording ? "danger" : "brand"}
                 onClick={handleMicButtonClick}
                 disabled={isMicSubmitting || isCorrect !== null}
                 className={`rounded-full ${isMicRecording ? "ring-4 ring-red-300/70" : "ring-4 ring-green-200/70"}`}
                 frontClassName="h-24 w-24"
                 aria-label={
-                  isMicRecording ? "Dừng và nộp bài nói" : "Bắt đầu ghi âm bài nói"
+                  isMicRecording
+                    ? "Dừng và nộp bài nói"
+                    : "Bắt đầu ghi âm bài nói"
                 }
               >
                 {isMicRecording ? (
@@ -322,7 +334,7 @@ export function LessonActiveRenderer({
                 ) : (
                   <Mic className="h-10 w-10 text-white" />
                 )}
-              </GameButton>
+              </PrimaryButton>
               {isMicRecording && (
                 <motion.span
                   className="pointer-events-none absolute inset-0 rounded-full border-4 border-red-300"
@@ -344,7 +356,9 @@ export function LessonActiveRenderer({
                     key={`mic-bar-${barIndex}`}
                     className={`w-2 rounded-full ${isMicRecording ? "bg-red-400" : "bg-green-300"}`}
                     style={{ height: `${barHeight}px` }}
-                    animate={{ opacity: isMicRecording ? [0.55, 1, 0.55] : 0.45 }}
+                    animate={{
+                      opacity: isMicRecording ? [0.55, 1, 0.55] : 0.45,
+                    }}
                     transition={{
                       duration: 0.45 + barIndex * 0.08,
                       repeat: Infinity,
@@ -392,13 +406,13 @@ export function LessonActiveRenderer({
             animate={{ y: 0, opacity: 1 }}
             whileTap={{ scale: 0.95 }}
           >
-            <GameButton
+            <PrimaryButton
               onClick={handleNext}
               className="rounded-3xl"
               frontClassName="px-12 py-4 text-xl flex items-center gap-2"
             >
               Tiếp Theo <ArrowRight className="w-6 h-6" />
-            </GameButton>
+            </PrimaryButton>
           </motion.div>
         )}
 

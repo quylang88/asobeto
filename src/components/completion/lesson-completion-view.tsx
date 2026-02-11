@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import { Mascot } from "@/components/beto-mascot";
+import { Mascot } from "@/components/common/beto-mascot";
 import {
   playCelebrationAudio,
   preloadCelebrationAudio,
 } from "@/lib/celebration-audio";
-import { GameButton } from "@/screens/lesson-interface/components";
+import { PrimaryButton } from "@/components/common/primary-button";
 
 const COMPLETION_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
 const COMPLETION_FAIL_AUDIO = "/assets/audio/feedback/try-again.mp3";
@@ -137,13 +137,13 @@ export function LessonCompletionView({
           transition={{ delay: 1.5 }}
           whileTap={{ scale: 0.95 }}
         >
-          <GameButton
+          <PrimaryButton
             onClick={onComplete}
             className="rounded-3xl"
             frontClassName="px-12 py-4 text-xl"
           >
             {continueLabel}
-          </GameButton>
+          </PrimaryButton>
         </motion.div>
       </motion.div>
     </div>

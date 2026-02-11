@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mascot } from "../components/beto-mascot";
+import { Mascot } from "../components/common/beto-mascot";
 import { Volume2 } from "lucide-react";
+import { PrimaryButton } from "@/components/common/primary-button";
 
 interface WelcomeScreenProps {
   onStart: () => void;
@@ -100,19 +101,21 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         </motion.p>
 
         {/* Start Button */}
-        <motion.button
-          onClick={onStart}
-          className="mt-12 relative group ios-button"
+        <motion.div
+          className="mt-12"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
           whileTap={{ scale: 0.95 }}
         >
-          <div className="absolute inset-0 bg-orange-bright rounded-3xl translate-y-2 transition-transform" />
-          <div className="relative bg-green-bright text-white text-3xl md:text-4xl font-bold px-16 py-6 rounded-3xl shadow-lg">
+          <PrimaryButton
+            onClick={onStart}
+            className="group rounded-3xl"
+            frontClassName="px-16 py-6 text-3xl md:text-4xl shadow-lg"
+          >
             BẮT ĐẦU
-          </div>
-        </motion.button>
+          </PrimaryButton>
+        </motion.div>
 
         {/* Sound toggle */}
         <motion.button

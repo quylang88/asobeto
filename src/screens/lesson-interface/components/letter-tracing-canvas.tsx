@@ -6,7 +6,7 @@ import {
   type LetterStrokePath,
   type StrokePoint,
 } from "@/data/tracing";
-import { GameButton } from "./button";
+import { PrimaryButton } from "@/components/common/primary-button";
 
 export interface TraceEvaluation {
   score: number;
@@ -89,7 +89,8 @@ function createTracingGridMetrics(layout?: {
 
 const DEFAULT_TRACING_GRID_METRICS = createTracingGridMetrics();
 
-export const LETTER_TRACING_CANVAS_WIDTH = DEFAULT_TRACING_GRID_METRICS.canvasWidth;
+export const LETTER_TRACING_CANVAS_WIDTH =
+  DEFAULT_TRACING_GRID_METRICS.canvasWidth;
 export const LETTER_TRACING_CANVAS_HEIGHT =
   DEFAULT_TRACING_GRID_METRICS.canvasHeight;
 
@@ -109,11 +110,8 @@ function mapPointToWritingGrid(
   metrics: TracingGridMetrics,
 ): StrokePoint {
   return {
-    x:
-      metrics.margin + (point.x / SOURCE_CANVAS_SIZE) * metrics.drawAreaWidth,
-    y:
-      metrics.margin +
-      (point.y / SOURCE_CANVAS_SIZE) * metrics.drawAreaHeight,
+    x: metrics.margin + (point.x / SOURCE_CANVAS_SIZE) * metrics.drawAreaWidth,
+    y: metrics.margin + (point.y / SOURCE_CANVAS_SIZE) * metrics.drawAreaHeight,
   };
 }
 
@@ -286,7 +284,9 @@ function getCanvasGuideFontFamily(): string {
     return '"Mali", sans-serif';
   }
 
-  const appFontFamily = window.getComputedStyle(document.body).fontFamily.trim();
+  const appFontFamily = window
+    .getComputedStyle(document.body)
+    .fontFamily.trim();
   if (appFontFamily.length > 0) {
     return appFontFamily;
   }
@@ -771,8 +771,18 @@ export function LetterTracingCanvas({
       );
     }
 
-    const drawnData = drawCtx.getImageData(0, 0, canvas.width, canvas.height).data;
-    const targetData = targetCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const drawnData = drawCtx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    ).data;
+    const targetData = targetCtx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    ).data;
 
     let drawnPixels = 0;
     let targetPixels = 0;
@@ -790,7 +800,8 @@ export function LetterTracingCanvas({
     const coverage = targetPixels > 0 ? overlapPixels / targetPixels : 0;
     const precision = drawnPixels > 0 ? overlapPixels / drawnPixels : 0;
     const score = clamp01(coverage * 0.7 + precision * 0.3);
-    const stars = score >= twoStarThreshold ? 2 : score >= oneStarThreshold ? 1 : 0;
+    const stars =
+      score >= twoStarThreshold ? 2 : score >= oneStarThreshold ? 1 : 0;
 
     onEvaluate({ score, stars, precision, coverage });
   };
@@ -831,22 +842,22 @@ export function LetterTracingCanvas({
 
       {mode === "practice" && (
         <div className="flex items-center gap-3">
-          <GameButton
+          <PrimaryButton
             onClick={clearCanvas}
             disabled={disabled}
             className="rounded-2xl"
             frontClassName="px-5 py-2 text-sm"
           >
             Xóa nét
-          </GameButton>
-          <GameButton
+          </PrimaryButton>
+          <PrimaryButton
             onClick={evaluateTrace}
             disabled={disabled || !hasStroke}
             className="rounded-2xl"
             frontClassName="px-6 py-2 text-sm"
           >
             Chấm điểm
-          </GameButton>
+          </PrimaryButton>
         </div>
       )}
     </div>

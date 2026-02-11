@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import { GameButton } from ".";
+import { PrimaryButton } from "@/components/common/primary-button";
 
 interface LessonTopBarProps {
   progress: number;
@@ -21,14 +21,14 @@ export function LessonTopBar({
   return (
     <div className="p-4 flex items-center gap-4 pt-safe">
       <motion.div whileTap={{ scale: 0.95 }}>
-        <GameButton
+        <PrimaryButton
           onClick={onBack}
           className="rounded-2xl"
           frontClassName="h-12 w-12"
           aria-label="Thoát bài học"
         >
           <X className="w-6 h-6" />
-        </GameButton>
+        </PrimaryButton>
       </motion.div>
 
       <div className="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden">
