@@ -352,6 +352,7 @@ export function LessonInterface({
     targetText,
     clearAdvanceTimeout,
     onScoringResult,
+    stopAudio,
   });
 
   useEffect(() => {

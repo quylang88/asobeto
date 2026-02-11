@@ -22,6 +22,7 @@ interface UseThresholdSpeechParams {
     advanceDelayMs?: number,
     earnedStars?: number,
   ) => void;
+  stopAudio: () => void;
 }
 
 export function useThresholdSpeech({
@@ -31,6 +32,7 @@ export function useThresholdSpeech({
   targetText,
   clearAdvanceTimeout,
   onScoringResult,
+  stopAudio,
 }: UseThresholdSpeechParams) {
   const [isMicRecording, setIsMicRecording] = useState(false);
   const [isMicSubmitting, setIsMicSubmitting] = useState(false);
@@ -39,6 +41,8 @@ export function useThresholdSpeech({
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const speechFinalizeRef = useRef(false);
   const speechTranscriptRef = useRef("");
+  const accumulatedTranscriptRef = useRef("");
+  const isManualStopRef = useRef(false);
   const micStreamRef = useRef<MediaStream | null>(null);
   const micAudioContextRef = useRef<AudioContext | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -80,6 +84,8 @@ export function useThresholdSpeech({
   const resetSpeechSession = useCallback(() => {
     speechFinalizeRef.current = false;
     speechTranscriptRef.current = "";
+    accumulatedTranscriptRef.current = "";
+    isManualStopRef.current = false;
     stopSpeechRecognition(true);
     stopMicLevelCapture();
     setIsMicRecording(false);
@@ -163,9 +169,12 @@ export function useThresholdSpeech({
       return;
     }
 
+    stopAudio(); // Ensure lesson audio stops immediately
     clearAdvanceTimeout();
     speechTranscriptRef.current = "";
+    accumulatedTranscriptRef.current = "";
     speechFinalizeRef.current = false;
+    isManualStopRef.current = false;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -207,7 +216,7 @@ export function useThresholdSpeech({
 
       recognition.lang = "vi-VN";
       recognition.interimResults = true;
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.maxAlternatives = 1;
 
       recognition.onresult = (event: SpeechRecognitionResultEventLike) => {
@@ -229,7 +238,34 @@ export function useThresholdSpeech({
       };
 
       recognition.onend = () => {
-        finalizeSpeechAttempt(speechTranscriptRef.current);
+        if (isManualStopRef.current) {
+          const fullTranscript = [
+            accumulatedTranscriptRef.current,
+            speechTranscriptRef.current,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+          finalizeSpeechAttempt(fullTranscript);
+        } else {
+          // Auto-restart if not manually stopped
+          accumulatedTranscriptRef.current = [
+            accumulatedTranscriptRef.current,
+            speechTranscriptRef.current,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+          speechTranscriptRef.current = "";
+
+          try {
+            recognition.start();
+          } catch (error) {
+            console.log("Failed to restart speech recognition:", error);
+            // If restart fails, treat as final to prevent hanging state
+            finalizeSpeechAttempt(accumulatedTranscriptRef.current);
+          }
+        }
       };
 
       setIsMicRecording(true);
@@ -248,11 +284,16 @@ export function useThresholdSpeech({
     isMicRecording,
     isMicSubmitting,
     isThresholdSpeechLesson,
+    stopAudio,
     stopMicLevelCapture,
   ]);
 
   const submitSpeechCapture = useCallback(() => {
     if (!isMicRecording || isMicSubmitting) return;
+
+    // Mark as manually stopped so onend knows to finalize
+    isManualStopRef.current = true;
+
     setIsMicRecording(false);
     setIsMicSubmitting(true);
 
@@ -262,6 +303,7 @@ export function useThresholdSpeech({
       return;
     }
 
+    // Fallback if recognition is missing for some reason
     finalizeSpeechAttempt(speechTranscriptRef.current);
   }, [finalizeSpeechAttempt, isMicRecording, isMicSubmitting]);
 
