@@ -36,13 +36,15 @@ export const letterStrokeN: LetterStrokeAnimation = {
           end: { x: 150, y: 143 },
         },
         {
+          // Xuống thẳng, dừng sớm hơn để chuẩn bị lượn móc mềm mại
           control1: { x: 165, y: 143 },
           control2: { x: 175, y: 200 },
-          end: { x: 175, y: 270 },
+          end: { x: 175, y: 255 },
         },
         {
-          control1: { x: 195, y: 270 },
-          control2: { x: 225, y: 240 },
+          // Lượn cong tròn ở đáy (y=284) rồi hất lên êm ái
+          control1: { x: 178, y: 284 },
+          control2: { x: 225, y: 255 },
           end: { x: 240, y: 210 },
         },
       ],
