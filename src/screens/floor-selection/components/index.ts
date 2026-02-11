@@ -1,3 +1,3 @@
-export * from "./floor-icon-wrapper";
-export * from "./fish-icon";
-export * from "./cat-icon";
+export * from "./svg-wrapper";
+export * from "./cas-svg";
+export * from "./awn-svg";

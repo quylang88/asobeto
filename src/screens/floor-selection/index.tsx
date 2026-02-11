@@ -14,7 +14,7 @@ import {
   type TowerBadgeRecord,
   unlockTowerBadge,
 } from "@/lib/tower-badges";
-import { CatIcon, FishIcon, FloorIconWrapper } from "./components";
+import { AwnSvg, CasSvg, SvgWrapper } from "./components";
 
 interface FloorSelectionProps {
   worldId: number;
@@ -141,14 +141,14 @@ function StandardFloorCard({
             {/* 3D Letter Block Icon */}
             <div className="relative">
               {floor.unlocked ? (
-                floor.selectionIcon === "fish_orange" ? (
-                  <FloorIconWrapper>
-                    <FishIcon />
-                  </FloorIconWrapper>
-                ) : floor.selectionIcon === "cat_orange" ? (
-                  <FloorIconWrapper>
-                    <CatIcon />
-                  </FloorIconWrapper>
+                floor.selectionIcon === "cas-svg" ? (
+                  <SvgWrapper>
+                    <CasSvg />
+                  </SvgWrapper>
+                ) : floor.selectionIcon === "awn-svg" ? (
+                  <SvgWrapper>
+                    <AwnSvg />
+                  </SvgWrapper>
                 ) : (
                   <LetterBlock
                     letter={floor.letter || "?"}

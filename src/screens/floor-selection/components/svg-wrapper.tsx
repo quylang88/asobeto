@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-export function FloorIconWrapper({ children }: { children: React.ReactNode }) {
+export function SvgWrapper({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-orange-300 bg-linear-to-br from-orange-200 to-amber-300 shadow-lg"

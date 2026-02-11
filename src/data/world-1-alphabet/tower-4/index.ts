@@ -44,7 +44,7 @@ export const tower4Floors: Floor[] = [
     descriptionUnlocked: "Ghép và luyện viết từ bò",
     descriptionLocked: "Chờ bạn tới khám phá!",
     letter: "B",
-    selectionIcon: "cat_orange",
+    selectionIcon: "awn-svg",
     color: "text-orange-bright",
     bgColor: "bg-orange-bright",
     borderColor: "border-orange-bright",

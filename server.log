@@ -12,3 +12,318 @@
  GET / 200 in 102ms (compile: 10ms, render: 92ms)
  GET / 200 in 79ms (compile: 7ms, render: 72ms)
  GET / 200 in 92ms (compile: 8ms, render: 84ms)
+⨯ ./src/screens/floor-selection/components/index.ts:3:1
+Module not found: Can't resolve './cat-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:3:1
+Module not found: Can't resolve './cat-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:3:1
+Module not found: Can't resolve './cat-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:3:1
+Module not found: Can't resolve './cat-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:2:1
+Module not found: Can't resolve './fish-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:2:1
+Module not found: Can't resolve './fish-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:2:1
+Module not found: Can't resolve './fish-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:2:1
+Module not found: Can't resolve './fish-icon'
+[0m [90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:1:1
+Module not found: Can't resolve './floor-icon-wrapper'
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:1:1
+Module not found: Can't resolve './floor-icon-wrapper'
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:1:1
+Module not found: Can't resolve './floor-icon-wrapper'
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/screens/floor-selection/components/index.ts:1:1
+Module not found: Can't resolve './floor-icon-wrapper'
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./floor-icon-wrapper"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./fish-icon"[39m[33m;[39m
+ [90m 3 |[39m [36mexport[39m [33m*[39m [36mfrom[39m [32m"./cat-icon"[39m[33m;[39m
+ [90m 4 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/screens/floor-selection/components/index.ts [Client Component Browser]
+    ./src/screens/floor-selection/index.tsx [Client Component Browser]
+    ./src/app/page.tsx [Client Component Browser]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/screens/floor-selection/components/index.ts [Client Component SSR]
+    ./src/screens/floor-selection/index.tsx [Client Component SSR]
+    ./src/app/page.tsx [Client Component SSR]
+    ./src/app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+✓ Compiled in 64ms
+✓ Compiled in 74ms
+ GET / 200 in 1197ms (compile: 637ms, render: 561ms)

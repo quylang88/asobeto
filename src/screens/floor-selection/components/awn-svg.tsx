@@ -1,6 +1,6 @@
 import React from "react";
 
-export function CatIcon() {
+export function AwnSvg() {
   return (
     <svg
       viewBox="0 0 56 56"

@@ -1,6 +1,6 @@
 import React from "react";
 
-export function FishIcon() {
+export function CasSvg() {
   return (
     <svg
       viewBox="0 0 56 56"
