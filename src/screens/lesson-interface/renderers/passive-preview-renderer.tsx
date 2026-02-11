@@ -1,13 +1,12 @@
 "use client";
 
+import { useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, RotateCcw, Volume2 } from "lucide-react";
 import type { LessonContent } from "@/data/game-config";
 import {
   LetterTracingCanvas,
-  LETTER_TRACING_CANVAS_HEIGHT,
-  LETTER_TRACING_CANVAS_WIDTH,
   FogRevealOverlay,
   GameButton,
 } from "../components";
@@ -55,6 +54,8 @@ export function LessonPassivePreviewRenderer({
   handleReplayTraceDemo,
   handleNext,
 }: LessonPassivePreviewRendererProps) {
+  const tracingPreviewContainerRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <>
       {showPreviewCard &&
@@ -70,19 +71,23 @@ export function LessonPassivePreviewRenderer({
               currentLesson.mainAudio && playAudio(currentLesson.mainAudio)
             }
           >
-            <LetterTracingCanvas
-              key={`${currentLesson.id}-filled-preview`}
-              mode="preview"
-              targetText={targetText || displayText}
-            />
-            {isFogRevealLesson && (
-              <FogRevealOverlay
-                revealKey={currentLesson.id}
-                width={LETTER_TRACING_CANVAS_WIDTH}
-                height={LETTER_TRACING_CANVAS_HEIGHT}
-                roundedClassName="rounded-md"
+            <div
+              ref={tracingPreviewContainerRef}
+              className="relative w-fit mx-auto"
+            >
+              <LetterTracingCanvas
+                key={`${currentLesson.id}-filled-preview`}
+                mode="preview"
+                targetText={targetText || displayText}
               />
-            )}
+              {isFogRevealLesson && (
+                <FogRevealOverlay
+                  revealKey={currentLesson.id}
+                  containerRef={tracingPreviewContainerRef}
+                  roundedClassName="rounded-md"
+                />
+              )}
+            </div>
             {currentLesson.mainAudio && (
               <motion.div
                 className={`absolute bottom-2 ${LESSON_PREVIEW_CONTROL_OFFSET_CLASS} z-20`}

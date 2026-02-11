@@ -33,8 +33,8 @@ export const letterStrokeA: LetterStrokeAnimation = {
           end: { x: 176, y: 167 },
         },
       ],
-      durationMs: 4600,
-      pauseAfterMs: 1000,
+      durationMs: 4200,
+      pauseAfterMs: 800,
     },
     {
       // Nét 2: nét móc ngược phải, từ đỉnh xuống đáy rồi móc rộng sang phải

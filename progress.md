@@ -634,6 +634,86 @@ Validation
 
 ---
 
+Update (Fix fog overlay for lesson-2 `n` and make fog auto-fit any tracing grid size)
+
+TODO
+- [x] Fix fog mismatch in `letter_quiz` preview for letter `n` (4-column tracing layout).
+- [x] Remove hardcoded fog `width/height` coupling to default tracing size.
+- [x] Make fog canvas auto-resize to real rendered container size (works for variable rows/columns/cell sizes).
+- [x] Keep erase coordinate mapping correct after dynamic resizing.
+- [x] Re-run typecheck/lint and runtime smoke navigation.
+
+Notes
+- Root cause:
+  - `FogRevealOverlay` used fixed `LETTER_TRACING_CANVAS_WIDTH/HEIGHT` (default 3x4 grid).
+  - Letter `n` uses custom `layout.columns = 4`, so fog didn’t fully cover the tracing frame.
+- Code changes:
+  - `src/screens/lesson-interface/components/fog-reveal-overlay.tsx`
+    - removed required props `width` and `height`.
+    - added runtime size measurement via `getBoundingClientRect()` on canvas.
+    - added `ResizeObserver` + redraw to keep fog synced when container size changes.
+    - fog drawing now uses measured width/height and scales bitmap by DPR.
+    - pointer erase mapping now uses current measured canvas size from ref.
+    - removed forced `style.width/style.height` locking; overlay keeps `absolute inset-0` fill behavior.
+  - `src/screens/lesson-interface/renderers/passive-preview-renderer.tsx`
+    - removed imports/usages of `LETTER_TRACING_CANVAS_WIDTH/HEIGHT`.
+    - simplified `FogRevealOverlay` usage to `revealKey + roundedClassName`.
+
+Validation
+- Static checks:
+  - `pnpm exec tsc --noEmit` pass.
+  - `pnpm lint -- src/screens/lesson-interface/components/fog-reveal-overlay.tsx src/screens/lesson-interface/renderers/passive-preview-renderer.tsx` pass.
+- Runtime checks:
+  - Dev server restarted cleanly on `127.0.0.1:3100` after clearing stale processes/lock.
+  - Navigated via Playwright MCP to tower `ă` -> floor `n` -> lesson `2/4` (`Nghe và chọn chữ cái`) and confirmed fog overlay node renders on the tracing preview.
+  - Some Playwright MCP deep DOM inspection calls timed out in this environment, so full numeric canvas-rect dump could not be collected.
+- Skill script status:
+  - `node $WEB_GAME_CLIENT ...` still fails in this environment due missing dependency:
+    - `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from /Users/quylang/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js`.
+
+---
+
+Update (Hotfix fog overflow regression)
+
+TODO
+- [x] Fix regression where fog overlay could expand beyond tracing preview bounds.
+- [x] Anchor fog size/position to dedicated tracing preview container.
+- [x] Verify lesson-2 `n` fog bounding box is no longer fullscreen.
+
+Notes
+- Added `containerRef` support in `FogRevealOverlay` and measure from that container (instead of relying on fog canvas box alone).
+- Restored explicit `fogCanvas.style.width/height` using measured container dimensions.
+- In passive preview renderer, wrapped `LetterTracingCanvas` in a dedicated `relative w-fit` container and passed that ref to `FogRevealOverlay`.
+- This keeps fog clipped to tracing preview while still supporting dynamic tracing layouts.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/screens/lesson-interface/components/fog-reveal-overlay.tsx src/screens/lesson-interface/renderers/passive-preview-renderer.tsx` pass.
+- Playwright MCP runtime check at tower `ă` -> floor `n` -> lesson `2/4`:
+  - fog bounding box: `{ width: 296, height: 302 }`
+  - confirms fog is bounded to preview frame (not viewport-wide).
+
+---
+
+Update (Add 1000ms pause between stroke 2 and stroke 3 for `ă` only)
+
+TODO
+- [x] Add `pauseAfterMs: 1000` after stroke 2 of letter `ă`.
+- [x] Keep base letter `a` timing unchanged.
+- [x] Re-run lint/typecheck.
+
+Notes
+- Updated `src/data/tracing/letters/aw.ts`:
+  - `letterStrokeAw` now clones `letterStrokeA.strokes` and sets pause only for index `1` (stroke 2).
+  - This ensures pause is applied only in the `ă` animation path before drawing the breve stroke.
+  - No mutation is applied back to `letterStrokeA`.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/data/tracing/letters/aw.ts` pass.
+
+---
+
 Update (Further adjust `ă` breve + rebuild `n` stroke flow by ĐK instructions)
 
 TODO

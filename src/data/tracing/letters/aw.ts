@@ -16,6 +16,13 @@ const breveStroke: LetterStrokePath = {
 
 export const letterStrokeAw: LetterStrokeAnimation = {
   letter: "ă",
-  // Giữ nguyên 2 nét của "a", chỉ cộng thêm dấu ngoắc ở trên.
-  strokes: [...letterStrokeA.strokes, breveStroke],
+  // Giữ nét 1/2 của "a" nhưng chỉ thêm pause 1000ms sau nét 2 cho riêng "ă".
+  strokes: [
+    ...letterStrokeA.strokes.map((stroke, index) => ({
+      ...stroke,
+      curves: stroke.curves.map((curve) => ({ ...curve })),
+      pauseAfterMs: index === 1 ? 800 : stroke.pauseAfterMs,
+    })),
+    breveStroke,
+  ],
 };

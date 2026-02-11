@@ -1,28 +1,41 @@
 "use client";
 
-import { type PointerEvent, useEffect, useRef, useState } from "react";
+import {
+  type PointerEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { FOG_ERASE_RADIUS } from "../constants";
 
 interface FogRevealOverlayProps {
   revealKey: string;
-  width: number;
-  height: number;
+  containerRef?: RefObject<HTMLElement | null>;
   roundedClassName?: string;
 }
 
 export function FogRevealOverlay({
   revealKey,
-  width,
-  height,
+  containerRef,
   roundedClassName = "rounded-md",
 }: FogRevealOverlayProps) {
   const fogCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasSizeRef = useRef({ width: 0, height: 0 });
   const [isErasingFog, setIsErasingFog] = useState(false);
 
-  // Vẽ lớp sương mờ mới mỗi khi đổi lesson để bé cào/xóa lại từ đầu.
-  useEffect(() => {
+  const redrawFogLayer = useCallback(() => {
     const fogCanvas = fogCanvasRef.current;
     if (!fogCanvas) return;
+
+    const targetElement = containerRef?.current ?? fogCanvas.parentElement;
+    if (!targetElement) return;
+    const rect = targetElement.getBoundingClientRect();
+    const width = Math.round(rect.width);
+    const height = Math.round(rect.height);
+    if (width <= 0 || height <= 0) return;
+    canvasSizeRef.current = { width, height };
 
     const ratio = window.devicePixelRatio || 1;
     fogCanvas.width = Math.floor(width * ratio);
@@ -52,7 +65,30 @@ export function FogRevealOverlay({
       fogCtx.arc(x, y, radius, 0, Math.PI * 2);
       fogCtx.fill();
     }
-  }, [revealKey, width, height]);
+  }, [containerRef]);
+
+  // Vẽ lớp sương mới mỗi khi đổi lesson.
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(redrawFogLayer);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [redrawFogLayer, revealKey]);
+
+  // Theo dõi resize để lớp sương luôn phủ kín khung tracing (kể cả đổi layout cột/hàng).
+  useEffect(() => {
+    const fogCanvas = fogCanvasRef.current;
+    if (!fogCanvas) return;
+    const targetElement = containerRef?.current ?? fogCanvas.parentElement;
+    if (!targetElement) return;
+
+    redrawFogLayer();
+    if (typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      redrawFogLayer();
+    });
+    resizeObserver.observe(targetElement);
+    return () => resizeObserver.disconnect();
+  }, [containerRef, redrawFogLayer]);
 
   const eraseFogAtPoint = (event: PointerEvent<HTMLCanvasElement>) => {
     const fogCanvas = fogCanvasRef.current;
@@ -61,6 +97,9 @@ export function FogRevealOverlay({
     if (!fogCtx) return;
 
     const rect = fogCanvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const { width, height } = canvasSizeRef.current;
     const x = ((event.clientX - rect.left) / rect.width) * width;
     const y = ((event.clientY - rect.top) / rect.height) * height;
 
