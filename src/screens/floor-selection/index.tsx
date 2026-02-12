@@ -22,6 +22,7 @@ import {
   BoosSvg,
   CasSvg,
   CorSvg,
+  MejSvg,
   SvgWrapper,
 } from "./components";
 
@@ -143,6 +144,10 @@ function StandardFloorCard({
                 ) : floor.selectionIcon === "boos-svg" ? (
                   <SvgWrapper tone="orange">
                     <BoosSvg />
+                  </SvgWrapper>
+                ) : floor.selectionIcon === "mej-svg" ? (
+                  <SvgWrapper tone="orange">
+                    <MejSvg />
                   </SvgWrapper>
                 ) : (
                   <LetterBlock

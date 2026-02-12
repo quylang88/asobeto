@@ -765,3 +765,68 @@ Notes
   - Playwright snapshot confirmed tower-4 floor labels and icon tones:
     - floor-2 wrapper class contains `border-green-300 ... from-green-200 to-emerald-300`
     - floor-3 wrapper class contains `border-orange-300 ... from-orange-200 to-amber-300`
+
+---
+
+Update (Tower 5 remap to `m, e, mẹ` + icon `mej.svg`)
+
+TODO
+- [x] Change tower 5 labels to `m, e, mẹ`.
+- [x] Convert tower 5 lessons: floor-1 `m`, floor-2 `e`, floor-3 vocabulary `mẹ`.
+- [x] Add new floor selection icon `mej-svg` (mother), similar visual style to father icon.
+- [x] Wire `mej-svg` into icon union + floor selection renderer.
+- [x] Add requested asset file `public/assets/images/mej.svg`.
+- [x] Validate with lint + typecheck + UI smoke check.
+
+Notes
+- Updated `src/data/world-1-alphabet/map-structure.ts`:
+  - `FloorSelectionIcon` includes `mej-svg`.
+  - tower-5 title/letters now show `m` and `m, e, mẹ`.
+- Updated tower-5 lesson definitions:
+  - `src/data/world-1-alphabet/tower-5/floor-1.ts` -> letter `m`
+  - `src/data/world-1-alphabet/tower-5/floor-2.ts` -> letter `e`
+  - `src/data/world-1-alphabet/tower-5/floor-3.ts` -> word `mẹ` (tokens: `m`, `e`, `tone-nang`)
+  - `src/data/world-1-alphabet/tower-5/floor-4.ts` -> bubble targets `m`, `e`
+  - `src/data/world-1-alphabet/tower-5/index.ts` floor-3 `selectionIcon` -> `mej-svg`
+- Added mother icon component + export:
+  - `src/screens/floor-selection/components/mej-svg.tsx`
+  - `src/screens/floor-selection/components/index.ts`
+- Added renderer branch for `mej-svg` in:
+  - `src/screens/floor-selection/index.tsx`
+- Added raw asset file:
+  - `public/assets/images/mej.svg`
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright MCP smoke check:
+  - tower-5 card displays `m`
+  - floor labels display `Chữ m`, `Chữ e`
+  - floor-3 icon renders with alt text `Mẹ`.
+
+---
+
+Update (Swap floor 1 <-> 2 for tower 3 and tower 5)
+
+TODO
+- [x] Swap tower-3 floor order between floor 1 and floor 2.
+- [x] Swap tower-5 floor order between floor 1 and floor 2.
+- [x] Keep floor 3/4 unchanged for both towers.
+- [x] Validate with lint/typecheck and UI smoke test.
+
+Notes
+- Updated `src/data/world-1-alphabet/tower-3/index.ts`:
+  - floor `id:1` now maps to `Chữ ô` with `content: floor2Lessons`.
+  - floor `id:2` now maps to `Chữ b` with `content: floor1Lessons`.
+- Updated `src/data/world-1-alphabet/tower-5/index.ts`:
+  - floor `id:1` now maps to `Chữ e` with `content: floor2Lessons`.
+  - floor `id:2` now maps to `Chữ m` with `content: floor1Lessons`.
+
+Validation
+- `pnpm lint -- src/data/world-1-alphabet/tower-3/index.ts src/data/world-1-alphabet/tower-5/index.ts` pass.
+- `pnpm exec tsc --noEmit` pass.
+- `$WEB_GAME_CLIENT` run failed in this environment due missing dependency:
+  - `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright' imported from .../web_game_playwright_client.js`
+- Playwright MCP smoke check passed:
+  - Tower 3 floor list shows `1: Chữ ô`, `2: Chữ b`.
+  - Tower 5 floor list shows `1: Chữ e`, `2: Chữ m`.

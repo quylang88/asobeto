@@ -3,19 +3,20 @@ import { createVocabFloorLessons } from "../lesson-templates";
 
 export const floor3Lessons: LessonContent[] = createVocabFloorLessons({
   lessonPrefix: "t5-f3",
-  word: "bố",
-  wordAssetKey: "bo-father",
+  word: "mẹ",
+  wordAssetKey: "mej",
   wordTokens: [
-    { id: "b", text: "b", kind: "letter" },
-    { id: "oo", text: "ô", kind: "letter" },
-    { id: "tone-sac", text: "dấu sắc", kind: "tone" },
+    { id: "m", text: "m", kind: "letter" },
+    { id: "e", text: "e", kind: "letter" },
+    { id: "tone-nang", text: "dấu nặng", kind: "tone" },
   ],
   wordTokenPool: [
-    { id: "b", text: "b", kind: "letter" },
-    { id: "oo", text: "ô", kind: "letter" },
-    { id: "tone-sac", text: "dấu sắc", kind: "tone" },
+    { id: "m", text: "m", kind: "letter" },
+    { id: "e", text: "e", kind: "letter" },
+    { id: "tone-nang", text: "dấu nặng", kind: "tone" },
     { id: "o", text: "o", kind: "letter" },
-    { id: "tone-huyen", text: "dấu huyền", kind: "tone" },
+    { id: "b", text: "b", kind: "letter" },
+    { id: "tone-sac", text: "dấu sắc", kind: "tone" },
   ],
-  reviewLetters: ["ô", "b", "o"],
+  reviewLetters: ["m", "e", "o"],
 });
