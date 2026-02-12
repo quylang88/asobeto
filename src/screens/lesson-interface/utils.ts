@@ -88,7 +88,8 @@ export function getWordBuildTokenDisplayText(token: WordBuildToken): string {
   if (normalizedTokenId.includes("sac")) return "´";
   if (normalizedTokenId.includes("huyen")) return "`";
   if (normalizedTokenId.includes("nga")) return "~";
-  if (normalizedTokenId.includes("hoi")) return "?";
+  // Chỉ dùng dấu hỏi thanh (không kèm vòng tròn nền).
+  if (normalizedTokenId.includes("hoi")) return "̉";
   if (normalizedTokenId.includes("nang")) return "•";
 
   return token.text;

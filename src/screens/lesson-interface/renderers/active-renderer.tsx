@@ -174,8 +174,9 @@ export function LessonActiveRenderer({
                     ) : (
                       <motion.div
                         whileTap={isCorrect === null ? { scale: 0.95 } : {}}
+                        className="h-full w-full"
                       >
-                        <PrimaryButton
+                        <div
                           onPointerDown={(event) =>
                             handleWordBuildTokenPointerDown(
                               event,
@@ -183,26 +184,20 @@ export function LessonActiveRenderer({
                               null,
                             )
                           }
-                          disabled={isCorrect !== null}
-                          className="h-full w-full rounded-2xl touch-none select-none"
-                          frontClassName={`h-full w-full px-2 ${
+                          className={`flex h-full w-full items-end justify-center rounded-2xl border-4 border-green-300 bg-green-bright px-2 pb-1 text-white shadow-md touch-none select-none ${
+                            isCorrect !== null
+                              ? "cursor-not-allowed opacity-70"
+                              : "cursor-grab"
+                          } ${
                             isToneToken
                               ? "text-5xl leading-none"
                               : isSingleLetter
-                                ? "text-5xl leading-none"
+                                ? "font-hp-special text-5xl leading-none"
                                 : "text-xl leading-tight"
                           }`}
                         >
-                          <span
-                            className={
-                              !isToneToken && isSingleLetter
-                                ? "font-hp-special"
-                                : undefined
-                            }
-                          >
-                            {tokenDisplayText}
-                          </span>
-                        </PrimaryButton>
+                          {tokenDisplayText}
+                        </div>
                       </motion.div>
                     )}
                   </div>
@@ -260,7 +255,7 @@ export function LessonActiveRenderer({
                           slotIndex,
                         );
                       }}
-                      className={`flex items-center justify-center rounded-2xl border-4 border-dashed px-2 text-center transition-colors ${
+                      className={`flex items-end justify-center rounded-2xl border-4 border-dashed px-2 pb-1 text-center transition-colors ${
                         placedToken
                           ? "border-green-300 bg-green-50"
                           : "border-sky-200 bg-sky-50/80"
