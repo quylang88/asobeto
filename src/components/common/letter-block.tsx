@@ -1,6 +1,6 @@
 import { Lock } from "lucide-react";
 
-type LetterBlockSize = "sm" | "md";
+type LetterBlockSize = "xs" | "sm" | "md";
 
 interface LetterBlockProps {
   letter: string;
@@ -9,6 +9,7 @@ interface LetterBlockProps {
   locked?: boolean;
   className?: string;
   lowercase?: boolean;
+  flat?: boolean;
 }
 
 const SIZE_STYLES: Record<
@@ -22,6 +23,14 @@ const SIZE_STYLES: Record<
     lockIcon: string;
   }
 > = {
+  xs: {
+    block: "w-6 h-6",
+    rounded: "rounded-md",
+    shadowOffset: "translate-y-0.5",
+    font: "text-[1.05rem]",
+    highlight: "top-0.5 left-0.5 right-2 h-1",
+    lockIcon: "w-3.5 h-3.5",
+  },
   sm: {
     block: "w-10 h-10",
     rounded: "rounded-lg",
@@ -47,6 +56,7 @@ export function LetterBlock({
   locked = false,
   className = "",
   lowercase = false,
+  flat = false,
 }: LetterBlockProps) {
   const styles = SIZE_STYLES[size];
   const normalizedLetter = lowercase ? letter.toLocaleLowerCase() : letter;
@@ -54,12 +64,14 @@ export function LetterBlock({
 
   return (
     <div className={`${styles.block} relative ${className}`}>
+      {!flat && (
+        <div
+          className={`absolute inset-0 ${styles.rounded} transform ${styles.shadowOffset}`}
+          style={{ backgroundColor: color, filter: "brightness(0.6)" }}
+        />
+      )}
       <div
-        className={`absolute inset-0 ${styles.rounded} transform ${styles.shadowOffset}`}
-        style={{ backgroundColor: color, filter: "brightness(0.6)" }}
-      />
-      <div
-        className={`absolute inset-0 ${styles.rounded} flex items-center justify-center ${styles.font} font-hp-special leading-none text-white shadow-lg`}
+        className={`absolute inset-0 ${styles.rounded} flex items-center justify-center ${styles.font} font-hp-special leading-none text-white ${flat ? "" : "shadow-lg"}`}
         style={{
           backgroundColor: color,
           textShadow:

@@ -31,7 +31,7 @@ export const tower1Floors: Floor[] = [
   createVocabularyLearningFloor({
     id: 3,
     nameUnlocked: "Từ vựng",
-    descriptionUnlocked: "Ghép từ và luyện viết",
+    descriptionUnlocked: "Ghép từ, luyện nói và viết",
     letter: "c",
     selectionIcon: "cas-svg",
     maxStars: 5,

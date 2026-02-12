@@ -30,8 +30,8 @@ export const tower2Floors: Floor[] = [
   }),
   createVocabularyLearningFloor({
     id: 3,
-    nameUnlocked: "Từ ăn",
-    descriptionUnlocked: "Ghép từ và luyện viết",
+    nameUnlocked: "Từ vựng",
+    descriptionUnlocked: "Ghép từ, luyện nói và viết",
     letter: "ă",
     selectionIcon: "awn-svg",
     maxStars: 3,

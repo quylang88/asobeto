@@ -734,3 +734,34 @@ Notes
 Validation
 - `pnpm exec tsc --noEmit` pass.
 - `pnpm lint -- src/data/tracing/letters/aw.ts src/data/tracing/letters/n.ts` pass.
+
+---
+
+Update (Tower 4 vocab remap + new floor icons)
+
+TODO
+- [x] Keep tower-4 floor-1 as letter `o` (unchanged).
+- [x] Convert tower-4 floor-2 to vocabulary word `cỏ`.
+- [x] Keep tower-4 floor-3 as vocabulary word `bò` and swap icon.
+- [x] Add new cute icons `cor-svg` (grass) and `bof-svg` (cow).
+- [x] Add green/orange tone support for floor selection icon wrapper.
+- [x] Standardize all vocabulary floor card title/description to:
+  - title: `Từ vựng`
+  - description: `Ghép từ, luyện nói và viết`
+- [x] Run lint/typecheck and UI smoke verification.
+
+Notes
+- Added new selection icon types in map schema: `cor-svg`, `bof-svg`.
+- `SvgWrapper` now supports `tone="green" | "orange"`.
+- Tower-4 mapping now:
+  - Floor 1: letter learning `o`
+  - Floor 2: vocabulary `cỏ` with `cor-svg` and green tone
+  - Floor 3: vocabulary `bò` with `bof-svg` and orange tone
+  - Floor 4: bubble mini game
+- `createVocabularyLearningFloor` now enforces shared card copy for all vocab floors and supports optional `colorVariant` (`orange` default, `green` for floor-2 tower-4).
+- Validation:
+  - `pnpm lint` pass
+  - `pnpm exec tsc --noEmit` pass
+  - Playwright snapshot confirmed tower-4 floor labels and icon tones:
+    - floor-2 wrapper class contains `border-green-300 ... from-green-200 to-emerald-300`
+    - floor-3 wrapper class contains `border-orange-300 ... from-orange-200 to-amber-300`

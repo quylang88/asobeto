@@ -102,7 +102,12 @@ export interface LessonAnswer {
   isCorrect: boolean;
 }
 
-export type FloorSelectionIcon = "letter_block" | "cas-svg" | "awn-svg";
+export type FloorSelectionIcon =
+  | "letter_block"
+  | "cas-svg"
+  | "awn-svg"
+  | "cor-svg"
+  | "bof-svg";
 export type FloorType = "letter_learning" | "vocabulary_learning" | "game";
 
 export interface LessonContent {

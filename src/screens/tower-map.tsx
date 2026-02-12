@@ -423,13 +423,16 @@ function TowerNode({
             fill={tower.unlocked ? "#8B5A2B" : "#4B5563"}
           />
         </svg>
-        <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        <div className="absolute left-0 top-0 w-16 h-20 md:w-20 md:h-24 pointer-events-none">
+          <div className="absolute left-1/2 top-[59%] -translate-x-1/2 -translate-y-1/2">
           <LetterBlock
             letter={(tower.name.trim().charAt(0) || "?").toLocaleLowerCase()}
             color="#4ADE80"
-            size="sm"
+            size="xs"
             locked={!tower.unlocked}
+            flat
           />
+          </div>
         </div>
       </div>
     </motion.button>

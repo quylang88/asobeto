@@ -30,12 +30,20 @@ const FLOOR_VISUALS = {
     bgColor: "bg-orange-bright",
     borderColor: "border-orange-bright",
   },
+  vocabularyGreen: {
+    color: "text-green-bright",
+    bgColor: "bg-green-bright",
+    borderColor: "border-green-bright",
+  },
   game: {
     color: "text-yellow-bright",
     bgColor: "bg-yellow-bright",
     borderColor: "border-yellow-bright",
   },
 } as const satisfies Record<string, FloorVisualStyle>;
+
+const VOCABULARY_FLOOR_TITLE = "Từ vựng";
+const VOCABULARY_FLOOR_DESCRIPTION = "Ghép từ, luyện nói và viết";
 
 interface SharedFloorConfig {
   id: number;
@@ -101,11 +109,20 @@ export function createLetterLearningFloor({
   });
 }
 
-export function createVocabularyLearningFloor(config: SharedFloorConfig): Floor {
+export function createVocabularyLearningFloor(
+  config: SharedFloorConfig & { colorVariant?: "orange" | "green" },
+): Floor {
+  const { colorVariant = "orange", ...restConfig } = config;
+
   return createFloor({
-    ...config,
+    ...restConfig,
+    nameUnlocked: VOCABULARY_FLOOR_TITLE,
+    descriptionUnlocked: VOCABULARY_FLOOR_DESCRIPTION,
     floorType: "vocabulary_learning",
-    style: FLOOR_VISUALS.vocabulary,
+    style:
+      colorVariant === "green"
+        ? FLOOR_VISUALS.vocabularyGreen
+        : FLOOR_VISUALS.vocabulary,
   });
 }
 

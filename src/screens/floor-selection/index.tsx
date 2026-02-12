@@ -16,7 +16,7 @@ import {
 } from "@/lib/tower-badges";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { LetterBlock } from "@/components/common/letter-block";
-import { AwnSvg, CasSvg, SvgWrapper } from "./components";
+import { AwnSvg, BofSvg, CasSvg, CorSvg, SvgWrapper } from "./components";
 
 interface FloorSelectionProps {
   worldId: number;
@@ -104,12 +104,20 @@ function StandardFloorCard({
             <div className="relative">
               {floor.unlocked ? (
                 floor.selectionIcon === "cas-svg" ? (
-                  <SvgWrapper>
+                  <SvgWrapper tone="orange">
                     <CasSvg />
                   </SvgWrapper>
                 ) : floor.selectionIcon === "awn-svg" ? (
-                  <SvgWrapper>
+                  <SvgWrapper tone="orange">
                     <AwnSvg />
+                  </SvgWrapper>
+                ) : floor.selectionIcon === "cor-svg" ? (
+                  <SvgWrapper tone="green">
+                    <CorSvg />
+                  </SvgWrapper>
+                ) : floor.selectionIcon === "bof-svg" ? (
+                  <SvgWrapper tone="orange">
+                    <BofSvg />
                   </SvgWrapper>
                 ) : (
                   <LetterBlock
