@@ -249,7 +249,7 @@ export const towers: Tower[] = [
     stars: 0,
     maxStars: 12,
     completed: false,
-    unlocked: false,
+    unlocked: true,
     position: { x: 75, y: 62 },
     parentIds: [3],
     floors: tower5Floors,

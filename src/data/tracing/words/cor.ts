@@ -86,7 +86,7 @@ export const wordToneStrokeCoHoi: LetterStrokeAnimation = {
   letter: "tone-hoi",
   strokes: [
     {
-      start: { x: 148, y: 100 },
+      start: { x: 140, y: 100 },
       curves: [
         {
           control1: { x: 154, y: 84 },
@@ -107,22 +107,22 @@ export const wordToneStrokeCoHoi: LetterStrokeAnimation = {
 // Ghép từ "cỏ": c ở ô 1-2, o ở ô 3-4, dấu hỏi ngay trên chữ o.
 const coWordStrokes: LetterStrokePath[] = [
   ...remapAnimationToBounds(letterStrokeC, {
-    minX: 12,
-    maxX: 126,
-    minY: 138,
+    minX: 35,
+    maxX: 135,
+    minY: 134,
     maxY: 272,
   }),
   ...remapAnimationToBounds(letterStrokeO, {
-    minX: 150,
-    maxX: 268,
+    minX: 140,
+    maxX: 238,
     minY: 138,
     maxY: 272,
   }),
   ...remapAnimationToBounds(wordToneStrokeCoHoi, {
     minX: 184,
-    maxX: 220,
-    minY: 76,
-    maxY: 126,
+    maxX: 210,
+    minY: 70,
+    maxY: 115,
   }),
 ];
 
