@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Star, Lock } from "lucide-react";
-import { Mascot } from "../components/common/beto-mascot";
+import { ChevronLeft, Star } from "lucide-react";
+import { Mascot } from "../components/beto-mascot";
 import {
   getWorldData,
   getTotalStars,
@@ -12,6 +12,7 @@ import {
   type TowerConnection,
 } from "../data/game-config";
 import { PrimaryButton } from "@/components/common/primary-button";
+import { LetterBlock } from "@/components/common/letter-block";
 import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
 
 interface TowerSelectionProps {
@@ -421,34 +422,15 @@ function TowerNode({
             rx="8"
             fill={tower.unlocked ? "#8B5A2B" : "#4B5563"}
           />
-
-          {/* Tên tháp ở giữa tháp */}
-          <text
-            x="40"
-            y="56"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className={`text-[12px] font-extrabold font-hp-special tracking-wide ${
-              tower.unlocked ? "fill-emerald-900" : "fill-gray-500"
-            }`}
-          >
-            {tower.name}
-          </text>
-
-          {/* Lớp phủ khóa */}
-          {!tower.unlocked && (
-            <g>
-              <circle cx="40" cy="55" r="15" fill="#4B5563" opacity="0.9" />
-              <Lock
-                x={30}
-                y={45}
-                width={20}
-                height={20}
-                className="text-gray-400"
-              />
-            </g>
-          )}
         </svg>
+        <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <LetterBlock
+            letter={(tower.name.trim().charAt(0) || "?").toLocaleLowerCase()}
+            color="#4ADE80"
+            size="sm"
+            locked={!tower.unlocked}
+          />
+        </div>
       </div>
     </motion.button>
   );

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, ChevronLeft, Medal } from "lucide-react";
-import { Mascot } from "../components/common/beto-mascot";
+import { Mascot } from "../components/beto-mascot";
 import { worlds } from "../data/game-config";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { TowerBadgeCollectionModal } from "@/components/badges";
@@ -17,7 +17,9 @@ interface WorldMapProps {
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   const [isBadgeCollectionOpen, setIsBadgeCollectionOpen] = useState(false);
   const letterBadges = useMemo(() => getLetterBadgeCollection(), []);
-  const unlockedBadgeCount = letterBadges.filter((badge) => badge.unlocked).length;
+  const unlockedBadgeCount = letterBadges.filter(
+    (badge) => badge.unlocked,
+  ).length;
 
   return (
     <div className="relative w-full h-dvh flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
@@ -44,7 +46,9 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
             aria-label="Xem bộ sưu tập huy hiệu"
           >
             <Medal className="h-5 w-5 text-emerald-600" />
-            <span className="font-bold text-foreground">{unlockedBadgeCount}</span>
+            <span className="font-bold text-foreground">
+              {unlockedBadgeCount}
+            </span>
           </motion.button>
           <div>
             <Mascot size="sm" emotion="happy" />

@@ -103,6 +103,7 @@ export interface LessonAnswer {
 }
 
 export type FloorSelectionIcon = "letter_block" | "cas-svg" | "awn-svg";
+export type FloorType = "letter_learning" | "vocabulary_learning" | "game";
 
 export interface LessonContent {
   id: string;
@@ -135,6 +136,7 @@ export interface LessonContent {
 
 export interface Floor {
   id: number;
+  floorType: FloorType;
   nameUnlocked: string;
   nameLocked?: string;
   descriptionUnlocked: string;

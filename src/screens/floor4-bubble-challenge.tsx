@@ -21,7 +21,7 @@ import {
   getStoredFloorProgress,
   saveFloorProgress,
 } from "@/lib/floor-progress";
-import { Mascot } from "@/components/common/beto-mascot";
+import { Mascot } from "@/components/beto-mascot";
 import {
   BrokenHeartCelebration,
   StarCelebration,

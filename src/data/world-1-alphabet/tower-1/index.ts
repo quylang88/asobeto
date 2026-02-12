@@ -1,73 +1,48 @@
 import { Floor } from "../map-structure";
+import {
+  createGameFloor,
+  createLetterLearningFloor,
+  createVocabularyLearningFloor,
+} from "../floor-templates";
 import { floor1Lessons } from "./floor-1";
 import { floor2Lessons } from "./floor-2";
 import { floor3Lessons } from "./floor-3";
 import { floor4Lessons } from "./floor-4";
 
 export const tower1Floors: Floor[] = [
-  {
+  createLetterLearningFloor({
+    variant: "primary",
     id: 1,
     nameUnlocked: "Chữ a",
-    nameLocked: "Điều Bí Ẩn",
     descriptionUnlocked: "Bắt đầu hành trình",
-    descriptionLocked: "Chờ bé tới khám phá!",
     letter: "a",
-    color: "text-blue-soft",
-    bgColor: "bg-blue-soft",
-    borderColor: "border-blue-soft",
-    completed: false,
-    unlocked: true,
-    stars: 0,
     maxStars: 3,
     content: floor1Lessons,
-  },
-  {
+  }),
+  createLetterLearningFloor({
+    variant: "secondary",
     id: 2,
     nameUnlocked: "Chữ c",
-    nameLocked: "Điều Bí Ẩn",
     descriptionUnlocked: "Nghe và làm quen",
-    descriptionLocked: "Chờ bé tới khám phá!",
     letter: "c",
-    color: "text-green-bright",
-    bgColor: "bg-green-bright",
-    borderColor: "border-green-bright",
-    completed: false,
-    unlocked: true,
-    stars: 0,
     maxStars: 3,
     content: floor2Lessons,
-  },
-  {
+  }),
+  createVocabularyLearningFloor({
     id: 3,
     nameUnlocked: "Từ vựng",
-    nameLocked: "Điều Bí Ẩn",
     descriptionUnlocked: "Ghép từ và luyện viết",
-    descriptionLocked: "Chờ bé tới khám phá!",
     letter: "c",
     selectionIcon: "cas-svg",
-    color: "text-orange-bright",
-    bgColor: "bg-orange-bright",
-    borderColor: "border-orange-bright",
-    completed: false,
-    unlocked: true,
-    stars: 0,
     maxStars: 5,
     content: floor3Lessons,
-  },
-  {
+  }),
+  createGameFloor({
     id: 4,
     nameUnlocked: "Bóng bay chữ",
-    nameLocked: "Điều Bí Ẩn",
     descriptionUnlocked: "Mini game",
-    descriptionLocked: "Chờ bé tới khám phá!",
     letter: "?",
-    color: "text-yellow-bright",
-    bgColor: "bg-yellow-bright",
-    borderColor: "border-yellow-bright",
-    completed: false,
-    unlocked: true,
-    stars: 0,
     maxStars: 6,
     content: floor4Lessons,
-  },
+  }),
 ];

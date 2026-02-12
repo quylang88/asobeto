@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mascot } from "../../components/common/beto-mascot";
+import { Mascot } from "../../components/beto-mascot";
 import {
   BrokenHeartCelebration,
   StarCelebration,

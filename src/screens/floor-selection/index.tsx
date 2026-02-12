@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
-import { Mascot } from "../../components/common/beto-mascot";
+import { Mascot } from "../../components/beto-mascot";
 import { getWorldData } from "../../data/game-config";
 import type { Floor } from "../../data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
@@ -15,6 +15,7 @@ import {
   unlockTowerBadge,
 } from "@/lib/tower-badges";
 import { PrimaryButton } from "@/components/common/primary-button";
+import { LetterBlock } from "@/components/common/letter-block";
 import { AwnSvg, CasSvg, SvgWrapper } from "./components";
 
 interface FloorSelectionProps {
@@ -23,46 +24,6 @@ interface FloorSelectionProps {
   towerName: string;
   onSelectFloor: (floorId: number) => void;
   onBack: () => void;
-}
-
-// 3D Letter Block Component
-function LetterBlock({
-  letter,
-  color,
-  small = false,
-}: {
-  letter: string;
-  color: string;
-  small?: boolean;
-}) {
-  const size = small ? "w-10 h-10" : "w-14 h-14";
-  const fontSize = small ? "text-2xl" : "text-[2.25rem]";
-
-  return (
-    <div className={`${size} relative`}>
-      {/* Block shadow */}
-      <div
-        className="absolute inset-0 rounded-xl transform translate-y-1"
-        style={{ backgroundColor: color, filter: "brightness(0.6)" }}
-      />
-      {/* Block face */}
-      <div
-        className={`absolute inset-0 rounded-xl flex items-center justify-center ${fontSize} font-hp-special leading-none text-white shadow-lg`}
-        style={{
-          backgroundColor: color,
-          textShadow:
-            "0 1px 0 rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.25), 0 0 10px rgba(255,255,255,0.35)",
-        }}
-      >
-        {letter}
-      </div>
-      {/* Highlight */}
-      <div
-        className="absolute top-1 left-1 right-3 h-2 rounded-full opacity-40"
-        style={{ backgroundColor: "white" }}
-      />
-    </div>
-  );
 }
 
 // Standard Floor Card Component
@@ -681,7 +642,7 @@ export function FloorSelection({
             {/* Floors - stacked from bottom to top */}
             <div className="flex flex-col-reverse gap-0">
               {floors.map((floor, index) => {
-                const isBoss = floor.letter === "?"; // "Review" floor identified by "?" letter
+                const isBoss = floor.floorType === "game";
 
                 return (
                   <React.Fragment key={floor.id}>

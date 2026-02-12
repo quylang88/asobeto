@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import { Mascot } from "@/components/common/beto-mascot";
+import { Mascot } from "@/components/beto-mascot";
 import {
   playCelebrationAudio,
   preloadCelebrationAudio,

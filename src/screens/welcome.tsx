@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mascot } from "../components/common/beto-mascot";
+import { Mascot } from "../components/beto-mascot";
 import { Volume2 } from "lucide-react";
 import { PrimaryButton } from "@/components/common/primary-button";
 
