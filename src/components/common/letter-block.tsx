@@ -55,7 +55,7 @@ export function LetterBlock({
   size = "md",
   locked = false,
   className = "",
-  lowercase = false,
+  lowercase = true,
   flat = false,
 }: LetterBlockProps) {
   const styles = SIZE_STYLES[size];

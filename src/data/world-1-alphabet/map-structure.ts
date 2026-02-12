@@ -107,7 +107,8 @@ export type FloorSelectionIcon =
   | "cas-svg"
   | "awn-svg"
   | "cor-svg"
-  | "bof-svg";
+  | "bof-svg"
+  | "boos-svg";
 export type FloorType = "letter_learning" | "vocabulary_learning" | "game";
 
 export interface LessonContent {
@@ -219,8 +220,8 @@ export const towers: Tower[] = [
   },
   {
     id: 3,
-    name: "e",
-    letters: "e, m",
+    name: "b",
+    letters: "b, ô",
     stars: 3,
     maxStars: 12,
     completed: true,

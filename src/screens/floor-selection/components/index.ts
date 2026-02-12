@@ -3,3 +3,4 @@ export * from "./cas-svg";
 export * from "./awn-svg";
 export * from "./cor-svg";
 export * from "./bof-svg";
+export * from "./boos-svg";

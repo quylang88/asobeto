@@ -16,7 +16,14 @@ import {
 } from "@/lib/tower-badges";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { LetterBlock } from "@/components/common/letter-block";
-import { AwnSvg, BofSvg, CasSvg, CorSvg, SvgWrapper } from "./components";
+import {
+  AwnSvg,
+  BofSvg,
+  BoosSvg,
+  CasSvg,
+  CorSvg,
+  SvgWrapper,
+} from "./components";
 
 interface FloorSelectionProps {
   worldId: number;
@@ -24,6 +31,16 @@ interface FloorSelectionProps {
   towerName: string;
   onSelectFloor: (floorId: number) => void;
   onBack: () => void;
+}
+
+function normalizeLetterFloorTitle(title: string): string {
+  const trimmedTitle = title.trim();
+  const loweredTitle = trimmedTitle.toLocaleLowerCase();
+  const prefix = "chữ ";
+  if (!loweredTitle.startsWith(prefix)) return trimmedTitle;
+
+  const letterPart = trimmedTitle.slice(trimmedTitle.indexOf(" ") + 1).trim();
+  return `Chữ ${letterPart.toLocaleLowerCase()}`;
 }
 
 // Standard Floor Card Component
@@ -51,6 +68,10 @@ function StandardFloorCard({
     (floor.unlocked || floor.completed) && floor.borderColor
       ? floor.borderColor
       : "border-gray-200";
+  const unlockedTitle =
+    floor.floorType === "letter_learning"
+      ? normalizeLetterFloorTitle(floor.nameUnlocked)
+      : floor.nameUnlocked;
 
   return (
     <motion.button
@@ -119,6 +140,10 @@ function StandardFloorCard({
                   <SvgWrapper tone="orange">
                     <BofSvg />
                   </SvgWrapper>
+                ) : floor.selectionIcon === "boos-svg" ? (
+                  <SvgWrapper tone="orange">
+                    <BoosSvg />
+                  </SvgWrapper>
                 ) : (
                   <LetterBlock
                     letter={floor.letter || "?"}
@@ -140,7 +165,7 @@ function StandardFloorCard({
                 }`}
               >
                 {floor.unlocked
-                  ? floor.nameUnlocked
+                  ? unlockedTitle
                   : (floor.nameLocked ?? "Bí Ẩn")}
               </h3>
               <p
