@@ -1,6 +1,7 @@
 import {
   ChallengePassStarRule,
   DiacriticBuildGameConfig,
+  DiacriticBuildInteractionMode,
   DiacriticBuildLevelConfig,
   DiacriticBuildLevelId,
 } from "../world-1-alphabet/map-structure";
@@ -57,16 +58,16 @@ const DIACRITIC_LEVEL_PRESETS: Record<
     targetCompletions: 10,
     startLives: 4,
     correctSpawnRatioRange: {
-      min: 0.55,
-      max: 0.6,
+      min: 0.45,
+      max: 0.5,
     },
     spawnIntervalMs: {
       min: 760,
       max: 940,
     },
     fallDurationSeconds: {
-      min: 3.7,
-      max: 4.3,
+      min: 3.8,
+      max: 4.2,
     },
     objectSize: {
       min: 58,
@@ -91,16 +92,16 @@ const DIACRITIC_LEVEL_PRESETS: Record<
     targetCompletions: 15,
     startLives: 3,
     correctSpawnRatioRange: {
-      min: 0.45,
-      max: 0.5,
+      min: 0.35,
+      max: 0.4,
     },
     spawnIntervalMs: {
       min: 520,
       max: 720,
     },
     fallDurationSeconds: {
-      min: 2.6,
-      max: 3.0,
+      min: 3.0,
+      max: 3.6,
     },
     objectSize: {
       min: 56,
@@ -125,16 +126,16 @@ const DIACRITIC_LEVEL_PRESETS: Record<
     targetCompletions: 20,
     startLives: 2,
     correctSpawnRatioRange: {
-      min: 0.3,
-      max: 0.4,
+      min: 0.2,
+      max: 0.3,
     },
     spawnIntervalMs: {
       min: 420,
       max: 620,
     },
     fallDurationSeconds: {
-      min: 2.0,
-      max: 2.4,
+      min: 2.2,
+      max: 2.8,
     },
     objectSize: {
       min: 54,
@@ -157,11 +158,15 @@ export interface DiacriticBuildGameDataInput {
   baseLetter: string;
   markerSymbol: string;
   debrisSymbols: string[];
+  interactionMode?: DiacriticBuildInteractionMode;
+  catcherHitboxScale?: number;
   title?: string;
   headerTitle?: string;
   instruction?: string;
   rules?: string[];
   countdownHintText?: string;
+  minSpawnVerticalGap?: number;
+  tutorialDurationMs?: number;
   levelOverrides?: Partial<
     Record<DiacriticBuildLevelId, Partial<DiacriticBuildLevelConfig>>
   >;
@@ -218,11 +223,15 @@ export function createDiacriticBuildGameConfig({
   baseLetter,
   markerSymbol,
   debrisSymbols,
+  interactionMode,
+  catcherHitboxScale,
   title,
   headerTitle,
   instruction,
   rules,
   countdownHintText,
+  minSpawnVerticalGap,
+  tutorialDurationMs,
   levelOverrides,
 }: DiacriticBuildGameDataInput): DiacriticBuildGameConfig {
   const normalizedTargetLetter = targetLetter.trim().toLocaleLowerCase("vi-VN");
@@ -232,6 +241,11 @@ export function createDiacriticBuildGameConfig({
     .map((symbol) => symbol.trim())
     .filter((symbol) => symbol.length > 0);
   const resolvedRules = rules ?? DIACRITIC_BUILD_GAME_RULES;
+  const resolvedInteractionMode = interactionMode ?? "tap";
+  const resolvedCatcherHitboxScale =
+    typeof catcherHitboxScale === "number" && Number.isFinite(catcherHitboxScale)
+      ? Math.max(0.85, catcherHitboxScale)
+      : 1;
 
   return {
     title: title ?? "Chọn mức độ",
@@ -241,20 +255,37 @@ export function createDiacriticBuildGameConfig({
     rulesAudioText: resolvedRules.join(" "),
     countdownHintText:
       countdownHintText?.trim() || normalizedTargetLetter.toLocaleUpperCase("vi-VN"),
+    interactionMode: resolvedInteractionMode,
     targetLetter: normalizedTargetLetter,
     baseLetter: normalizedBaseLetter,
     markerSymbol: normalizedMarker,
     debrisSymbols:
       normalizedDebris.length > 0 ? normalizedDebris : ["★", "✦", "⬢"],
+    catcherHitboxScale: resolvedCatcherHitboxScale,
     laneCount: 3,
+    minSpawnVerticalGap: clampMinSpawnVerticalGap(minSpawnVerticalGap),
     playfieldFooterRatio: 0.24,
     playfieldHeightVh: 62,
     hitboxScale: 1.15,
     tutorial: {
       enabledLevelId: "easy",
-      durationMs: 5000,
+      durationMs: clampTutorialDurationMs(tutorialDurationMs),
       replayAfterFailCount: 2,
     },
     levels: createDiacriticBuildLevelConfigs({ levelOverrides }),
   };
+}
+
+function clampMinSpawnVerticalGap(value?: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 120;
+  }
+  return Math.max(72, Math.round(value));
+}
+
+function clampTutorialDurationMs(value?: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 5000;
+  }
+  return Math.max(3000, Math.round(value));
 }

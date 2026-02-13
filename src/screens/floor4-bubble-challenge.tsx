@@ -702,8 +702,10 @@ export function Floor4BubbleChallenge({
         const escaped = nextY + bubble.size < 0;
         if (escaped) {
           if (bubble.kind === "target") {
-            scoreRef.current = Math.max(0, scoreRef.current - 1);
-            enqueuePopup(bubble.x, 32, "-1", "bad");
+            if (level.id === "hard") {
+              scoreRef.current = Math.max(0, scoreRef.current - 1);
+              enqueuePopup(bubble.x, 32, "-1", "bad");
+            }
           }
           continue;
         }

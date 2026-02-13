@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, Hand, Heart, Sparkles, Volume2 } from "lucide-react";
+import { ChevronLeft, Heart, Sparkles, Volume2 } from "lucide-react";
 import type {
   ChallengePassStarRule,
+  DiacriticBuildInteractionMode,
   DiacriticBuildLevelConfig,
   DiacriticBuildLevelId,
   LessonContent,
@@ -23,6 +24,39 @@ import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { MiniGameLevelSelectPanel } from "@/components/minigame/level-select-panel";
 import { MiniGameCountdown } from "@/components/minigame/shared-countdown";
+import {
+  CatcherDragFallingEntity,
+  CatcherDragFooter,
+  CatcherDragTutorialHand,
+  createCatcherTutorialFinish,
+  getCatcherDragTutorialHandMotion,
+  getCatcherHitbox,
+  getCatcherHorizontalBounds,
+  isEntityInCatcherHitbox,
+  resolveCatcherDragFrame,
+  startCatcherDragTutorialSequence,
+  useCatcherDragPointerHandlers,
+} from "./modes/catcher-drag-mode";
+import {
+  createTapTutorialFinish,
+  getTapTutorialHandMotion,
+  handleTapEntityInteraction,
+  resolveTapFrame,
+  startTapTutorialSequence,
+  TapFallingEntity,
+  TapFooter,
+  TapTutorialHand,
+} from "./modes/tap-mode";
+import { ToneSymbol } from "./tone-symbol";
+import type {
+  AxisBounds,
+  ChallengePhase,
+  FallingEntity,
+  FlyingMarker,
+  PlayfieldMetrics,
+  TutorialCue,
+  TutorialState,
+} from "./types";
 
 const LEVEL_ORDER: DiacriticBuildLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<DiacriticBuildLevelId, string> = {
@@ -36,33 +70,7 @@ const CORRECT_TAP_AUDIO = "/assets/audio/game/bubble-pop/pop.mp3";
 const WRONG_TAP_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 const PASS_AUDIO = "/assets/audio/feedback/success-answer.mp3";
 const FAIL_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
-
-type ChallengePhase = "select" | "countdown" | "playing" | "result";
-type FallingKind = "marker" | "debris";
-type TutorialCue = "drop" | "tap" | "fly";
-
-interface FallingEntity {
-  id: number;
-  lane: number;
-  x: number;
-  y: number;
-  size: number;
-  speed: number;
-  kind: FallingKind;
-  symbol: string;
-}
-
-interface FlyingMarker {
-  id: number;
-  startX: number;
-  startY: number;
-  midX: number;
-  midY: number;
-  endX: number;
-  endY: number;
-  durationMs: number;
-  symbol: string;
-}
+const CATCHER_TONE_TARGET_OFFSET_X = 56;
 
 interface Floor4DiacriticBuildChallengeProps {
   worldId: number;
@@ -82,11 +90,6 @@ declare global {
   }
 }
 
-interface TutorialState {
-  hasSeen: boolean;
-  failedAttemptsSinceTutorial: number;
-}
-
 function clampInteger(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -94,6 +97,10 @@ function clampInteger(value: number, min: number, max: number): number {
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 function doesPassStarRuleMatch({
@@ -290,6 +297,9 @@ export function Floor4DiacriticBuildChallenge({
   );
   const footerRatio = diacriticConfig?.playfieldFooterRatio ?? 0.24;
   const footerPercent = Math.round(footerRatio * 100);
+  const interactionMode: DiacriticBuildInteractionMode =
+    diacriticConfig?.interactionMode ?? "tap";
+  const isCatcherDragMode = interactionMode === "catcher_drag";
 
   const [phase, setPhase] = useState<ChallengePhase>("select");
   const [selectedLevelId, setSelectedLevelId] =
@@ -314,7 +324,9 @@ export function Floor4DiacriticBuildChallenge({
   const [showSparkleBurst, setShowSparkleBurst] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [letterPulseKey, setLetterPulseKey] = useState(0);
-  const [playfieldMetrics, setPlayfieldMetrics] = useState({
+  const [catcherCenterX, setCatcherCenterX] = useState(180);
+  const [isDraggingCatcher, setIsDraggingCatcher] = useState(false);
+  const [playfieldMetrics, setPlayfieldMetrics] = useState<PlayfieldMetrics>({
     width: 360,
     height: 520,
     fallZoneHeight: 380,
@@ -341,10 +353,23 @@ export function Floor4DiacriticBuildChallenge({
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
   const challengeHeaderTitle = diacriticConfig?.headerTitle?.trim() || floorName;
+  const catcherToneTargetX = useMemo(
+    () =>
+      clampNumber(
+        catcherCenterX + CATCHER_TONE_TARGET_OFFSET_X,
+        0,
+        playfieldMetrics.width,
+      ),
+    [catcherCenterX, playfieldMetrics.width],
+  );
 
   const playfieldRef = useRef<HTMLDivElement | null>(null);
+  const catcherRef = useRef<HTMLDivElement | null>(null);
   const slotRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
+  const catcherCenterXRef = useRef(180);
+  const catcherWidthRef = useRef(132);
+  const activeCatcherPointerIdRef = useRef<number | null>(null);
   const fallZoneHeightRef = useRef(380);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
@@ -386,6 +411,23 @@ export function Floor4DiacriticBuildChallenge({
     ref.current = null;
   }, []);
 
+  const getCatcherBounds = useCallback((): AxisBounds => {
+    return getCatcherHorizontalBounds({
+      playfieldWidth: playfieldSizeRef.current.width,
+      catcherWidth: catcherWidthRef.current,
+    });
+  }, []);
+
+  const syncCatcherPosition = useCallback(
+    (rawCenterX: number) => {
+      const bounds = getCatcherBounds();
+      const clampedCenterX = clampNumber(rawCenterX, bounds.min, bounds.max);
+      catcherCenterXRef.current = clampedCenterX;
+      setCatcherCenterX(clampedCenterX);
+    },
+    [getCatcherBounds],
+  );
+
   const resetVisualFeedback = useCallback(() => {
     clearTimeoutRef(damageFlashTimeoutRef);
     clearTimeoutRef(slotPulseTimeoutRef);
@@ -403,6 +445,8 @@ export function Floor4DiacriticBuildChallenge({
     });
     tutorialTimeoutsRef.current = [];
     tutorialActiveRef.current = false;
+    activeCatcherPointerIdRef.current = null;
+    setIsDraggingCatcher(false);
     setTutorialActive(false);
     setTutorialCue("drop");
   }, []);
@@ -587,22 +631,68 @@ export function Floor4DiacriticBuildChallenge({
     const height = playfieldSizeRef.current.height;
     const fallZoneHeight = fallZoneHeightRef.current;
     return {
-      x: width / 2,
+      x: isCatcherDragMode
+        ? clampNumber(
+            catcherCenterXRef.current + CATCHER_TONE_TARGET_OFFSET_X,
+            0,
+            playfieldSizeRef.current.width,
+          )
+        : width / 2,
       y: fallZoneHeight + (height - fallZoneHeight) * 0.24,
     };
-  }, []);
+  }, [isCatcherDragMode]);
+
+  const getLaneCenterX = useCallback(
+    (lane: number): number => {
+      if (!diacriticConfig) return playfieldSizeRef.current.width / 2;
+      const laneCount = Math.max(1, diacriticConfig.laneCount);
+      const laneWidth = playfieldSizeRef.current.width / laneCount;
+      const safeLane = clampInteger(lane, 0, laneCount - 1);
+      return laneWidth * safeLane + laneWidth / 2;
+    },
+    [diacriticConfig],
+  );
+
+  const pickSpawnLane = useCallback(
+    (size: number): number => {
+      if (!diacriticConfig) return 0;
+      const laneCount = Math.max(1, diacriticConfig.laneCount);
+      const lanes = Array.from({ length: laneCount }, (_, lane) => lane);
+      const shuffledLanes = [...lanes];
+      for (let index = shuffledLanes.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffledLanes[index], shuffledLanes[randomIndex]] = [
+          shuffledLanes[randomIndex],
+          shuffledLanes[index],
+        ];
+      }
+
+      const minGap = diacriticConfig.minSpawnVerticalGap;
+      for (const lane of shuffledLanes) {
+        const blocked = fallingEntitiesRef.current.some((entity) => {
+          if (entity.lane !== lane) return false;
+          const spawnDistance = Math.abs(entity.y - 0);
+          const requiredGap = minGap + (entity.size + size) * 0.2;
+          return spawnDistance < requiredGap;
+        });
+        if (!blocked) return lane;
+      }
+
+      return shuffledLanes[0] ?? 0;
+    },
+    [diacriticConfig],
+  );
 
   const createFallingEntity = useCallback(
     (level: DiacriticBuildLevelConfig): FallingEntity | null => {
       if (!diacriticConfig) return null;
 
       const laneCount = Math.max(1, diacriticConfig.laneCount);
-      const lane = Math.floor(Math.random() * laneCount);
-      const laneWidth = playfieldSizeRef.current.width / laneCount;
-      const x = laneWidth * lane + laneWidth / 2;
       const size = Math.round(
         randomBetween(level.objectSize.min, level.objectSize.max),
       );
+      const lane = clampInteger(pickSpawnLane(size), 0, laneCount - 1);
+      const x = getLaneCenterX(lane);
       const forceMarker =
         consecutiveDebrisRef.current >= level.maxConsecutiveDebris;
       const targetRatio = randomBetween(
@@ -643,7 +733,7 @@ export function Floor4DiacriticBuildChallenge({
       entityIdRef.current += 1;
       return entity;
     },
-    [diacriticConfig],
+    [diacriticConfig, getLaneCenterX, pickSpawnLane],
   );
 
   const spawnEntity = useCallback(
@@ -653,6 +743,107 @@ export function Floor4DiacriticBuildChallenge({
       fallingEntitiesRef.current = [...fallingEntitiesRef.current, entity];
     },
     [createFallingEntity],
+  );
+
+  const isEntityCollidingWithCatcher = useCallback(
+    (entity: FallingEntity): boolean => {
+      if (!isCatcherDragMode) return false;
+      const hitbox = getCatcherHitbox({
+        playfield: playfieldRef.current,
+        catcher: catcherRef.current,
+        hitboxScale: diacriticConfig?.catcherHitboxScale ?? 1,
+        catcherWidth: catcherWidthRef.current,
+        catcherCenterX: catcherCenterXRef.current,
+        fallZoneHeight: fallZoneHeightRef.current,
+        playfieldHeight: playfieldSizeRef.current.height,
+      });
+      return isEntityInCatcherHitbox({
+        entity,
+        hitbox,
+        entityHitboxScale: diacriticConfig?.hitboxScale ?? 1,
+      });
+    },
+    [
+      diacriticConfig?.catcherHitboxScale,
+      diacriticConfig?.hitboxScale,
+      isCatcherDragMode,
+    ],
+  );
+
+  const updateCatcherByClientX = useCallback(
+    (clientX: number) => {
+      if (!isCatcherDragMode) return;
+      const playfield = playfieldRef.current;
+      if (!playfield) return;
+      const rect = playfield.getBoundingClientRect();
+      syncCatcherPosition(clientX - rect.left);
+    },
+    [isCatcherDragMode, syncCatcherPosition],
+  );
+
+  const releaseCatcherDrag = useCallback(() => {
+    activeCatcherPointerIdRef.current = null;
+    setIsDraggingCatcher(false);
+  }, []);
+
+  const {
+    onPointerDown: handleCatcherPointerDown,
+    onPointerMove: handleCatcherPointerMove,
+    onPointerUp: handleCatcherPointerUp,
+  } = useCatcherDragPointerHandlers({
+    phase,
+    tutorialActiveRef,
+    activePointerIdRef: activeCatcherPointerIdRef,
+    setIsDraggingCatcher,
+    updateCatcherByClientX,
+    releaseCatcherDrag,
+  });
+
+  const triggerDamageFeedback = useCallback(() => {
+    setShowDamageFlash(true);
+    clearTimeoutRef(damageFlashTimeoutRef);
+    damageFlashTimeoutRef.current = window.setTimeout(() => {
+      damageFlashTimeoutRef.current = null;
+      setShowDamageFlash(false);
+    }, 130);
+
+    setIsShaking(false);
+    clearTimeoutRef(shakeTimeoutRef);
+    window.requestAnimationFrame(() => {
+      setIsShaking(true);
+      shakeTimeoutRef.current = window.setTimeout(() => {
+        shakeTimeoutRef.current = null;
+        setIsShaking(false);
+      }, 230);
+    });
+  }, [clearTimeoutRef]);
+
+  const launchMarkerToSlot = useCallback(
+    (entity: FallingEntity) => {
+      const level = currentLevelRef.current;
+      if (!level) return;
+      const slotCenter = getSlotCenter();
+      const startX = entity.x;
+      const startY = entity.y;
+      const endX = slotCenter.x;
+      const endY = slotCenter.y;
+      const midX = (startX + endX) / 2 + (startX > endX ? 20 : -20);
+      const midY = Math.min(startY, endY) - 56;
+      const flight: FlyingMarker = {
+        id: flightIdRef.current,
+        startX,
+        startY,
+        midX,
+        midY,
+        endX,
+        endY,
+        durationMs: randomBetween(level.slotFlightMs.min, level.slotFlightMs.max),
+        symbol: entity.symbol,
+      };
+      flightIdRef.current += 1;
+      setFlyingMarkers((current) => [...current, flight]);
+    },
+    [getSlotCenter],
   );
 
   const runGameStep = useCallback(
@@ -674,17 +865,63 @@ export function Floor4DiacriticBuildChallenge({
       }
 
       const escapedThreshold = fallZoneHeightRef.current;
-      const nextEntities: FallingEntity[] = [];
+      if (isCatcherDragMode) {
+        const {
+          nextEntities,
+          capturedMarkers,
+          collidedDebrisCount,
+          missedMarkerCount,
+        } = resolveCatcherDragFrame({
+          entities: fallingEntitiesRef.current,
+          deltaSeconds,
+          escapedThreshold,
+          isEntityCollidingWithCatcher,
+        });
+        fallingEntitiesRef.current = nextEntities;
 
-      for (const entity of fallingEntitiesRef.current) {
-        const nextY = entity.y + entity.speed * deltaSeconds;
-        const escaped = nextY - entity.size / 2 > escapedThreshold;
-        if (escaped) {
-          continue;
+        if (missedMarkerCount > 0) {
+          if (level.id === "hard") {
+            progressRef.current = Math.max(
+              0,
+              progressRef.current - missedMarkerCount,
+            );
+          }
+          setProgressCount(progressRef.current);
         }
-        nextEntities.push({ ...entity, y: nextY });
+
+        if (capturedMarkers.length > 0) {
+          capturedMarkers.forEach((marker) => {
+            playAudio(CORRECT_TAP_AUDIO);
+            launchMarkerToSlot(marker);
+          });
+        }
+
+        if (collidedDebrisCount > 0) {
+          livesRef.current = Math.max(0, livesRef.current - collidedDebrisCount);
+          setLives(livesRef.current);
+          playAudio(WRONG_TAP_AUDIO);
+          if ("vibrate" in navigator) {
+            navigator.vibrate(45);
+          }
+          triggerDamageFeedback();
+        }
+      } else {
+        const { nextEntities, missedMarkerCount } = resolveTapFrame({
+          entities: fallingEntitiesRef.current,
+          deltaSeconds,
+          escapedThreshold,
+        });
+        fallingEntitiesRef.current = nextEntities;
+        if (missedMarkerCount > 0) {
+          if (level.id === "hard") {
+            progressRef.current = Math.max(
+              0,
+              progressRef.current - missedMarkerCount,
+            );
+          }
+          setProgressCount(progressRef.current);
+        }
       }
-      fallingEntitiesRef.current = nextEntities;
 
       if (livesRef.current <= 0) {
         triggerLevelFail(level);
@@ -703,7 +940,15 @@ export function Floor4DiacriticBuildChallenge({
 
       return false;
     },
-    [spawnEntity, triggerLevelFail, triggerLevelPass],
+    [
+      isCatcherDragMode,
+      isEntityCollidingWithCatcher,
+      launchMarkerToSlot,
+      spawnEntity,
+      triggerDamageFeedback,
+      triggerLevelFail,
+      triggerLevelPass,
+    ],
   );
 
   const frameLoop = useCallback(
@@ -780,90 +1025,44 @@ export function Floor4DiacriticBuildChallenge({
     }
   }, [triggerCaptureFeedback, triggerLevelPass]);
 
-  const launchMarkerToSlot = useCallback(
-    (entity: FallingEntity) => {
-      const level = currentLevelRef.current;
-      if (!level) return;
-      const slotCenter = getSlotCenter();
-      const startX = entity.x;
-      const startY = entity.y;
-      const endX = slotCenter.x;
-      const endY = slotCenter.y;
-      const midX = (startX + endX) / 2 + (startX > endX ? 20 : -20);
-      const midY = Math.min(startY, endY) - 56;
-      const flight: FlyingMarker = {
-        id: flightIdRef.current,
-        startX,
-        startY,
-        midX,
-        midY,
-        endX,
-        endY,
-        durationMs: randomBetween(level.slotFlightMs.min, level.slotFlightMs.max),
-        symbol: entity.symbol,
-      };
-      flightIdRef.current += 1;
-      setFlyingMarkers((current) => [...current, flight]);
-    },
-    [getSlotCenter],
-  );
-
-  const triggerDamageFeedback = useCallback(() => {
-    setShowDamageFlash(true);
-    clearTimeoutRef(damageFlashTimeoutRef);
-    damageFlashTimeoutRef.current = window.setTimeout(() => {
-      damageFlashTimeoutRef.current = null;
-      setShowDamageFlash(false);
-    }, 130);
-
-    setIsShaking(false);
-    clearTimeoutRef(shakeTimeoutRef);
-    window.requestAnimationFrame(() => {
-      setIsShaking(true);
-      shakeTimeoutRef.current = window.setTimeout(() => {
-        shakeTimeoutRef.current = null;
-        setIsShaking(false);
-      }, 230);
-    });
-  }, [clearTimeoutRef]);
-
   const handleEntityTap = useCallback(
     (entityId: number) => {
-      if (phase !== "playing") return;
-      if (tutorialActiveRef.current) return;
-      if (!runningRef.current) return;
+      if (isCatcherDragMode) return;
+      handleTapEntityInteraction({
+        entityId,
+        phase,
+        tutorialActive: tutorialActiveRef.current,
+        running: runningRef.current,
+        entitiesRef: fallingEntitiesRef,
+        onEntitiesChange: setFallingEntities,
+        onMarkerTap: (entity) => {
+          playAudio(CORRECT_TAP_AUDIO);
+          launchMarkerToSlot(entity);
+        },
+        onDebrisTap: () => {
+          livesRef.current = Math.max(0, livesRef.current - 1);
+          setLives(livesRef.current);
+          playAudio(WRONG_TAP_AUDIO);
 
-      const entityIndex = fallingEntitiesRef.current.findIndex(
-        (entity) => entity.id === entityId,
-      );
-      if (entityIndex < 0) return;
+          if ("vibrate" in navigator) {
+            navigator.vibrate(45);
+          }
 
-      const [entity] = fallingEntitiesRef.current.splice(entityIndex, 1);
-      if (!entity) return;
-
-      setFallingEntities([...fallingEntitiesRef.current]);
-
-      if (entity.kind === "marker") {
-        playAudio(CORRECT_TAP_AUDIO);
-        launchMarkerToSlot(entity);
-        return;
-      }
-
-      livesRef.current = Math.max(0, livesRef.current - 1);
-      setLives(livesRef.current);
-      playAudio(WRONG_TAP_AUDIO);
-
-      if ("vibrate" in navigator) {
-        navigator.vibrate(45);
-      }
-
-      triggerDamageFeedback();
-      const level = currentLevelRef.current;
-      if (level && livesRef.current <= 0) {
-        triggerLevelFail(level);
-      }
+          triggerDamageFeedback();
+          const level = currentLevelRef.current;
+          if (level && livesRef.current <= 0) {
+            triggerLevelFail(level);
+          }
+        },
+      });
     },
-    [launchMarkerToSlot, phase, triggerDamageFeedback, triggerLevelFail],
+    [
+      isCatcherDragMode,
+      launchMarkerToSlot,
+      phase,
+      triggerDamageFeedback,
+      triggerLevelFail,
+    ],
   );
 
   const handleFlightComplete = useCallback(
@@ -912,38 +1111,68 @@ export function Floor4DiacriticBuildChallenge({
       setTutorialActive(true);
       setTutorialCue("drop");
       markTutorialShown();
+      const tutorialDurationMs = diacriticConfig.tutorial.durationMs;
 
-      const tapTimeout = window.setTimeout(() => {
-        setTutorialCue("tap");
-      }, 1200);
-      const flyTimeout = window.setTimeout(() => {
-        setTutorialCue("fly");
-      }, 1800);
-      const morphTimeout = window.setTimeout(() => {
-        triggerCaptureFeedback(level);
-      }, 2200);
-      const endTimeout = window.setTimeout(() => {
-        tutorialActiveRef.current = false;
-        setTutorialActive(false);
-        setTutorialCue("drop");
-        setShowSlotPulse(false);
-        setShowSparkleBurst(false);
-        setDisplayLetter(diacriticConfig.baseLetter);
-        beginLiveRound(level);
-      }, diacriticConfig.tutorial.durationMs);
+      if (isCatcherDragMode) {
+        const finishTutorial = createCatcherTutorialFinish({
+          tutorialActiveRef,
+          setTutorialActive,
+          setTutorialCue,
+          setShowSlotPulse,
+          setShowSparkleBurst,
+          setProgressCount,
+          progressRef,
+          setDisplayLetter,
+          baseLetter: diacriticConfig.baseLetter,
+          syncCatcherPosition,
+          beginLiveRound,
+          level,
+        });
 
-      tutorialTimeoutsRef.current = [
-        tapTimeout,
-        flyTimeout,
-        morphTimeout,
-        endTimeout,
-      ];
+        tutorialTimeoutsRef.current = startCatcherDragTutorialSequence({
+          laneCount: diacriticConfig.laneCount,
+          tutorialDurationMs,
+          getLaneCenterX,
+          syncCatcherPosition,
+          setTutorialCue,
+          onDemoCapture: () => {
+            progressRef.current = 1;
+            setProgressCount(1);
+            triggerCaptureFeedback(level);
+          },
+          finishTutorial,
+        });
+        return;
+      }
+
+      const finishTutorial = createTapTutorialFinish({
+        tutorialActiveRef,
+        setTutorialActive,
+        setTutorialCue,
+        setShowSlotPulse,
+        setShowSparkleBurst,
+        setDisplayLetter,
+        baseLetter: diacriticConfig.baseLetter,
+        beginLiveRound,
+        level,
+      });
+
+      tutorialTimeoutsRef.current = startTapTutorialSequence({
+        level,
+        tutorialDurationMs,
+        setTutorialCue,
+        triggerCaptureFeedback,
+        finishTutorial,
+      });
     },
     [
       beginLiveRound,
       clearTutorialSequence,
       diacriticConfig,
+      getLaneCenterX,
+      isCatcherDragMode,
       markTutorialShown,
+      syncCatcherPosition,
       triggerCaptureFeedback,
     ],
   );
@@ -969,6 +1198,7 @@ export function Floor4DiacriticBuildChallenge({
       setLives(level.startLives);
       setTimeLeft(level.durationSeconds);
       setDisplayLetter(diacriticConfig.baseLetter);
+      setIsDraggingCatcher(false);
       setLetterPulseKey((key) => key + 1);
 
       currentLevelRef.current = level;
@@ -981,6 +1211,8 @@ export function Floor4DiacriticBuildChallenge({
       consecutiveDebrisRef.current = 0;
       fallingEntitiesRef.current = [];
       setFallingEntities([]);
+      syncCatcherPosition(playfieldSizeRef.current.width / 2);
+      activeCatcherPointerIdRef.current = null;
 
       if (shouldShowTutorialForLevel(level.id)) {
         runTutorialSequence(level);
@@ -999,6 +1231,7 @@ export function Floor4DiacriticBuildChallenge({
       resetVisualFeedback,
       runTutorialSequence,
       shouldShowTutorialForLevel,
+      syncCatcherPosition,
       stopGameLoop,
     ],
   );
@@ -1025,7 +1258,10 @@ export function Floor4DiacriticBuildChallenge({
       setLives(level.startLives);
       setTimeLeft(level.durationSeconds);
       setDisplayLetter(diacriticConfig.baseLetter);
+      setIsDraggingCatcher(false);
       setPhase("countdown");
+      syncCatcherPosition(playfieldSizeRef.current.width / 2);
+      activeCatcherPointerIdRef.current = null;
     },
     [
       clearCelebrations,
@@ -1035,6 +1271,7 @@ export function Floor4DiacriticBuildChallenge({
       isLevelUnlocked,
       levelMap,
       resetVisualFeedback,
+      syncCatcherPosition,
       stopGameLoop,
     ],
   );
@@ -1086,12 +1323,23 @@ export function Floor4DiacriticBuildChallenge({
 
     const updateSize = () => {
       const rect = playfield.getBoundingClientRect();
+      const catcherRect = catcherRef.current?.getBoundingClientRect();
+      if (catcherRect?.width) {
+        catcherWidthRef.current = catcherRect.width;
+      }
       const fallZoneHeight = rect.height * (1 - footerRatio);
       const slotRect = slotRef.current?.getBoundingClientRect();
+      const fallbackSlotCenterX = isCatcherDragMode
+        ? clampNumber(
+            catcherCenterXRef.current + CATCHER_TONE_TARGET_OFFSET_X,
+            0,
+            rect.width,
+          )
+        : rect.width / 2;
       const slotCenterX =
         slotRect && playfield
           ? slotRect.left - rect.left + slotRect.width / 2
-          : rect.width / 2;
+          : fallbackSlotCenterX;
       const slotCenterY =
         slotRect && playfield
           ? slotRect.top - rect.top + slotRect.height / 2
@@ -1108,6 +1356,9 @@ export function Floor4DiacriticBuildChallenge({
         slotCenterX,
         slotCenterY,
       });
+      if (isCatcherDragMode) {
+        syncCatcherPosition(catcherCenterXRef.current);
+      }
     };
     updateSize();
 
@@ -1116,10 +1367,12 @@ export function Floor4DiacriticBuildChallenge({
     return () => {
       observer.disconnect();
     };
-  }, [footerRatio]);
+  }, [footerRatio, isCatcherDragMode, syncCatcherPosition]);
 
   const tutorialMarkerMotion = useMemo(() => {
-    const centerX = playfieldMetrics.width / 2;
+    const centerX = isCatcherDragMode
+      ? catcherToneTargetX
+      : playfieldMetrics.width / 2;
     const midY = playfieldMetrics.fallZoneHeight * 0.36;
     const markerSize = 60;
 
@@ -1128,7 +1381,7 @@ export function Floor4DiacriticBuildChallenge({
         x: [
           centerX - markerSize / 2,
           centerX - markerSize / 2 - 12,
-          playfieldMetrics.slotCenterX - 24,
+          centerX - markerSize / 2,
         ],
         y: [midY, midY - 56, playfieldMetrics.slotCenterY - 18],
       };
@@ -1139,10 +1392,27 @@ export function Floor4DiacriticBuildChallenge({
       y: midY,
     };
   }, [
+    catcherToneTargetX,
+    isCatcherDragMode,
     playfieldMetrics.fallZoneHeight,
-    playfieldMetrics.slotCenterX,
     playfieldMetrics.slotCenterY,
     playfieldMetrics.width,
+    tutorialCue,
+  ]);
+
+  const tutorialHandMotion = useMemo(() => {
+    if (isCatcherDragMode) {
+      return getCatcherDragTutorialHandMotion({
+        playfieldMetrics,
+        laneCount: diacriticConfig?.laneCount ?? 3,
+        tutorialCue,
+      });
+    }
+    return getTapTutorialHandMotion(playfieldMetrics);
+  }, [
+    diacriticConfig?.laneCount,
+    isCatcherDragMode,
+    playfieldMetrics,
     tutorialCue,
   ]);
 
@@ -1154,6 +1424,7 @@ export function Floor4DiacriticBuildChallenge({
         mode: phase,
         coordinateSystem:
           "origin at top-left; x increases to the right; y increases downward",
+        interactionMode,
         targetLetter: diacriticConfig?.targetLetter ?? "",
         baseLetter: diacriticConfig?.baseLetter ?? "",
         markerSymbol: diacriticConfig?.markerSymbol ?? "",
@@ -1166,6 +1437,12 @@ export function Floor4DiacriticBuildChallenge({
         tutorialActive,
         passCelebration: passCelebrationStars > 0,
         failCelebration: showFailCelebration,
+        catcher: isCatcherDragMode
+          ? {
+              centerX: Number(catcherCenterXRef.current.toFixed(1)),
+              dragging: isDraggingCatcher,
+            }
+          : null,
         fallingEntities: fallingEntitiesRef.current.map((entity) => ({
           id: entity.id,
           x: Number(entity.x.toFixed(1)),
@@ -1203,6 +1480,9 @@ export function Floor4DiacriticBuildChallenge({
     diacriticConfig?.markerSymbol,
     diacriticConfig?.targetLetter,
     displayLetter,
+    interactionMode,
+    isCatcherDragMode,
+    isDraggingCatcher,
     flyingMarkers.length,
     passCelebrationStars,
     phase,
@@ -1218,6 +1498,7 @@ export function Floor4DiacriticBuildChallenge({
       clearCelebrations();
       clearTutorialSequence();
       resetVisualFeedback();
+      activeCatcherPointerIdRef.current = null;
       clearTimeoutRef(morphResetTimeoutRef);
       clearTimeoutRef(unlockAnimationTimeoutRef);
     };
@@ -1256,6 +1537,13 @@ export function Floor4DiacriticBuildChallenge({
   }
 
   if (phase === "result" && selectedLevel && didPass !== null) {
+    const successSummary = isCatcherDragMode
+      ? `Bé đã hứng đủ ${selectedLevel.targetCompletions} dấu để tạo chữ ${diacriticConfig.targetLetter}!`
+      : `Bé đã tạo đủ ${selectedLevel.targetCompletions} chữ ${diacriticConfig.targetLetter}!`;
+    const failSummary = isCatcherDragMode
+      ? `Bé hứng được ${progressCount}/${selectedLevel.targetCompletions} dấu. Mình thử lại nhé!`
+      : `Bé tạo được ${progressCount}/${selectedLevel.targetCompletions} chữ ${diacriticConfig.targetLetter}. Mình thử lại nhé!`;
+
     return (
       <LessonCompletionView
         stars={lastEarnedStars}
@@ -1263,8 +1551,8 @@ export function Floor4DiacriticBuildChallenge({
         activeLessonsCount={selectedLevel.targetCompletions}
         activeLessonsTotalStars={selectedLevel.starsReward}
         floorMaxStars={selectedLevel.starsReward}
-        successSummary={`Bé đã tạo đủ ${selectedLevel.targetCompletions} chữ ${diacriticConfig.targetLetter}!`}
-        failSummary={`Bé tạo được ${progressCount}/${selectedLevel.targetCompletions} chữ ${diacriticConfig.targetLetter}. Mình thử lại nhé!`}
+        successSummary={successSummary}
+        failSummary={failSummary}
         onComplete={() => {
           setDidPass(null);
           setPhase("select");
@@ -1277,10 +1565,13 @@ export function Floor4DiacriticBuildChallenge({
   const levelSelectCards = LEVEL_ORDER.map((levelId) => {
     const level = levelMap.get(levelId);
     if (!level) return null;
+    const subtitle = isCatcherDragMode
+      ? `${level.durationSeconds}s • Hứng ${level.targetCompletions} dấu`
+      : `${level.durationSeconds}s • Tạo ${level.targetCompletions} chữ`;
     return {
       id: level.id,
       label: LEVEL_LABEL[level.id],
-      subtitle: `${level.durationSeconds}s • Tạo ${level.targetCompletions} chữ`,
+      subtitle,
       starsReward: level.starsReward,
       earnedStars: levelStars[level.id],
       unlocked: isLevelUnlocked(level.id),
@@ -1392,11 +1683,11 @@ export function Floor4DiacriticBuildChallenge({
                       />
                     ))}
                   </div>
-                  <div className="flex items-end gap-2 rounded-2xl bg-white/60 px-3 py-1.5 shadow-sm">
-                    <p className="font-hp-special text-[2.75rem] font-black leading-none text-emerald-700">
+                  <div className="flex min-h-[74px] items-center justify-center gap-2 rounded-2xl bg-white/60 px-3 py-2 shadow-sm">
+                    <p className="font-hp-special text-[2.4rem] font-black leading-none text-emerald-700">
                       {diacriticConfig.targetLetter.toLocaleLowerCase("vi-VN")}
                     </p>
-                    <p className="pb-1 text-base font-bold text-slate-700">
+                    <p className="text-base font-bold leading-none text-slate-700">
                       {progressCount}/{selectedTarget}
                     </p>
                   </div>
@@ -1436,57 +1727,22 @@ export function Floor4DiacriticBuildChallenge({
                     )}
                   </div>
 
-                  {fallingEntities.map((entity) => {
-                    const hitboxSize = entity.size * diacriticConfig.hitboxScale;
-                    const isMarker = entity.kind === "marker";
-                    return (
-                      <button
+                  {fallingEntities.map((entity) =>
+                    isCatcherDragMode ? (
+                      <CatcherDragFallingEntity
                         key={entity.id}
-                        onClick={() => handleEntityTap(entity.id)}
-                        className="absolute flex items-center justify-center rounded-full active:scale-95"
-                        style={{
-                          width: hitboxSize,
-                          height: hitboxSize,
-                          left: entity.x - hitboxSize / 2,
-                          top: entity.y - hitboxSize / 2,
-                        }}
-                        aria-label={
-                          isMarker
-                            ? `Dấu đúng ${entity.symbol}`
-                            : `Vật cản ${entity.symbol}`
-                        }
-                      >
-                        <span
-                          className={`relative flex items-center justify-center rounded-full border-2 shadow-md ${
-                            isMarker
-                              ? "border-emerald-500 bg-linear-to-b from-emerald-100 via-emerald-200 to-emerald-400 text-emerald-900"
-                              : "border-orange-500 bg-linear-to-b from-orange-100 via-orange-200 to-orange-400 text-orange-900"
-                          }`}
-                          style={{
-                            width: entity.size,
-                            height: entity.size,
-                          }}
-                        >
-                          <span className="pointer-events-none absolute left-[28%] top-[20%] h-[20%] w-[28%] rounded-full bg-white/70 blur-[0.3px]" />
-                          {isMarker ? (
-                            <span
-                              className="font-black leading-none text-[2.2rem]"
-                              style={{
-                                fontFamily: "Noto Sans, Arial, sans-serif",
-                                transform: "translateY(-1px)",
-                              }}
-                            >
-                              {entity.symbol}
-                            </span>
-                          ) : (
-                            <span className="font-hp-special text-[1.7rem] font-black leading-none">
-                              {entity.symbol}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
+                        entity={entity}
+                        hitboxScale={diacriticConfig.hitboxScale}
+                      />
+                    ) : (
+                      <TapFallingEntity
+                        key={entity.id}
+                        entity={entity}
+                        hitboxScale={diacriticConfig.hitboxScale}
+                        onTap={handleEntityTap}
+                      />
+                    ),
+                  )}
 
                   {flyingMarkers.map((flight) => (
                     <motion.div
@@ -1510,15 +1766,10 @@ export function Floor4DiacriticBuildChallenge({
                       className="pointer-events-none absolute z-40 flex h-9 w-9 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-100 text-emerald-900 shadow"
                       onAnimationComplete={() => handleFlightComplete(flight.id)}
                     >
-                      <span
+                      <ToneSymbol
+                        symbol={flight.symbol}
                         className="font-black leading-none text-[1.35rem]"
-                        style={{
-                          fontFamily: "Noto Sans, Arial, sans-serif",
-                          transform: "translateY(-1px)",
-                        }}
-                      >
-                        {flight.symbol}
-                      </span>
+                      />
                     </motion.div>
                   ))}
 
@@ -1543,34 +1794,25 @@ export function Floor4DiacriticBuildChallenge({
                           }}
                           className="absolute flex h-15 w-15 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-100 text-emerald-900 shadow-[0_0_24px_rgba(16,185,129,0.55)]"
                         >
-                          <span
-                            className="font-black leading-none text-[2.05rem]"
-                            style={{
-                              fontFamily: "Noto Sans, Arial, sans-serif",
-                              transform: "translateY(-1px)",
-                            }}
-                          >
-                            {diacriticConfig.markerSymbol}
-                          </span>
+                          <ToneSymbol
+                            symbol={diacriticConfig.markerSymbol}
+                            className="font-black leading-none text-[2.2rem]"
+                          />
                         </motion.div>
 
-                        <AnimatePresence>
-                          {tutorialCue === "tap" && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.75 }}
-                              animate={{ opacity: 1, scale: [1, 0.88, 1] }}
-                              exit={{ opacity: 0, scale: 0.75 }}
-                              transition={{
-                                duration: 0.7,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              }}
-                              className="absolute left-1/2 top-[35%] -translate-x-[22%] rounded-full bg-white/95 p-2 text-cyan-700 shadow-lg"
-                            >
-                              <Hand className="h-6 w-6" />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        {isCatcherDragMode ? (
+                          <CatcherDragTutorialHand
+                            cue={tutorialCue}
+                            handMotion={tutorialHandMotion}
+                          />
+                        ) : (
+                          <AnimatePresence>
+                            <TapTutorialHand
+                              cue={tutorialCue}
+                              handMotion={tutorialHandMotion}
+                            />
+                          </AnimatePresence>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1584,24 +1826,29 @@ export function Floor4DiacriticBuildChallenge({
                     }}
                   >
                     <div className="relative flex h-full items-center justify-center">
-                      <div
-                        ref={slotRef}
-                        className="pointer-events-none absolute left-1/2 top-5 h-1 w-1 -translate-x-1/2 opacity-0"
-                      />
-
-                      <motion.span
-                        key={`${displayLetter}-${letterPulseKey}`}
-                        initial={{ scale: 0.92 }}
-                        animate={{ scale: [1, 1.14, 1] }}
-                        transition={{ duration: 0.34, ease: "easeOut" }}
-                        className={`font-hp-special text-[4.5rem] font-black leading-none text-emerald-700 ${
-                          showSlotPulse
-                            ? "drop-shadow-[0_0_12px_rgba(16,185,129,0.55)]"
-                            : ""
-                        }`}
-                      >
-                        {displayLetter}
-                      </motion.span>
+                      {isCatcherDragMode ? (
+                        <CatcherDragFooter
+                          catcherRef={catcherRef}
+                          slotRef={slotRef}
+                          catcherCenterX={catcherCenterX}
+                          toneTargetX={catcherToneTargetX}
+                          tutorialActive={tutorialActive}
+                          isDraggingCatcher={isDraggingCatcher}
+                          displayLetter={displayLetter}
+                          letterPulseKey={letterPulseKey}
+                          showSlotPulse={showSlotPulse}
+                          onPointerDown={handleCatcherPointerDown}
+                          onPointerMove={handleCatcherPointerMove}
+                          onPointerUp={handleCatcherPointerUp}
+                        />
+                      ) : (
+                        <TapFooter
+                          slotRef={slotRef}
+                          displayLetter={displayLetter}
+                          letterPulseKey={letterPulseKey}
+                          showSlotPulse={showSlotPulse}
+                        />
+                      )}
 
                       <AnimatePresence>
                         {showSparkleBurst && (
@@ -1610,7 +1857,11 @@ export function Floor4DiacriticBuildChallenge({
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 1.06 }}
-                            className="pointer-events-none absolute bottom-10 left-1/2 z-30 -translate-x-1/2"
+                            className="pointer-events-none absolute bottom-10 z-30"
+                            style={{
+                              left: isCatcherDragMode ? catcherCenterX : "50%",
+                              transform: "translateX(-50%)",
+                            }}
                           >
                             <Sparkles className="h-8 w-8 text-yellow-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.65)]" />
                           </motion.div>

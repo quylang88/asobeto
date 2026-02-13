@@ -18,6 +18,7 @@ export type {
   BubblePopGameConfig,
   DiacriticBuildLevelId,
   DiacriticBuildLevelConfig,
+  DiacriticBuildInteractionMode,
   DiacriticBuildGameConfig,
   DiacriticBuildTutorialConfig,
 } from "./world-1-alphabet";

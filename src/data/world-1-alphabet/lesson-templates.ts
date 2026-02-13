@@ -1,5 +1,6 @@
 import {
   DiacriticBuildLevelConfig,
+  DiacriticBuildInteractionMode,
   DiacriticBuildLevelId,
   LessonAnswer,
   LessonContent,
@@ -46,10 +47,14 @@ interface DiacriticBuildFloorLessonConfig {
   baseLetter: string;
   markerSymbol: string;
   debrisSymbols: string[];
+  interactionMode?: DiacriticBuildInteractionMode;
+  catcherHitboxScale?: number;
   title?: string;
   headerTitle?: string;
   instruction?: string;
   rules?: string[];
+  minSpawnVerticalGap?: number;
+  tutorialDurationMs?: number;
   levelOverrides?: Partial<
     Record<DiacriticBuildLevelId, Partial<DiacriticBuildLevelConfig>>
   >;
@@ -294,10 +299,14 @@ export function createDiacriticBuildChallengeLessons(
     baseLetter,
     markerSymbol,
     debrisSymbols,
+    interactionMode,
+    catcherHitboxScale,
     title,
     headerTitle,
     instruction,
     rules,
+    minSpawnVerticalGap,
+    tutorialDurationMs,
     countdownHintText,
     levelOverrides,
   } = config;
@@ -319,10 +328,14 @@ export function createDiacriticBuildChallengeLessons(
         baseLetter,
         markerSymbol,
         debrisSymbols,
+        interactionMode,
+        catcherHitboxScale,
         title,
         headerTitle,
         instruction,
         rules,
+        minSpawnVerticalGap,
+        tutorialDurationMs,
         countdownHintText,
         levelOverrides,
       }),

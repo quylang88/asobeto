@@ -1214,3 +1214,98 @@ Validation
     - Select screen + countdown dùng component chung.
     - Tap sai bubble: tim giảm, có damage feedback.
     - Tap đúng bubble: score tăng và popup `+1`, có burst effect.
+
+---
+
+Update (Refactor floor4 diacritic screen into folder + split interaction modes)
+
+TODO
+- [x] Move `floor4-diacritic-build-challenge.tsx` to folder-based screen: `src/screens/game-diacritic-build/index.tsx`.
+- [x] Split interaction-mode specific logic/render into separate files:
+  - `src/screens/game-diacritic-build/modes/tap-mode.tsx`
+  - `src/screens/game-diacritic-build/modes/catcher-drag-mode.tsx`
+- [x] Keep shared game flow in `index.tsx` (phase/timer/spawn/pass-fail/persist/common shell UI).
+- [x] Add shared mode types in `src/screens/game-diacritic-build/types.ts`.
+- [x] Update app import route to new folder index.
+- [x] Remove old monolithic screen file.
+- [x] Re-run typecheck/lint and smoke test.
+
+Notes
+- `index.tsx` now orchestrates shared flow only and delegates mode-specific pieces:
+  - Frame resolution: `resolveTapFrame` vs `resolveCatcherDragFrame`.
+  - Tutorial sequence: `startTapTutorialSequence` vs `startCatcherDragTutorialSequence`.
+  - Tutorial hand render: `TapTutorialHand` vs `CatcherDragTutorialHand`.
+  - Entity/footer render: `TapFallingEntity` + `TapFooter` vs `CatcherDragFallingEntity` + `CatcherDragFooter`.
+  - Catcher-only controls/hitbox utilities live in `catcher-drag-mode.tsx`.
+- `src/app/page.tsx` import switched to:
+  - `@/screens/game-diacritic-build`
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/screens/game-diacritic-build/index.tsx src/screens/game-diacritic-build/types.ts src/screens/game-diacritic-build/modes/tap-mode.tsx src/screens/game-diacritic-build/modes/catcher-drag-mode.tsx src/app/page.tsx` pass.
+- Playwright MCP smoke (`http://127.0.0.1:3100`):
+  - Navigated to tower `ô` floor 4 (`Hứng Dấu`) successfully.
+  - Level select shows expected easy/normal/hard cards after refactor.
+  - Entered easy level and confirmed gameplay renders with catcher/footer.
+  - `window.render_game_to_text()` returns valid payload with `interactionMode: "catcher_drag"`.
+- Skill script check:
+  - `node $WEB_GAME_CLIENT --help` still fails in this environment due missing `playwright` package (same known constraint).
+
+---
+
+Update (Hứng dấu polish + catcher hitbox/bounds + hard-only miss penalty)
+
+TODO
+- [x] Rename label/title from `Hứng Dấu` to `Hứng dấu` for tower 3 floor 4.
+- [x] Improve catcher collision smoothness so fast-falling markers are still detected across frame steps.
+- [x] Expand catcher drag bounds to reach full left/right edges.
+- [x] Move catcher tutorial target to the `ô` side (not over `b`) and keep target clamped inside playfield.
+- [x] Change miss-penalty rule:
+  - Easy/Normal: missing correct item does **not** subtract score/progress.
+  - Hard only: missing correct item subtracts score/progress.
+  - Applied to diacritic game (`tap` and `catcher_drag`) and bubble game.
+
+Notes
+- Catcher mode changes:
+  - Added swept collision sampling across movement step in `resolveCatcherDragFrame` to reduce tunneling misses on high speed.
+  - Increased catcher hitbox with small padding so the whole `bô` catch area feels consistent.
+  - `getCatcherHorizontalBounds` now allows `centerX` from `0` to `playfieldWidth` (full edge reach).
+  - Footer slot (tone target) now uses explicit `toneTargetX` and is offset to the `ô` side.
+- Tutorial targeting:
+  - Added `CATCHER_TONE_TARGET_OFFSET_X` in shared index and used it for slot center fallback + tutorial marker path so tutorial marker aligns with tone target over `ô`.
+- Miss penalty:
+  - `src/screens/game-diacritic-build/modes/tap-mode.tsx` now reports `missedMarkerCount`.
+  - `src/screens/game-diacritic-build/index.tsx` subtracts progress on missed marker only when `level.id === "hard"`.
+  - `src/screens/floor4-bubble-challenge.tsx` subtracts score on missed target bubble only when `level.id === "hard"`.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/screens/game-diacritic-build/index.tsx src/screens/game-diacritic-build/modes/catcher-drag-mode.tsx src/screens/game-diacritic-build/modes/tap-mode.tsx src/screens/floor4-bubble-challenge.tsx src/data/world-1-alphabet/tower-3/floor-4.ts src/data/world-1-alphabet/tower-3/index.ts` pass.
+- Playwright MCP checks:
+  - Confirmed floor card + header text now `Hứng dấu`.
+  - Confirmed catcher drag range reaches full edges (`centerX: 0` and `centerX: 360`).
+  - Confirmed tap-mode easy run (`tower ă`, floor `Dấu kỳ diệu`) keeps progress after missed fall (`progressBefore: 1`, `progressAfter: 1`).
+  - Confirmed catcher tone target DOM positioning (`slotLeft: 210px` when `catcherLeft: 180px`) indicating tutorial/flight target is shifted to `ô` side.
+
+---
+
+Update (HUD target fit + correct Vietnamese tone symbols + tutorial drop on `ô` side)
+
+TODO
+- [x] Fix gameplay HUD center capsule so `bố` text stays fully inside white background.
+- [x] Replace distractor symbols with correct Vietnamese tones (`huyền`, `hỏi`, `ngã`, `nặng`).
+- [x] Ensure catcher tutorial marker drop path targets the `ô` side (tone target), not `b`.
+
+Notes
+- HUD capsule adjustments in `/src/screens/game-diacritic-build/index.tsx`:
+  - changed center capsule to `items-center`, increased vertical padding/min-height, reduced target font size slightly.
+- Tone symbol set updated in `/src/data/world-1-alphabet/tower-3/floor-4.ts`:
+  - `debrisSymbols: ["◌̀", "◌̉", "◌̃", "◌̣"]`
+- Tutorial motion targeting in `/src/screens/game-diacritic-build/index.tsx`:
+  - tutorial marker X now uses `catcherToneTargetX` directly in catcher mode and flies to that same target.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint -- src/screens/game-diacritic-build/index.tsx src/data/world-1-alphabet/tower-3/floor-4.ts` pass.
+- Playwright MCP state check:
+  - `render_game_to_text` now shows corrected symbols in active entities (`◌̀`, `◌̣`, `´` observed).

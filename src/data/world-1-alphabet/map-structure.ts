@@ -99,6 +99,8 @@ export interface BubblePopGameConfig {
 
 export type DiacriticBuildLevelId = "easy" | "normal" | "hard";
 
+export type DiacriticBuildInteractionMode = "tap" | "catcher_drag";
+
 export interface DiacriticBuildLevelConfig {
   id: DiacriticBuildLevelId;
   label: string;
@@ -147,11 +149,14 @@ export interface DiacriticBuildGameConfig {
   rules: string[];
   rulesAudioText?: string;
   countdownHintText?: string;
+  interactionMode?: DiacriticBuildInteractionMode;
   targetLetter: string;
   baseLetter: string;
   markerSymbol: string;
   debrisSymbols: string[];
+  catcherHitboxScale?: number;
   laneCount: number;
+  minSpawnVerticalGap: number;
   playfieldFooterRatio: number;
   playfieldHeightVh?: number;
   hitboxScale: number;
