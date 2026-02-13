@@ -7,6 +7,7 @@ import {
   type TracingAutoStrokeHint,
   type TracingDemoAnimationConfig,
   type TracingGlyphConfig,
+  type TracingGridMetrics,
   type TracingPausePoint,
   type TracingStrokePath,
   type TracingStrokePoint,
@@ -52,17 +53,6 @@ const DEFAULT_SINGLE_LETTER_GLYPH: TracingGlyphConfig = {
   y: 136,
   sizeScale: 2,
 };
-
-interface TracingGridMetrics {
-  margin: number;
-  columns: number;
-  rows: number;
-  cellSize: number;
-  drawAreaWidth: number;
-  drawAreaHeight: number;
-  canvasWidth: number;
-  canvasHeight: number;
-}
 
 interface DemoCanvasPoint {
   x: number;
