@@ -23,8 +23,18 @@ export interface TracingGridLayout {
   margin?: number;
 }
 
+export interface TracingGlyphConfig {
+  text?: string;
+  fontFamily?: string;
+  fontWeight?: number | string;
+  sizeScale?: number;
+  x?: number;
+  y?: number;
+}
+
 export interface LetterStrokeAnimation {
   letter: string;
   strokes: LetterStrokePath[];
   layout?: TracingGridLayout;
+  glyph?: TracingGlyphConfig;
 }

@@ -830,3 +830,197 @@ Validation
 - Playwright MCP smoke check passed:
   - Tower 3 floor list shows `1: Chữ ô`, `2: Chữ b`.
   - Tower 5 floor list shows `1: Chữ e`, `2: Chữ m`.
+
+---
+
+Update (Tracing chữ e dùng glyph font hp-special + khung 2x3)
+
+TODO
+- [x] Đổi tracing `e` sang render theo glyph font hp-special thay vì path thủ công.
+- [x] Giữ grid layout hiện tại (`columns/rows`) và thêm cấu hình tọa độ bounds để chữ `e` nằm trong vùng 2 cột x 3 hàng.
+- [x] Tăng độ đậm nét và scale chữ để to ngang mẫu tracing hiện tại.
+- [x] Mở rộng canvas tracing để hỗ trợ glyph config cho guide/preview/demo/chấm điểm.
+- [x] Chạy lint + typecheck lại.
+
+Notes
+- Thêm kiểu dữ liệu glyph tracing:
+  - `src/data/tracing/types.ts`: `TracingGlyphBounds`, `TracingGlyphConfig`, `LetterStrokeAnimation.glyph`.
+  - `src/data/tracing/index.ts`: export các kiểu mới.
+- Thêm tracing cho chữ `e` tại `src/data/tracing/letters/e.ts` và đăng ký vào map:
+  - `src/data/tracing/letters/index.ts`.
+- Cấu hình `e`:
+  - layout giữ nguyên `columns: 3`, `rows: 4`.
+  - font: `"HP001_4_hang_bold", "Mali", sans-serif`.
+  - `fontWeight: 900`, `sizeScale: 1.18`.
+  - bounds source 280-space: `x: 46.67`, `y: 35`, `width: 186.67` (~2 cột), `height: 210` (~3 hàng).
+- `letter-tracing-canvas` cập nhật logic fit glyph theo bounds + text metrics và dùng chung ở các pha:
+  - guide
+  - preview fill
+  - demo animation fallback
+  - raster target cho evaluation
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Đã thử smoke Playwright MCP, app lên được nhưng chưa chụp xác nhận trực tiếp màn tracing chữ `e` do flow click vào màn bài học chưa ổn định.
+
+---
+
+Update (Tracing chữ e theo nét stroke + chạm line 3)
+
+TODO
+- [x] Đổi glyph `e` từ fill sang stroke để đúng cảm giác tô theo nét.
+- [x] Thêm tuỳ chọn glyph render mode/độ dày/vertical align cho tracing canvas.
+- [x] Chỉnh lại bounds chữ `e` để đỉnh chữ chạm line 3 và tăng cỡ chữ.
+- [x] Chạy lint + typecheck.
+
+Notes
+- Mở rộng `TracingGlyphConfig` với:
+  - `renderMode: "fill" | "stroke"`
+  - `strokeWidthScale`
+  - `verticalAlign: "center" | "top"`
+- `drawGuideGlyph` trong `letter-tracing-canvas` nay hỗ trợ vẽ `strokeText` với độ dày theo `strokeWidthHint` và scale cấu hình glyph.
+- Với chữ `e`:
+  - `renderMode: "stroke"`
+  - `strokeWidthScale: 1.3`
+  - `verticalAlign: "top"`
+  - bounds source-space: `x: 32`, `y: 140`, `width: 196`, `height: 120`
+  - `sizeScale: 1.32`
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Tracing chữ e: glyph hp-special trong vùng 2x2 + demo đi theo nét viết)
+
+TODO
+- [x] Giữ layout khung tracing hiện tại (3 cột x 4 hàng) và giới hạn chữ `e` vào vùng 2 cột x 2 hàng đầu.
+- [x] Dùng glyph font hp-special cho mẫu chữ `e` với tọa độ cấu hình được.
+- [x] Tăng độ đậm nét + tăng size để ngang cỡ tracing hiện tại.
+- [x] Giữ animation demo tô nét theo thứ tự viết (từ trái vòng cung lên, kết thúc nét phải).
+- [x] Re-run lint + typecheck.
+
+Notes
+- Mở rộng `TracingGlyphConfig` trong `src/data/tracing/types.ts`:
+  - `renderMode`, `strokeWidthScale`, `verticalAlign`.
+- `LetterTracingCanvas` được cập nhật để:
+  - ưu tiên vẽ guide/preview/evaluation theo `glyph` khi có cấu hình glyph.
+  - vẫn giữ demo animation theo `strokes` nếu chữ có định nghĩa path.
+  - hỗ trợ bounds mapping theo source-space (280) để canh tọa độ chính xác theo ô ly.
+- Cấu hình mới cho `e` trong `src/data/tracing/letters/e.ts`:
+  - glyph font: `"HP001_4_hang_bold", "Mali", sans-serif`
+  - `fontWeight: 900`, `renderMode: "stroke"`, `strokeWidthScale: 1.42`, `sizeScale: 1.25`
+  - bounds 2x2 đầu: `x: 6`, `y: 8`, `width: 178`, `height: 132`
+  - thêm 1 stroke path demo viết theo chiều yêu cầu (bắt đầu trái, vòng lên, kết thúc phải).
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Tinh chỉnh chữ e: hạ xuống hàng thấp + giảm độ dày nét)
+
+TODO
+- [x] Đẩy chữ `e` xuống sát vùng hàng thấp nhất.
+- [x] Giảm độ đậm để chữ `e` nhìn rõ form hơn (thanh mảnh hơn).
+- [x] Re-run lint + typecheck.
+
+Notes
+- `src/data/tracing/letters/e.ts`:
+  - `glyph.bounds.y`: `8 -> 148` (giữ `width: 178`, `height: 132`, đẩy vùng chữ xuống thấp).
+  - `fontWeight`: `900 -> 700`.
+  - `strokeWidthScale`: `1.0 -> 0.72` để giảm độ dày nét stroke.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Chữ e: bỏ stroke-outline, mảnh hơn, canh ĐK3-ĐK1)
+
+TODO
+- [x] Bỏ kiểu vẽ stroke-outline cho glyph `e` để không bị hở chữ.
+- [x] Giảm độ đậm chữ `e` cho mảnh hơn.
+- [x] Chỉnh bounds để đỉnh chạm ĐK3 và đáy chạm ĐK1.
+- [x] Đồng bộ lại stroke path demo để đi đúng vùng mới.
+- [x] Re-run lint + typecheck.
+
+Notes
+- `src/data/tracing/letters/e.ts` cập nhật:
+  - `fontWeight: 500` (mảnh hơn)
+  - bỏ `renderMode: "stroke"` và `strokeWidthScale`
+  - `sizeScale: 1.08`
+  - bounds: `x: 8`, `y: 70`, `width: 186`, `height: 140` (top ĐK3, bottom ĐK1)
+- Stroke demo path của `e` được dời/tỉ lệ lại để bám cùng dải cao độ ĐK3->ĐK1 và vẫn giữ thứ tự viết từ trái lên vòng cung rồi kết nét phải.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Switch tracing e font to HP normal)
+
+TODO
+- [x] Confirm tracing `e` uses `HP001_4_hang_normal`.
+- [x] Re-run lint + typecheck.
+
+Notes
+- `src/data/tracing/letters/e.ts` is already set to:
+  - `fontFamily: "HP001_4_hang_normal", "Mali", sans-serif`.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Fix font-face HP special load)
+
+TODO
+- [x] Verify `globals.css` font-face mapping for `HP001_4_hang_bold` / `HP001_4_hang_normal`.
+- [x] Split invalid combined `@font-face` into two valid declarations.
+- [x] Align tracing `e` to use lighter normal weight (`400`).
+- [x] Re-run lint + typecheck.
+
+Notes
+- Root cause: `@font-face` was declared with two family names in one rule, which is invalid and can break both fonts.
+- `src/app/globals.css` now has 2 independent rules:
+  - `font-family: "HP001_4_hang_normal"` -> `/fonts/HP001_4_hang_normal.woff2`
+  - `font-family: "HP001_4_hang_bold"` -> `/fonts/HP001_4_hang_bold.woff2`
+- `src/data/tracing/letters/e.ts`: `fontWeight` set to `400` for thinner `e`.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Simplify tracing e glyph config: only x/y + sizeScale)
+
+TODO
+- [x] Refactor glyph config to only support positional `x/y` and `sizeScale` for letter tracing use case.
+- [x] Remove `bounds` (`width/height`), `verticalAlign`, `renderMode`, and `strokeWidthScale` from tracing glyph contract.
+- [x] Set default glyph font family to `HP001_4_hang_normal` when glyph config does not provide one.
+- [x] Update letter `e` tracing config to use only `x/y/sizeScale` (no explicit fontFamily, no width/height).
+- [x] Re-run lint + typecheck.
+
+Notes
+- `src/data/tracing/types.ts`
+  - `TracingGlyphConfig` now: `text`, `fontFamily`, `fontWeight`, `sizeScale`, `x`, `y`.
+  - Removed `TracingGlyphBounds` and all old glyph-only rendering fields.
+- `src/screens/lesson-interface/components/letter-tracing-canvas.tsx`
+  - Glyph draw model now maps `x/y` from source-space (280) to tracing grid for left/top placement.
+  - Font size is controlled by `guideFontSize * sizeScale`.
+  - Default glyph font now falls back to `"HP001_4_hang_normal", "Mali", sans-serif` when `glyph` exists.
+  - Glyph rendering is fill-only.
+- `src/data/tracing/letters/e.ts`
+  - `glyph` keeps only: `text`, `fontWeight`, `sizeScale`, `x`, `y`.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.

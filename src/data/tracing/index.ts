@@ -20,4 +20,5 @@ export type {
   LetterStrokeAnimation,
   LetterStrokePath,
   StrokePoint,
+  TracingGlyphConfig,
 } from "./types";

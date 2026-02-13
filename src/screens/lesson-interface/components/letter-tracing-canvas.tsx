@@ -5,6 +5,7 @@ import {
   getLetterStrokeAnimation,
   type LetterStrokePath,
   type StrokePoint,
+  type TracingGlyphConfig,
 } from "@/data/tracing";
 import { PrimaryButton } from "@/components/common/primary-button";
 
@@ -294,6 +295,56 @@ function getCanvasGuideFontFamily(): string {
   return '"Mali", sans-serif';
 }
 
+function resolveGuideGlyphDrawModel(
+  ctx: CanvasRenderingContext2D,
+  targetText: string,
+  metrics: TracingGridMetrics,
+  guideFontSize: number,
+  fallbackFontFamily: string,
+  glyphConfig?: TracingGlyphConfig,
+) {
+  const text = glyphConfig?.text ?? targetText;
+  const defaultGlyphFontFamily = '"HP001_4_hang_normal", "Mali", sans-serif';
+  const fontFamily =
+    glyphConfig?.fontFamily ??
+    (glyphConfig ? defaultGlyphFontFamily : fallbackFontFamily);
+  const fontWeight = glyphConfig?.fontWeight ?? 700;
+
+  const sizeScale = glyphConfig?.sizeScale ?? 1;
+  const fontSize = Math.max(12, Math.round(guideFontSize * sizeScale));
+
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+  const measured = ctx.measureText(text);
+  const measuredWidth = Math.max(1, measured.width);
+  const ascent = measured.actualBoundingBoxAscent || fontSize * 0.74;
+  const descent = measured.actualBoundingBoxDescent || fontSize * 0.26;
+
+  const mappedLeftX =
+    glyphConfig?.x !== undefined
+      ? metrics.margin + (glyphConfig.x / SOURCE_CANVAS_SIZE) * metrics.drawAreaWidth
+      : undefined;
+  const mappedTopY =
+    glyphConfig?.y !== undefined
+      ? metrics.margin + (glyphConfig.y / SOURCE_CANVAS_SIZE) * metrics.drawAreaHeight
+      : undefined;
+
+  const centerX =
+    mappedLeftX !== undefined ? mappedLeftX + measuredWidth / 2 : metrics.canvasWidth / 2;
+  const baselineY =
+    mappedTopY !== undefined
+      ? mappedTopY + ascent
+      : metrics.canvasHeight / 2 + (ascent - descent) / 2;
+
+  return {
+    text,
+    fontSize,
+    fontFamily,
+    fontWeight,
+    centerX,
+    baselineY,
+  };
+}
+
 function drawGuideGlyph(
   ctx: CanvasRenderingContext2D,
   targetText: string,
@@ -301,13 +352,25 @@ function drawGuideGlyph(
   guideFontSize: number,
   fillStyle: string = "rgba(17, 24, 39, 0.15)",
   fontFamily: string = getCanvasGuideFontFamily(),
+  glyphConfig?: TracingGlyphConfig,
+  clearFirst: boolean = true,
 ) {
-  ctx.clearRect(0, 0, metrics.canvasWidth, metrics.canvasHeight);
+  if (clearFirst) {
+    ctx.clearRect(0, 0, metrics.canvasWidth, metrics.canvasHeight);
+  }
+  const guideGlyph = resolveGuideGlyphDrawModel(
+    ctx,
+    targetText,
+    metrics,
+    guideFontSize,
+    fontFamily,
+    glyphConfig,
+  );
   ctx.fillStyle = fillStyle;
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `${guideFontSize}px ${fontFamily}`;
-  ctx.fillText(targetText, metrics.canvasWidth / 2, metrics.canvasHeight / 2);
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${guideGlyph.fontWeight} ${guideGlyph.fontSize}px ${guideGlyph.fontFamily}`;
+  ctx.fillText(guideGlyph.text, guideGlyph.centerX, guideGlyph.baselineY);
 }
 
 function WritingGridOverlay({ metrics }: { metrics: TracingGridMetrics }) {
@@ -429,6 +492,8 @@ export function LetterTracingCanvas({
     () => getTraceLineWidth(normalizedTarget || "a"),
     [normalizedTarget],
   );
+  const guideGlyphConfig = letterStrokeAnimation?.glyph;
+  const hasGuideGlyph = Boolean(guideGlyphConfig);
   // Chuyển dữ liệu đường cong theo từng chữ thành danh sách điểm để vẽ mượt theo tiến trình
   const sampledDemoStrokes = useMemo(
     () =>
@@ -489,7 +554,18 @@ export function LetterTracingCanvas({
     if (isPreviewMode) return;
 
     const guideStrokeWidth = Math.max(7, lineWidth * 0.7);
-    if (sampledDemoStrokes.length > 0) {
+    if (hasGuideGlyph) {
+      drawGuideGlyph(
+        guideCtx,
+        normalizedTarget || "a",
+        tracingGridMetrics,
+        guideFontSize,
+        GUIDE_STROKE_COLOR,
+        getCanvasGuideFontFamily(),
+        guideGlyphConfig,
+        true,
+      );
+    } else if (sampledDemoStrokes.length > 0) {
       drawSampledStrokeGuide(
         guideCtx,
         sampledDemoStrokes,
@@ -503,10 +579,14 @@ export function LetterTracingCanvas({
         normalizedTarget || "a",
         tracingGridMetrics,
         guideFontSize,
+        GUIDE_STROKE_COLOR,
+        getCanvasGuideFontFamily(),
       );
     }
   }, [
+    guideGlyphConfig,
     guideFontSize,
+    hasGuideGlyph,
     isPreviewMode,
     lineWidth,
     normalizedTarget,
@@ -533,6 +613,20 @@ export function LetterTracingCanvas({
     drawCtx.lineWidth = previewStrokeWidth;
     drawCtx.strokeStyle = FILLED_STROKE_COLOR;
 
+    if (hasGuideGlyph) {
+      drawGuideGlyph(
+        drawCtx,
+        normalizedTarget || "a",
+        tracingGridMetrics,
+        guideFontSize,
+        FILLED_STROKE_COLOR,
+        getCanvasGuideFontFamily(),
+        guideGlyphConfig,
+        true,
+      );
+      return;
+    }
+
     if (sampledDemoStrokes.length > 0) {
       drawSampledStrokeGuide(
         drawCtx,
@@ -550,9 +644,12 @@ export function LetterTracingCanvas({
       tracingGridMetrics,
       guideFontSize,
       FILLED_STROKE_COLOR,
+      getCanvasGuideFontFamily(),
     );
   }, [
+    guideGlyphConfig,
     guideFontSize,
+    hasGuideGlyph,
     isPreviewMode,
     lineWidth,
     normalizedTarget,
@@ -579,22 +676,27 @@ export function LetterTracingCanvas({
       drawCtx.setTransform(1, 0, 0, 1, 0, 0);
       drawCtx.clearRect(0, 0, canvas.width, canvas.height);
       drawCtx.scale(ratio, ratio);
-      drawCtx.textAlign = "center";
-      drawCtx.textBaseline = "middle";
-      drawCtx.font = `${guideFontSize}px ${guideFontFamily}`;
       drawCtx.globalAlpha = 0.2 + normalizedProgress * 0.65;
-      drawCtx.fillStyle = TRACE_STROKE_COLOR;
-      drawCtx.fillText(
+      drawGuideGlyph(
+        drawCtx,
         traceText,
-        tracingGridMetrics.canvasWidth / 2,
-        tracingGridMetrics.canvasHeight / 2,
+        tracingGridMetrics,
+        guideFontSize,
+        TRACE_STROKE_COLOR,
+        guideFontFamily,
+        guideGlyphConfig,
+        false,
       );
       drawCtx.globalAlpha = 1;
-      drawCtx.fillStyle = `rgba(17, 24, 39, ${0.08 + normalizedProgress * 0.18})`;
-      drawCtx.fillText(
+      drawGuideGlyph(
+        drawCtx,
         traceText,
-        tracingGridMetrics.canvasWidth / 2,
-        tracingGridMetrics.canvasHeight / 2,
+        tracingGridMetrics,
+        guideFontSize,
+        `rgba(17, 24, 39, ${0.08 + normalizedProgress * 0.18})`,
+        guideFontFamily,
+        guideGlyphConfig,
+        false,
       );
     };
 
@@ -668,6 +770,7 @@ export function LetterTracingCanvas({
       window.cancelAnimationFrame(rafId);
     };
   }, [
+    guideGlyphConfig,
     guideFontSize,
     isDemoMode,
     lineWidth,
@@ -753,7 +856,18 @@ export function LetterTracingCanvas({
 
     const ratio = window.devicePixelRatio || 1;
     targetCtx.scale(ratio, ratio);
-    if (sampledDemoStrokes.length > 0) {
+    if (hasGuideGlyph) {
+      drawGuideGlyph(
+        targetCtx,
+        normalizedTarget,
+        tracingGridMetrics,
+        guideFontSize,
+        "#111111",
+        getCanvasGuideFontFamily(),
+        guideGlyphConfig,
+        true,
+      );
+    } else if (sampledDemoStrokes.length > 0) {
       drawSampledStrokeGuide(
         targetCtx,
         sampledDemoStrokes,
@@ -768,6 +882,7 @@ export function LetterTracingCanvas({
         tracingGridMetrics,
         guideFontSize,
         "#111111",
+        getCanvasGuideFontFamily(),
       );
     }
 
