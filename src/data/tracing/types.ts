@@ -12,8 +12,55 @@ export interface TracingGlyphConfig {
   y?: number;
 }
 
+export interface TracingStrokePoint {
+  x: number;
+  y: number;
+}
+
+export interface TracingPausePoint {
+  pointIndex: number;
+  pauseMs?: number;
+}
+
+export interface TracingPauseAnchor {
+  point: TracingStrokePoint;
+  pauseMs?: number;
+}
+
+export interface TracingStrokePath {
+  points: TracingStrokePoint[];
+  durationMs?: number;
+  pauseBeforeMs?: number;
+  pauseAfterMs?: number;
+  pausePoints?: TracingPausePoint[];
+}
+
+export interface TracingAutoStrokeHint {
+  start?: TracingStrokePoint;
+  end?: TracingStrokePoint;
+  durationMs?: number;
+  pauseBeforeMs?: number;
+  pauseAfterMs?: number;
+  pausePoints?: TracingPausePoint[];
+  pauseAnchors?: TracingPauseAnchor[];
+}
+
+export interface TracingAutoDemoConfig {
+  strokeCount?: number;
+  strokeHints?: TracingAutoStrokeHint[];
+}
+
+export interface TracingDemoAnimationConfig {
+  strategy?: "auto" | "manual";
+  pauseMs?: number;
+  strokeDurationMs?: number;
+  strokes?: TracingStrokePath[];
+  auto?: TracingAutoDemoConfig;
+}
+
 export interface LetterStrokeAnimation {
   letter: string;
   layout?: TracingGridLayout;
   glyph?: TracingGlyphConfig;
+  demo?: TracingDemoAnimationConfig;
 }

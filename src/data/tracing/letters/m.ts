@@ -12,4 +12,10 @@ export const letterStrokeM: LetterStrokeAnimation = {
     y: 132,
     sizeScale: 1.5,
   },
+  demo: {
+    strategy: "auto",
+    auto: {
+      strokeCount: 1,
+    },
+  },
 };

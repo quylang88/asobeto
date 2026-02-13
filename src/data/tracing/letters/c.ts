@@ -11,4 +11,16 @@ export const letterStrokeC: LetterStrokeAnimation = {
     y: 134,
     sizeScale: 2,
   },
+  demo: {
+    strategy: "auto",
+    auto: {
+      strokeCount: 1,
+      strokeHints: [
+        {
+          start: { x: 176, y: 142 },
+          end: { x: 178, y: 214 },
+        },
+      ],
+    },
+  },
 };

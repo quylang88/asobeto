@@ -1024,3 +1024,64 @@ Notes
 Validation
 - `pnpm lint` pass.
 - `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Lesson 3 trace demo: data-driven stroke timeline + configurable pauses)
+
+TODO
+- [x] Replace generic fade demo with stroke-by-stroke timeline rendering in `LetterTracingCanvas`.
+- [x] Add reusable tracing demo schema for per-letter strokes, configurable pause points, and default pause timing.
+- [x] Keep fallback demo behavior for keys without stroke config.
+- [x] Add stroke demo data for current alphabet set (`a, ă, b, c, e, m, n, o, ô`).
+- [x] Re-run lint + typecheck.
+
+Notes
+- `src/data/tracing/types.ts`
+  - Added demo config contracts:
+    - `TracingStrokePoint`
+    - `TracingPausePoint` (`pointIndex`, optional `pauseMs`)
+    - `TracingStrokePath` (`points`, optional `durationMs`, `pauseBeforeMs`, `pauseAfterMs`, `pausePoints`)
+    - `TracingDemoAnimationConfig` (`pauseMs`, `strokeDurationMs`, `strokes`)
+  - `LetterStrokeAnimation` now supports `demo?: TracingDemoAnimationConfig`.
+- `src/screens/lesson-interface/components/letter-tracing-canvas.tsx`
+  - Added timeline engine to animate demo by path segments instead of drawing full glyph fade.
+  - Default pause between strokes is now `800ms` (`DEFAULT_DEMO_PAUSE_MS`), overridable per letter/stroke/pause-point.
+  - Supports per-point pause via `pausePoints` and dynamic start/end via first/last point in each stroke path.
+  - Keeps legacy fallback fade animation if a tracing key has no `demo.strokes`.
+- `src/data/tracing/letters/*.ts`
+  - Added `demo.strokes` definitions for all currently shipped lesson letters:
+    - `a.ts`, `aw.ts`, `b.ts`, `c.ts`, `e.ts`, `m.ts`, `n.ts`, `o.ts`, `oo.ts`.
+  - Multi-stroke letters now naturally pause between strokes with default 800ms unless overridden.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Playwright MCP smoke run could not be executed in this environment due persistent Chrome profile lock / launch timeout in MCP browser context.
+
+---
+
+Update (Auto tracing path generation for lesson 3 demo)
+
+TODO
+- [x] Replace Euler-edge traversal with centerline trail extraction to avoid backtracking loops in auto demo strokes.
+- [x] Keep auto-demo reusable by letter (single/multi stroke via `strokeCount` + `strokeHints`).
+- [x] Preserve default pause behavior (`pauseMs` default 800) and per-letter pause/start/end overrides.
+- [x] Verify visual output on both 1-stroke and 2-stroke letters.
+
+Notes
+- `LetterTracingCanvas` auto pipeline now extracts stroke trails by skeleton graph path walking (key-node + cycle handling), instead of traversing every edge Euler-style.
+- This removes the previous "scribble/backtrack" behavior where demo animation could leave the intended glyph path.
+- Candidate normalization order was adjusted:
+  - merge/split to target stroke count first
+  - then apply hint mapping (`start/end`) and direction selection
+- Added candidate noise filter (short spur rejection by relative path length).
+- Source-point mapping now clamps to glyph bounds, so auto-generated strokes stay inside drawing area.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- Playwright smoke screenshots:
+  - `tmp/before-auto-trace-a.png` (before patch)
+  - `tmp/after-auto-trace-a-v2.png` (after patch, letter `a`)
+  - `tmp/after-auto-trace-aw.png` (after patch, letter `ă` with 2 strokes)
+- Existing unrelated issue observed: missing audio files for `aw` (`/assets/audio/intro-letters/aw/*.mp3`, `/assets/audio/letters/aw.mp3`) still logs load errors.
