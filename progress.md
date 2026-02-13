@@ -1127,3 +1127,90 @@ Validation
 - Playwright (letter `ă`, lesson 3) screenshots:
   - `tmp/demo-aw-smooth-mask-1.3s.png`
   - `tmp/demo-aw-smooth-mask-0.45s.png`
+
+---
+
+Update (Tower 2 floor 4: diacritic-build mini game)
+
+TODO
+- [x] Add data model for reusable "ghép dấu tạo chữ" mini game config (letter, marker, debris, per-level rules, tutorial rule).
+- [x] Add lesson template factory for this new game type.
+- [x] Switch tower-2 floor-4 from bubble challenge to diacritic-build challenge with config for `a + ˘ => ă`.
+- [x] Add dedicated floor-4 game screen for diacritic-build gameplay and route by lesson kind.
+- [x] Run lint + typecheck + gameplay smoke validation.
+
+Notes
+- Added `lessonKind: "diacritic_build_challenge"` and `diacriticBuildGame` typed config in world-1 map structure.
+- New config supports reusable knobs: `targetLetter`, `baseLetter`, `markerSymbol`, `debrisSymbols`, lanes, hitbox scale, per-level spawn/fall/timer/lives/progress goals, and tutorial replay rules.
+- Implemented requested loop in the new screen:
+  - Header HUD: hearts (left), large target letter + progress (center), timer (right).
+  - Bubble-style playfield with 3 vertical lanes and in-frame footer action area (slot + base letter).
+  - Tap correct marker: animated curved flight to slot, morph base letter -> target letter, sparkle, progress +1, auto reset.
+  - Tap debris: life loss + buzz + light shake + red flash.
+  - Marker falls out: no life penalty.
+  - Anti-bad-luck spawn rule: max 3 debris in a row before forcing marker spawn.
+  - Easy-only tutorial replay logic: show at first play and again after 2 failed easy attempts.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Manual Playwright smoke (`http://127.0.0.1:3100`):
+  - Entered tower `ă` floor-4 card `Tạo chữ ă` and verified level-select layout.
+  - Easy pass flow: tapping only markers reached `progress=3/3` before timeout (`mode: result`, `didPass=true` UI path).
+  - Medium fail-by-life flow: tapping debris reduced hearts to 0 and triggered fail result.
+  - Timeout fail flow: `window.advanceTime(40000)` produced `timeLeft=0` then fail result after celebration hold.
+- Skill script check: `node .../web_game_playwright_client.js` cannot run in this env because package `playwright` is not installed; used Playwright MCP fallback for interactive validation.
+
+---
+
+Update (Reusable mini-game select/countdown + diacritic rules v2 + bubble feedback parity)
+
+TODO
+- [x] Tách màn chọn độ khó thành component dùng chung cho nhiều mini-game.
+- [x] Tách countdown `3-2-1` thành component dùng chung, nhận hint/rule linh hoạt theo data.
+- [x] Thêm countdown cho game tạo chữ trước khi vào gameplay.
+- [x] Chuyển data 2 mini-game sang folder riêng `src/data/mini-games`, mỗi mini-game một file.
+- [x] Cập nhật luật game tạo chữ:
+  - Easy: `35s`, mục tiêu `10` chữ, tốc độ rơi chậm hơn.
+  - Normal: `35s`, mục tiêu `15` chữ, 2 sao nếu không mất tim, 1 sao nếu mất >=1 tim.
+  - Hard: `35s`, mục tiêu `20` chữ, 3/2/1 sao theo tim + thời gian còn lại.
+- [x] Tinh chỉnh layout game tạo chữ:
+  - HUD một hàng (`heart | Ă + progress | timer`).
+  - Bỏ gờ hiển thị phía trên chữ `a` trong footer.
+  - Sửa render ký tự `˘` (font fallback riêng cho dấu).
+- [x] Sửa audio kết thúc game tạo chữ để tránh lặp:
+  - phase hiệu ứng: dùng `success-answer`/`wrong-answer` ngắn.
+  - màn result: vẫn để `LessonCompletionView` phát `applause`/`try-again`.
+- [x] Thêm feedback khi tap sai bubble giống game tạo chữ (shake + flash đỏ + rung nhẹ, vẫn -1 tim).
+- [x] Thêm hiệu ứng nổ nhẹ khi tap đúng bubble và vẫn hiện `+1`.
+- [x] Run lint + typecheck + smoke test.
+
+Notes
+- Component mới:
+  - `src/components/minigame/level-select-panel.tsx`
+  - `src/components/minigame/shared-countdown.tsx`
+- Data mini-game mới:
+  - `src/data/mini-games/bubble-pop.ts`
+  - `src/data/mini-games/diacritic-build.ts`
+- `lesson-templates.ts` đã bỏ preset hardcode cũ cho 2 mini-game và gọi factory từ `src/data/mini-games/*`.
+- Xóa file data cũ không còn dùng: `src/data/world-1-alphabet/bubble-star-rules.ts`.
+- Mở rộng schema:
+  - `ChallengePassStarRule` (dùng chung logic chấm sao theo tim/time).
+  - `DiacriticBuildLevelConfig.passStarRules`.
+  - `DiacriticBuildGameConfig.countdownHintText`.
+- `tower-2/floor-4` set `countdownHintText: "ă"` để countdown hiển thị đúng theo yêu cầu data-driven.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Manual Playwright smoke:
+  - Tower `ă` floor-4:
+    - Select screen dùng component chung, hiển thị `10/15/20`.
+    - Countdown xuất hiện trước game, hint hiển thị `ă`.
+    - Easy pass: `targetCompletions=10` (đã pass).
+    - Medium pass không mất tim: localStorage lưu `t2-f4-diacritic-build:normal = 2` sao.
+    - Hard mở khóa sau khi pass Medium.
+  - Bubble game (tower `a` floor-4):
+    - Select screen + countdown dùng component chung.
+    - Tap sai bubble: tim giảm, có damage feedback.
+    - Tap đúng bubble: score tăng và popup `+1`, có burst effect.

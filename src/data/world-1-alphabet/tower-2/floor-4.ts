@@ -1,7 +1,14 @@
 import { LessonContent } from "../map-structure";
-import { createBubblePopChallengeLessons } from "../lesson-templates";
+import { createDiacriticBuildChallengeLessons } from "../lesson-templates";
 
-export const floor4Lessons: LessonContent[] = createBubblePopChallengeLessons({
+export const floor4Lessons: LessonContent[] = createDiacriticBuildChallengeLessons({
   lessonPrefix: "t2-f4",
-  targetLetters: ["ă", "n"],
+  targetLetter: "ă",
+  baseLetter: "a",
+  markerSymbol: "˘",
+  debrisSymbols: ["★", "✦", "⬢", "●"],
+  headerTitle: "Dấu kỳ diệu",
+  title: "Chọn mức độ",
+  instruction: "Bé chạm đúng dấu ˘ để ghép thành chữ ă.",
+  countdownHintText: "ă",
 });

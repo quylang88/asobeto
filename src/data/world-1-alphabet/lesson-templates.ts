@@ -1,12 +1,20 @@
-import { BUBBLE_PASS_STAR_RULES_BY_LEVEL } from "./bubble-star-rules";
 import {
-  BubblePassStarRule,
-  BubblePopLevelConfig,
-  BubblePopLevelId,
+  DiacriticBuildLevelConfig,
+  DiacriticBuildLevelId,
   LessonAnswer,
   LessonContent,
   WordToken,
 } from "./map-structure";
+import {
+  BUBBLE_GAME_INSTRUCTION,
+  BUBBLE_GAME_TITLE,
+  createBubblePopGameConfig,
+} from "../mini-games/bubble-pop";
+import {
+  DIACRITIC_BUILD_GAME_INSTRUCTION,
+  DIACRITIC_BUILD_GAME_TITLE,
+  createDiacriticBuildGameConfig,
+} from "../mini-games/diacritic-build";
 
 type LetterDistractors = [string, string];
 
@@ -32,108 +40,20 @@ interface BubblePopFloorLessonConfig {
   targetAudioByLetter?: Record<string, string>;
 }
 
-const BUBBLE_GAME_TITLE = "Thử thách bóng bay chữ";
-const BUBBLE_GAME_INSTRUCTION = "Chạm đúng bóng bay chữ theo yêu cầu để săn sao.";
-const BUBBLE_GAME_RULES_TEXT = "Bé hãy chạm vào bóng bay chữ cái theo yêu cầu.";
-
-interface BubbleLevelPreset {
-  id: BubblePopLevelId;
-  label: string;
-  starsReward: 1 | 2 | 3;
-  passStarRules?: BubblePassStarRule[];
-  durationSeconds: number;
-  targetScore: number;
-  minLivesToPass: number;
-  targetBubbleRatio: number;
-  emptyBubbleRatio: number;
-  bubbleSize: number;
-  spawnIntervalMs: {
-    min: number;
-    max: number;
-  };
-  speedRange: {
-    min: number;
-    max: number;
-  };
-  allowPairSpawn?: boolean;
-  pairSpawnChance?: number;
-}
-
-const BUBBLE_LEVEL_PRESETS: BubbleLevelPreset[] = [
-  {
-    id: "easy",
-    label: "Dễ",
-    starsReward: 1,
-    durationSeconds: 35,
-    targetScore: 10,
-    minLivesToPass: 3,
-    targetBubbleRatio: 0.8,
-    emptyBubbleRatio: 0.1,
-    bubbleSize: 112,
-    spawnIntervalMs: {
-      min: 860,
-      max: 1040,
-    },
-    speedRange: {
-      min: 62,
-      max: 88,
-    },
-  },
-  {
-    id: "normal",
-    label: "Vừa",
-    starsReward: 2,
-    passStarRules: BUBBLE_PASS_STAR_RULES_BY_LEVEL.normal,
-    durationSeconds: 35,
-    targetScore: 15,
-    minLivesToPass: 2,
-    targetBubbleRatio: 0.6,
-    emptyBubbleRatio: 0.12,
-    bubbleSize: 96,
-    spawnIntervalMs: {
-      min: 720,
-      max: 900,
-    },
-    speedRange: {
-      min: 90,
-      max: 126,
-    },
-  },
-  {
-    id: "hard",
-    label: "Khó",
-    starsReward: 3,
-    passStarRules: BUBBLE_PASS_STAR_RULES_BY_LEVEL.hard,
-    durationSeconds: 30,
-    targetScore: 20,
-    minLivesToPass: 2,
-    targetBubbleRatio: 0.5,
-    emptyBubbleRatio: 0.1,
-    bubbleSize: 82,
-    spawnIntervalMs: {
-      min: 600,
-      max: 760,
-    },
-    speedRange: {
-      min: 126,
-      max: 182,
-    },
-    allowPairSpawn: true,
-    pairSpawnChance: 0.25,
-  },
-];
-
-function createBubbleLevelConfigs(): BubblePopLevelConfig[] {
-  return BUBBLE_LEVEL_PRESETS.map((level) => ({
-    ...level,
-    spawnIntervalMs: {
-      ...level.spawnIntervalMs,
-    },
-    speedRange: {
-      ...level.speedRange,
-    },
-    passStarRules: level.passStarRules ? [...level.passStarRules] : undefined,
-  }));
+interface DiacriticBuildFloorLessonConfig {
+  lessonPrefix: string;
+  targetLetter: string;
+  baseLetter: string;
+  markerSymbol: string;
+  debrisSymbols: string[];
+  title?: string;
+  headerTitle?: string;
+  instruction?: string;
+  rules?: string[];
+  levelOverrides?: Partial<
+    Record<DiacriticBuildLevelId, Partial<DiacriticBuildLevelConfig>>
+  >;
+  countdownHintText?: string;
 }
 
 function createLetterAnswers(
@@ -357,21 +277,55 @@ export function createBubblePopChallengeLessons(
         passPolicy: "always",
         maxStars: 6,
       },
-      bubblePopGame: {
-        title: "Chọn mức độ",
-        headerTitle: "Bóng bay chữ cái",
-        instruction: BUBBLE_GAME_RULES_TEXT,
-        rules: ["Chạm đúng bóng bay chữ theo yêu cầu."],
-        rulesAudioText: BUBBLE_GAME_RULES_TEXT,
-        introAudio: "/assets/audio/game/bubble-pop/intro.mp3",
-        rulesAudio: "/assets/audio/game/bubble-pop/rules.mp3",
-        targetAudioByLetter,
-        startLives: 3,
+      bubblePopGame: createBubblePopGameConfig({
         targetLetters,
-        laneCount: 5,
-        minSpawnVerticalGap: 94,
-        levels: createBubbleLevelConfigs(),
+        targetAudioByLetter,
+      }),
+    },
+  ];
+}
+
+export function createDiacriticBuildChallengeLessons(
+  config: DiacriticBuildFloorLessonConfig,
+): LessonContent[] {
+  const {
+    lessonPrefix,
+    targetLetter,
+    baseLetter,
+    markerSymbol,
+    debrisSymbols,
+    title,
+    headerTitle,
+    instruction,
+    rules,
+    countdownHintText,
+    levelOverrides,
+  } = config;
+
+  return [
+    {
+      id: `${lessonPrefix}-diacritic-build`,
+      type: "active",
+      lessonKind: "diacritic_build_challenge",
+      title: DIACRITIC_BUILD_GAME_TITLE,
+      instruction: DIACRITIC_BUILD_GAME_INSTRUCTION,
+      scoring: {
+        metric: "none",
+        passPolicy: "always",
+        maxStars: 6,
       },
+      diacriticBuildGame: createDiacriticBuildGameConfig({
+        targetLetter,
+        baseLetter,
+        markerSymbol,
+        debrisSymbols,
+        title,
+        headerTitle,
+        instruction,
+        rules,
+        countdownHintText,
+        levelOverrides,
+      }),
     },
   ];
 }

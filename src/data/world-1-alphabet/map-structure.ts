@@ -15,7 +15,8 @@ export type LessonKind =
   | "vocab_listen_repeat"
   | "vocab_word_build"
   | "vocab_trace_practice"
-  | "bubble_pop_challenge";
+  | "bubble_pop_challenge"
+  | "diacritic_build_challenge";
 export type ScoringMetric =
   | "none"
   | "correct_answer"
@@ -47,7 +48,7 @@ export interface WordToken {
 
 export type BubblePopLevelId = "easy" | "normal" | "hard";
 
-export interface BubblePassStarRule {
+export interface ChallengePassStarRule {
   stars: 1 | 2 | 3;
   minLivesLost?: number;
   maxLivesLost?: number;
@@ -55,11 +56,13 @@ export interface BubblePassStarRule {
   maxTimeLeftInclusive?: number;
 }
 
+export type BubblePassStarRule = ChallengePassStarRule;
+
 export interface BubblePopLevelConfig {
   id: BubblePopLevelId;
   label: string;
   starsReward: 1 | 2 | 3;
-  passStarRules?: BubblePassStarRule[];
+  passStarRules?: ChallengePassStarRule[];
   durationSeconds: number;
   targetScore: number;
   minLivesToPass: number;
@@ -92,6 +95,68 @@ export interface BubblePopGameConfig {
   laneCount: number;
   minSpawnVerticalGap: number;
   levels: BubblePopLevelConfig[];
+}
+
+export type DiacriticBuildLevelId = "easy" | "normal" | "hard";
+
+export interface DiacriticBuildLevelConfig {
+  id: DiacriticBuildLevelId;
+  label: string;
+  starsReward: 1 | 2 | 3;
+  passStarRules?: ChallengePassStarRule[];
+  durationSeconds: number;
+  targetCompletions: number;
+  startLives: number;
+  correctSpawnRatioRange: {
+    min: number;
+    max: number;
+  };
+  spawnIntervalMs: {
+    min: number;
+    max: number;
+  };
+  fallDurationSeconds: {
+    min: number;
+    max: number;
+  };
+  objectSize: {
+    min: number;
+    max: number;
+  };
+  maxConsecutiveDebris: number;
+  slotFlightMs: {
+    min: number;
+    max: number;
+  };
+  morphResetDelayMs: {
+    min: number;
+    max: number;
+  };
+}
+
+export interface DiacriticBuildTutorialConfig {
+  enabledLevelId: DiacriticBuildLevelId;
+  durationMs: number;
+  replayAfterFailCount: number;
+}
+
+export interface DiacriticBuildGameConfig {
+  title?: string;
+  headerTitle?: string;
+  instruction?: string;
+  rules: string[];
+  rulesAudioText?: string;
+  countdownHintText?: string;
+  targetLetter: string;
+  baseLetter: string;
+  markerSymbol: string;
+  debrisSymbols: string[];
+  laneCount: number;
+  playfieldFooterRatio: number;
+  playfieldHeightVh?: number;
+  hitboxScale: number;
+  tutorial?: DiacriticBuildTutorialConfig;
+  levels: DiacriticBuildLevelConfig[];
 }
 
 export interface LessonAnswer {
@@ -133,6 +198,7 @@ export interface LessonContent {
   tokenPool?: WordToken[];
   relatedLetters?: string[];
   bubblePopGame?: BubblePopGameConfig;
+  diacriticBuildGame?: DiacriticBuildGameConfig;
   gating?: LessonGating;
   scoring?: LessonScoring;
 

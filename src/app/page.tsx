@@ -7,6 +7,7 @@ import { TowerSelection } from "@/screens/tower-map";
 import { FloorSelection } from "@/screens/floor-selection";
 import { LessonInterface } from "@/screens/lesson-interface";
 import { Floor4BubbleChallenge } from "@/screens/floor4-bubble-challenge";
+import { Floor4DiacriticBuildChallenge } from "@/screens/floor4-diacritic-build-challenge";
 import { worlds, getWorldData } from "@/data/game-config";
 
 type Screen =
@@ -134,9 +135,27 @@ export default function AsobetoApp() {
       const selectedFloor = selectedTower?.floors?.find(
         (f) => f.id === gameState.selectedFloor!,
       );
+      const diacriticChallengeLesson = selectedFloor?.content?.find(
+        (lesson) => lesson.lessonKind === "diacritic_build_challenge",
+      );
       const bubbleChallengeLesson = selectedFloor?.content?.find(
         (lesson) => lesson.lessonKind === "bubble_pop_challenge",
       );
+
+      if (diacriticChallengeLesson) {
+        return (
+          <Floor4DiacriticBuildChallenge
+            worldId={gameState.selectedWorld!}
+            towerId={gameState.selectedTower!}
+            floorId={gameState.selectedFloor!}
+            floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
+            floorMaxStars={selectedFloor?.maxStars ?? 3}
+            lesson={diacriticChallengeLesson}
+            onComplete={handleLessonComplete}
+            onBack={() => handleBack("floorSelection")}
+          />
+        );
+      }
 
       if (bubbleChallengeLesson) {
         return (

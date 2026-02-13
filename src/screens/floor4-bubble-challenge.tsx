@@ -2,15 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronLeft,
-  Flame,
-  Heart,
-  Lock,
-  Sparkles,
-  Star,
-  Volume2,
-} from "lucide-react";
+import { ChevronLeft, Heart, Volume2 } from "lucide-react";
 import type {
   BubblePassStarRule,
   BubblePopLevelConfig,
@@ -29,27 +21,14 @@ import {
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
+import { MiniGameLevelSelectPanel } from "@/components/minigame/level-select-panel";
+import { MiniGameCountdown } from "@/components/minigame/shared-countdown";
 
 const LEVEL_ORDER: BubblePopLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
   easy: "Dễ",
   normal: "Vừa",
   hard: "Khó",
-};
-const LEVEL_COLOR: Record<BubblePopLevelId, string> = {
-  easy: "from-emerald-300 to-emerald-500",
-  normal: "from-amber-300 to-orange-500",
-  hard: "from-rose-300 to-rose-500",
-};
-const LEVEL_ICON_BG: Record<BubblePopLevelId, string> = {
-  easy: "from-emerald-100 to-cyan-100",
-  normal: "from-amber-100 to-orange-100",
-  hard: "from-rose-100 to-fuchsia-100",
-};
-const LEVEL_ICON_COLOR: Record<BubblePopLevelId, string> = {
-  easy: "text-emerald-700",
-  normal: "text-orange-700",
-  hard: "text-rose-700",
 };
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
@@ -77,6 +56,13 @@ interface HitPopup {
   y: number;
   label: string;
   tone: "good" | "bad";
+}
+
+interface BubbleBurst {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
 }
 
 interface Floor4BubbleChallengeProps {
@@ -254,10 +240,13 @@ export function Floor4BubbleChallenge({
   const [timeLeft, setTimeLeft] = useState(0);
   const [bubbles, setBubbles] = useState<BubbleEntity[]>([]);
   const [floatingPopups, setFloatingPopups] = useState<HitPopup[]>([]);
+  const [bubbleBursts, setBubbleBursts] = useState<BubbleBurst[]>([]);
   const [didPass, setDidPass] = useState<boolean | null>(null);
   const [lastEarnedStars, setLastEarnedStars] = useState(0);
   const [passCelebrationStars, setPassCelebrationStars] = useState(0);
   const [showFailCelebration, setShowFailCelebration] = useState(false);
+  const [showDamageFlash, setShowDamageFlash] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
   const [recentlyUnlockedLevelId, setRecentlyUnlockedLevelId] =
     useState<BubblePopLevelId | null>(null);
   const [pendingUnlockLevelId, setPendingUnlockLevelId] =
@@ -285,10 +274,13 @@ export function Floor4BubbleChallenge({
   const spawnCooldownMsRef = useRef(0);
   const passCelebrationTimeoutRef = useRef<number | null>(null);
   const unlockAnimationTimeoutRef = useRef<number | null>(null);
+  const damageFlashTimeoutRef = useRef<number | null>(null);
+  const shakeTimeoutRef = useRef<number | null>(null);
   const passSequenceRef = useRef(false);
   const runningRef = useRef(false);
   const bubbleIdRef = useRef(1);
   const popupIdRef = useRef(1);
+  const burstIdRef = useRef(1);
   const bubblesRef = useRef<BubbleEntity[]>([]);
   const scoreRef = useRef(0);
   const livesRef = useRef(3);
@@ -314,6 +306,20 @@ export function Floor4BubbleChallenge({
     },
     [levelStars.easy, levelStars.normal],
   );
+
+  const clearTimeoutRef = useCallback((ref: { current: number | null }) => {
+    if (ref.current === null) return;
+    window.clearTimeout(ref.current);
+    ref.current = null;
+  }, []);
+
+  const resetVisualFeedback = useCallback(() => {
+    clearTimeoutRef(damageFlashTimeoutRef);
+    clearTimeoutRef(shakeTimeoutRef);
+    setShowDamageFlash(false);
+    setIsShaking(false);
+    setBubbleBursts([]);
+  }, [clearTimeoutRef]);
 
   const stopGameLoop = useCallback(() => {
     runningRef.current = false;
@@ -377,6 +383,39 @@ export function Floor4BubbleChallenge({
     },
     [],
   );
+
+  const enqueueBurst = useCallback((x: number, y: number, size: number) => {
+    const burstId = burstIdRef.current;
+    burstIdRef.current += 1;
+    setBubbleBursts((current) => [
+      ...current,
+      { id: burstId, x, y, size },
+    ]);
+    window.setTimeout(() => {
+      setBubbleBursts((current) =>
+        current.filter((burst) => burst.id !== burstId),
+      );
+    }, 420);
+  }, []);
+
+  const triggerDamageFeedback = useCallback(() => {
+    setShowDamageFlash(true);
+    clearTimeoutRef(damageFlashTimeoutRef);
+    damageFlashTimeoutRef.current = window.setTimeout(() => {
+      damageFlashTimeoutRef.current = null;
+      setShowDamageFlash(false);
+    }, 130);
+
+    setIsShaking(false);
+    clearTimeoutRef(shakeTimeoutRef);
+    window.requestAnimationFrame(() => {
+      setIsShaking(true);
+      shakeTimeoutRef.current = window.setTimeout(() => {
+        shakeTimeoutRef.current = null;
+        setIsShaking(false);
+      }, 230);
+    });
+  }, [clearTimeoutRef]);
 
   const persistProgress = useCallback(
     (nextLevelStars: Record<BubblePopLevelId, number>) => {
@@ -724,8 +763,10 @@ export function Floor4BubbleChallenge({
     stopNarration();
     stopGameLoop();
     clearCelebrations();
+    resetVisualFeedback();
     setPhase("playing");
     setFloatingPopups([]);
+    setBubbleBursts([]);
     setDidPass(null);
     setLastEarnedStars(0);
 
@@ -743,6 +784,7 @@ export function Floor4BubbleChallenge({
     setLives(bubbleConfig.startLives);
     setTimeLeft(selectedLevel.durationSeconds);
     setBubbles([]);
+    setBubbleBursts([]);
 
     animationFrameRef.current = window.requestAnimationFrame(
       frameLoopRef.current,
@@ -750,6 +792,7 @@ export function Floor4BubbleChallenge({
   }, [
     bubbleConfig,
     clearCelebrations,
+    resetVisualFeedback,
     selectedLevel,
     stopGameLoop,
     stopNarration,
@@ -764,11 +807,14 @@ export function Floor4BubbleChallenge({
       const beginCountdown = () => {
         stopGameLoop();
         clearCelebrations();
+        resetVisualFeedback();
         const nextTargetLetter = pickRandomTargetLetter();
         setSelectedLevelId(levelId);
         setTargetLetter(nextTargetLetter);
         setDidPass(null);
         setLastEarnedStars(0);
+        setFloatingPopups([]);
+        setBubbleBursts([]);
         setCountdownValue(3);
         targetLetterRef.current = nextTargetLetter;
         const targetAudioKey = nextTargetLetter.toLocaleLowerCase("vi-VN");
@@ -799,6 +845,7 @@ export function Floor4BubbleChallenge({
       pendingUnlockLevelId,
       pickRandomTargetLetter,
       playNarration,
+      resetVisualFeedback,
       stopGameLoop,
       bubbleConfig,
     ],
@@ -819,11 +866,16 @@ export function Floor4BubbleChallenge({
       if (bubble.kind === "target") {
         scoreRef.current += 1;
         playTapFeedbackAudio("target");
+        enqueueBurst(bubble.x, bubble.y, bubble.size);
         enqueuePopup(bubble.x, bubble.y, "+1", "good");
       } else if (bubble.kind === "wrong") {
         livesRef.current = Math.max(0, livesRef.current - 1);
         playTapFeedbackAudio("wrong");
         enqueuePopup(bubble.x, bubble.y, "-1❤", "bad");
+        triggerDamageFeedback();
+        if ("vibrate" in navigator) {
+          navigator.vibrate(45);
+        }
       }
 
       setBubbles([...bubblesRef.current]);
@@ -841,9 +893,11 @@ export function Floor4BubbleChallenge({
       }
     },
     [
+      enqueueBurst,
       enqueuePopup,
       phase,
       playTapFeedbackAudio,
+      triggerDamageFeedback,
       triggerLevelFail,
       triggerLevelPass,
     ],
@@ -955,6 +1009,7 @@ export function Floor4BubbleChallenge({
     return () => {
       stopGameLoop();
       stopNarration();
+      resetVisualFeedback();
       if (passCelebrationTimeoutRef.current !== null) {
         window.clearTimeout(passCelebrationTimeoutRef.current);
         passCelebrationTimeoutRef.current = null;
@@ -964,7 +1019,7 @@ export function Floor4BubbleChallenge({
         unlockAnimationTimeoutRef.current = null;
       }
     };
-  }, [stopGameLoop, stopNarration]);
+  }, [resetVisualFeedback, stopGameLoop, stopNarration]);
 
   if (!bubbleConfig || levelList.length === 0) {
     return (
@@ -1000,6 +1055,20 @@ export function Floor4BubbleChallenge({
       />
     );
   }
+
+  const levelSelectCards = LEVEL_ORDER.map((levelId) => {
+    const level = levelMap.get(levelId);
+    if (!level) return null;
+    return {
+      id: level.id,
+      label: LEVEL_LABEL[level.id],
+      subtitle: `${level.durationSeconds}s • ${level.targetScore} điểm`,
+      starsReward: level.starsReward,
+      earnedStars: levelStars[level.id],
+      unlocked: isLevelUnlocked(level.id),
+      actionLabel: "Chơi",
+    };
+  }).filter((level): level is NonNullable<typeof level> => level !== null);
 
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-linear-to-b from-sky-100 via-cyan-50 to-emerald-100">
@@ -1059,284 +1128,83 @@ export function Floor4BubbleChallenge({
 
       <div className="flex-1 app-scroll overflow-y-auto px-4 pb-safe pt-4">
         {phase === "select" && (
-          <div className="mx-auto flex w-full max-w-md flex-col gap-4 pb-6">
-            <motion.div
-              className="relative overflow-hidden rounded-4xl border-4 border-cyan-200 bg-linear-to-b from-cyan-50 via-white to-emerald-50 p-5 shadow-lg"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.32, ease: "easeOut" }}
-            >
-              <motion.div
-                className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-cyan-200/70"
-                animate={{ y: [0, -6, 0] }}
-                transition={{
-                  duration: 3.2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div
-                className="pointer-events-none absolute bottom-3 right-8 h-10 w-10 rounded-full bg-pink-200/70"
-                animate={{ y: [0, -4, 0] }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.div
-                className="pointer-events-none absolute -bottom-9 -left-7 h-24 w-24 rounded-full bg-emerald-200/70"
-                animate={{ y: [0, -5, 0] }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.4,
-                }}
-              />
-              <p className="relative mb-1 text-2xl font-black text-foreground font-hp-special">
-                {bubbleConfig.title ?? "Chọn mức độ"}
-              </p>
-              <p className="relative text-sm text-muted-foreground">
-                {bubbleConfig.instruction}
-              </p>
-              <div className="relative mt-3">
-                <PrimaryButton
-                  onClick={replayRulesAudio}
-                  className="rounded-2xl"
-                  frontClassName="px-4 py-2 text-sm flex items-center gap-2"
-                >
-                  <Volume2 className="h-4 w-4" /> Nghe Luật
-                </PrimaryButton>
-              </div>
-            </motion.div>
-
-            <div className="relative space-y-3">
-              <motion.span
-                className="pointer-events-none absolute -left-2 top-4 h-6 w-6 rounded-full bg-cyan-200/60"
-                animate={{ y: [0, -4, 0], x: [0, 2, 0] }}
-                transition={{
-                  duration: 2.1,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.span
-                className="pointer-events-none absolute right-1 top-20 h-5 w-5 rounded-full bg-amber-200/70"
-                animate={{ y: [0, -3, 0], x: [0, -2, 0] }}
-                transition={{
-                  duration: 2.7,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              {LEVEL_ORDER.map((levelId, levelIndex) => {
-                const level = levelMap.get(levelId);
-                if (!level) return null;
-                const unlocked = isLevelUnlocked(levelId);
-                const earnedStars = levelStars[levelId];
-                const isRecentlyUnlocked = recentlyUnlockedLevelId === level.id;
-
-                return (
-                  <motion.div
-                    key={level.id}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.32,
-                      ease: "easeOut",
-                      delay: 0.1 + levelIndex * 0.08,
-                    }}
-                  >
-                    <motion.button
-                      onClick={() => startLevelCountdown(level.id)}
-                      disabled={!unlocked}
-                      initial={false}
-                      animate={
-                        isRecentlyUnlocked
-                          ? { scale: [1, 1.03, 1], y: [0, -2, 0] }
-                          : { scale: 1, y: 0 }
-                      }
-                      transition={{
-                        duration: isRecentlyUnlocked ? 0.7 : 0.2,
-                        ease: "easeOut",
-                      }}
-                      className={`relative w-full overflow-hidden rounded-[1.75rem] border-2 p-1.5 text-left ios-button ${
-                        unlocked
-                          ? "border-cyan-300 bg-white shadow-lg"
-                          : "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500 grayscale"
-                      }`}
-                      whileTap={unlocked ? { scale: 0.95 } : {}}
-                    >
-                      <span
-                        className={`pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-r ${
-                          unlocked
-                            ? LEVEL_COLOR[level.id]
-                            : "from-slate-300 to-slate-400"
-                        } opacity-25`}
-                      ></span>
-                      <span className="relative flex items-center gap-3 rounded-[22px] px-4 py-3">
-                        <span
-                          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 ${
-                            unlocked
-                              ? "border-white/80 bg-white/80"
-                              : "border-slate-300 bg-slate-300"
-                          }`}
-                        >
-                          {unlocked ? (
-                            <span
-                              className={`flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br ${LEVEL_ICON_BG[level.id]} ${LEVEL_ICON_COLOR[level.id]}`}
-                            >
-                              {level.id === "easy" ? (
-                                <Heart className="h-5 w-5 fill-current" />
-                              ) : level.id === "normal" ? (
-                                <Sparkles className="h-5 w-5" />
-                              ) : (
-                                <Flame className="h-5 w-5" />
-                              )}
-                            </span>
-                          ) : (
-                            <Lock className="h-5 w-5 text-slate-600" />
-                          )}
-                        </span>
-
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className={`block text-base font-bold ${
-                              unlocked ? "text-slate-900" : "text-slate-500"
-                            }`}
-                          >
-                            Mức {LEVEL_LABEL[level.id]}
-                          </span>
-                          <span
-                            className={`block text-xs ${
-                              unlocked ? "text-slate-600" : "text-slate-500"
-                            }`}
-                          >
-                            {level.durationSeconds}s • {level.targetScore} điểm
-                          </span>
-                          <span className="mt-1.5 flex gap-0.5">
-                            {[...Array(level.starsReward)].map(
-                              (_, starIndex) => (
-                                <Star
-                                  key={`${level.id}-star-${starIndex}`}
-                                  className={`h-3.5 w-3.5 ${
-                                    starIndex < earnedStars
-                                      ? "fill-yellow-300 text-yellow-300"
-                                      : "fill-slate-200 text-slate-300"
-                                  }`}
-                                />
-                              ),
-                            )}
-                          </span>
-                        </span>
-
-                        <span className="shrink-0">
-                          {unlocked ? (
-                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                              Chơi
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-slate-300 px-3 py-1 text-xs font-semibold text-slate-600">
-                              Khóa
-                            </span>
-                          )}
-                        </span>
-                      </span>
-
-                      <AnimatePresence>
-                        {isRecentlyUnlocked && (
-                          <motion.span
-                            initial={{ opacity: 0, scale: 0.85 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.85 }}
-                            className="pointer-events-none absolute inset-0 flex items-center justify-center bg-emerald-400/25"
-                          >
-                            <motion.span
-                              initial={{ y: 8, opacity: 0 }}
-                              animate={{ y: 0, opacity: 1 }}
-                              exit={{ y: -8, opacity: 0 }}
-                              className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-bold text-emerald-700 shadow-lg"
-                            >
-                              <Sparkles className="h-4 w-4" />
-                              Mở khóa!
-                            </motion.span>
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
+          <MiniGameLevelSelectPanel
+            title={bubbleConfig.title ?? "Chọn mức độ"}
+            description={bubbleConfig.instruction ?? ""}
+            levels={levelSelectCards}
+            recentlyUnlockedLevelId={recentlyUnlockedLevelId}
+            onSelectLevel={(levelId) =>
+              startLevelCountdown(levelId as BubblePopLevelId)
+            }
+            rulesActionLabel="Nghe luật chơi"
+            rulesActionIcon={<Volume2 className="h-4 w-4" />}
+            onRulesAction={replayRulesAudio}
+          />
         )}
 
         {phase === "countdown" && (
-          <div className="mx-auto flex h-[62dvh] w-full max-w-md flex-col items-center justify-center">
-            <motion.div
-              key={countdownValue}
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.2, opacity: 0 }}
-              className="text-[7rem] font-black leading-none text-emerald-500"
-            >
-              {countdownValue}
-            </motion.div>
-            <p className="mt-3 text-lg font-semibold text-foreground">
-              Hãy chạm vào bóng bay chữ{" "}
-              <span className="font-hp-special text-3xl font-black lowercase text-emerald-600">
-                &quot;{targetLetter}&quot;
-              </span>
-            </p>
-          </div>
+          <MiniGameCountdown
+            value={countdownValue}
+            hint={
+              <p className="text-lg font-semibold text-foreground">
+                Hãy chạm vào bóng bay chữ{" "}
+                <span className="font-hp-special text-3xl font-black lowercase text-emerald-600">
+                  &quot;{targetLetter}&quot;
+                </span>
+              </p>
+            }
+          />
         )}
 
         {phase === "playing" && selectedLevel && (
           <div className="mx-auto flex w-full max-w-md flex-col pb-6">
-            <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Yêu cầu</p>
-                <p className="text-sm font-semibold text-foreground">
-                  Chạm vào bóng bay{" "}
-                  <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
-                    &quot;{targetLetter}&quot;
-                  </span>
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Điểm</p>
-                <p className="text-base font-bold text-foreground">
-                  {score}/{selectedLevel.targetScore}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tim</p>
-                <div className="mt-1 flex items-center gap-1">
-                  {[...Array(bubbleConfig.startLives)].map((_, lifeIndex) => (
-                    <Heart
-                      key={`life-${lifeIndex}`}
-                      className={`h-5 w-5 ${
-                        lifeIndex < lives
-                          ? "fill-rose-400 text-rose-400"
-                          : "fill-gray-200 text-gray-300"
-                      }`}
-                    />
-                  ))}
+            <motion.div
+              animate={isShaking ? { x: [0, -6, 6, -4, 0] } : { x: 0 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+            >
+              <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Yêu cầu</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    Chạm vào bóng bay{" "}
+                    <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
+                      &quot;{targetLetter}&quot;
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Điểm</p>
+                  <p className="text-base font-bold text-foreground">
+                    {score}/{selectedLevel.targetScore}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Tim</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    {[...Array(bubbleConfig.startLives)].map((_, lifeIndex) => (
+                      <Heart
+                        key={`life-${lifeIndex}`}
+                        className={`h-5 w-5 ${
+                          lifeIndex < lives
+                            ? "fill-rose-400 text-rose-400"
+                            : "fill-gray-200 text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Thời gian</p>
+                  <p className="text-base font-bold text-foreground">
+                    {Math.max(0, Math.ceil(timeLeft))}s
+                  </p>
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Thời gian</p>
-                <p className="text-base font-bold text-foreground">
-                  {Math.max(0, Math.ceil(timeLeft))}s
-                </p>
-              </div>
-            </div>
 
-            <div
-              ref={playfieldRef}
-              className="relative h-[58dvh] min-h-105 w-full overflow-hidden rounded-3xl border-4 border-cyan-200 bg-linear-to-b from-cyan-100 via-sky-100 to-blue-200 shadow-lg"
-            >
+              <div
+                ref={playfieldRef}
+                className="relative h-[58dvh] min-h-105 w-full overflow-hidden rounded-3xl border-4 border-cyan-200 bg-linear-to-b from-cyan-100 via-sky-100 to-blue-200 shadow-lg"
+              >
               {[...Array(Math.max(0, bubbleConfig.laneCount - 1))].map(
                 (_, laneIndex) => (
                   <div
@@ -1400,25 +1268,142 @@ export function Floor4BubbleChallenge({
                 );
               })}
 
-              <AnimatePresence>
-                {floatingPopups.map((popup) => (
-                  <motion.span
-                    key={popup.id}
-                    initial={{ opacity: 1, y: 0, scale: 0.9 }}
-                    animate={{ opacity: 0, y: -26, scale: 1.1 }}
-                    exit={{ opacity: 0 }}
-                    className={`pointer-events-none absolute text-lg font-bold ${
-                      popup.tone === "good"
-                        ? "text-emerald-700"
-                        : "text-rose-600"
-                    }`}
-                    style={{ left: popup.x - 16, top: popup.y - 16 }}
-                  >
-                    {popup.label}
-                  </motion.span>
-                ))}
-              </AnimatePresence>
-            </div>
+                <AnimatePresence>
+                  {bubbleBursts.map((burst) => (
+                    <div key={burst.id} className="pointer-events-none absolute inset-0">
+                      <motion.span
+                        initial={{ opacity: 0.88, scale: 1 }}
+                        animate={{ opacity: 0, scale: 0.24 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15, ease: "easeIn" }}
+                        className="absolute rounded-full border-[3px] border-emerald-500/75 bg-emerald-300/60"
+                        style={{
+                          width: burst.size,
+                          height: burst.size,
+                          left: burst.x - burst.size / 2,
+                          top: burst.y - burst.size / 2,
+                        }}
+                      />
+                      <motion.span
+                        initial={{ opacity: 0.9, scale: 0.75 }}
+                        animate={{ opacity: 0, scale: 1.45 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.34, ease: "easeOut" }}
+                        className="absolute rounded-full border-[3px] border-emerald-300/85 bg-white/25"
+                        style={{
+                          width: burst.size * 0.95,
+                          height: burst.size * 0.95,
+                          left: burst.x - (burst.size * 0.95) / 2,
+                          top: burst.y - (burst.size * 0.95) / 2,
+                        }}
+                      />
+                      <motion.span
+                        initial={{ opacity: 0.85, scale: 0.25 }}
+                        animate={{ opacity: 0, scale: 1.1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.28, ease: "easeOut" }}
+                        className="absolute rounded-full bg-white/95"
+                        style={{
+                          width: burst.size * 0.28,
+                          height: burst.size * 0.28,
+                          left: burst.x - (burst.size * 0.28) / 2,
+                          top: burst.y - (burst.size * 0.28) / 2,
+                        }}
+                      />
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((shardIndex) => {
+                        const angle = (Math.PI * 2 * shardIndex) / 10;
+                        const distanceFactor = 0.32 + (shardIndex % 3) * 0.08;
+                        const dx = Math.cos(angle) * (burst.size * distanceFactor);
+                        const dy = Math.sin(angle) * (burst.size * distanceFactor);
+                        const shardWidth = shardIndex % 2 === 0 ? 3.2 : 2.4;
+                        const shardHeight = shardIndex % 2 === 0 ? 10 : 7;
+                        return (
+                          <motion.span
+                            key={`${burst.id}-shard-${shardIndex}`}
+                            initial={{
+                              opacity: 0.95,
+                              x: burst.x,
+                              y: burst.y,
+                              scale: 0.9,
+                              rotate: (angle * 180) / Math.PI,
+                            }}
+                            animate={{
+                              opacity: 0,
+                              x: burst.x + dx,
+                              y: burst.y + dy,
+                              scale: 0.15,
+                              rotate: (angle * 180) / Math.PI + 28,
+                            }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.32, ease: "easeOut" }}
+                            className="absolute border border-emerald-500/70 bg-emerald-200/95 shadow-[0_0_6px_rgba(167,243,208,0.8)]"
+                            style={{
+                              width: shardWidth,
+                              height: shardHeight,
+                              borderRadius: "70% 70% 55% 55%",
+                              transform: "translate(-50%, -50%)",
+                            }}
+                          />
+                        );
+                      })}
+                      <motion.span
+                        initial={{
+                          opacity: 0.95,
+                          x: burst.x,
+                          y: burst.y + burst.size * 0.15,
+                          scale: 1,
+                        }}
+                        animate={{
+                          opacity: 0,
+                          x: burst.x + burst.size * 0.04,
+                          y: burst.y + burst.size * 0.4,
+                          scale: 0.6,
+                        }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.32, ease: "easeOut" }}
+                        className="absolute rounded-lg border border-emerald-600/70 bg-emerald-500/90"
+                        style={{
+                          width: burst.size * 0.12,
+                          height: burst.size * 0.08,
+                          transform: "translate(-50%, -50%) rotate(25deg)",
+                        }}
+                      />
+                    </div>
+                  ))}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {floatingPopups.map((popup) => (
+                    <motion.span
+                      key={popup.id}
+                      initial={{ opacity: 1, y: 0, scale: 0.9 }}
+                      animate={{ opacity: 0, y: -26, scale: 1.1 }}
+                      exit={{ opacity: 0 }}
+                      className={`pointer-events-none absolute text-lg font-bold ${
+                        popup.tone === "good"
+                          ? "text-emerald-700"
+                          : "text-rose-600"
+                      }`}
+                      style={{ left: popup.x - 16, top: popup.y - 16 }}
+                    >
+                      {popup.label}
+                    </motion.span>
+                  ))}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {showDamageFlash && (
+                    <motion.div
+                      key="bubble-damage-flash"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="pointer-events-none absolute inset-0 bg-rose-400/20"
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
           </div>
         )}
       </div>

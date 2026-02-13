@@ -11,10 +11,15 @@ export type {
   FloorType,
   LessonContent,
   LessonAnswer,
+  ChallengePassStarRule,
   BubblePopLevelId,
   BubblePassStarRule,
   BubblePopLevelConfig,
   BubblePopGameConfig,
+  DiacriticBuildLevelId,
+  DiacriticBuildLevelConfig,
+  DiacriticBuildGameConfig,
+  DiacriticBuildTutorialConfig,
 } from "./world-1-alphabet";
 export {
   getTotalStars,

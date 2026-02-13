@@ -39,9 +39,9 @@ export const tower2Floors: Floor[] = [
   }),
   createGameFloor({
     id: 4,
-    nameUnlocked: "Bóng bay chữ",
+    nameUnlocked: "Dấu kỳ diệu",
     descriptionUnlocked: "Mini game",
-    letter: "?",
+    letter: "ă",
     maxStars: 6,
     content: floor4Lessons,
   }),
