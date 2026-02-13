@@ -2,6 +2,10 @@ import {
   DiacriticBuildLevelConfig,
   DiacriticBuildInteractionMode,
   DiacriticBuildLevelId,
+  MemoryFlipCardBackOption,
+  MemoryFlipCardToken,
+  MemoryFlipLevelConfig,
+  MemoryFlipLevelId,
   LessonAnswer,
   LessonContent,
   WordToken,
@@ -16,6 +20,11 @@ import {
   DIACRITIC_BUILD_GAME_TITLE,
   createDiacriticBuildGameConfig,
 } from "../mini-games/diacritic-build";
+import {
+  MEMORY_FLIP_GAME_INSTRUCTION,
+  MEMORY_FLIP_GAME_TITLE,
+  createMemoryFlipGameConfig,
+} from "../mini-games/memory-flip";
 
 type LetterDistractors = [string, string];
 
@@ -39,6 +48,20 @@ interface BubblePopFloorLessonConfig {
   lessonPrefix: string;
   targetLetters: [string, string];
   targetAudioByLetter?: Record<string, string>;
+}
+
+interface MemoryFlipFloorLessonConfig {
+  lessonPrefix: string;
+  pairTarget?: number;
+  levelTokenPools?: Partial<Record<MemoryFlipLevelId, MemoryFlipCardToken[]>>;
+  cardBackOptions?: MemoryFlipCardBackOption[];
+  title?: string;
+  headerTitle?: string;
+  instruction?: string;
+  rules?: string[];
+  levelOverrides?: Partial<
+    Record<MemoryFlipLevelId, Partial<MemoryFlipLevelConfig>>
+  >;
 }
 
 interface DiacriticBuildFloorLessonConfig {
@@ -285,6 +308,47 @@ export function createBubblePopChallengeLessons(
       bubblePopGame: createBubblePopGameConfig({
         targetLetters,
         targetAudioByLetter,
+      }),
+    },
+  ];
+}
+
+export function createMemoryFlipChallengeLessons(
+  config: MemoryFlipFloorLessonConfig,
+): LessonContent[] {
+  const {
+    lessonPrefix,
+    pairTarget,
+    levelTokenPools,
+    cardBackOptions,
+    title,
+    headerTitle,
+    instruction,
+    rules,
+    levelOverrides,
+  } = config;
+
+  return [
+    {
+      id: `${lessonPrefix}-memory-flip`,
+      type: "active",
+      lessonKind: "memory_flip_challenge",
+      title: MEMORY_FLIP_GAME_TITLE,
+      instruction: MEMORY_FLIP_GAME_INSTRUCTION,
+      scoring: {
+        metric: "none",
+        passPolicy: "always",
+        maxStars: 6,
+      },
+      memoryFlipGame: createMemoryFlipGameConfig({
+        pairTarget,
+        levelTokenPools,
+        cardBackOptions,
+        title,
+        headerTitle,
+        instruction,
+        rules,
+        levelOverrides,
       }),
     },
   ];

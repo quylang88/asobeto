@@ -39,7 +39,7 @@ export const tower5Floors: Floor[] = [
   }),
   createGameFloor({
     id: 4,
-    nameUnlocked: "Bóng bay chữ",
+    nameUnlocked: "Trí nhớ",
     descriptionUnlocked: "Mini game",
     letter: "?",
     maxStars: 6,

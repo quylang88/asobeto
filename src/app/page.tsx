@@ -6,8 +6,9 @@ import { WorldMap } from "@/screens/world-map";
 import { TowerSelection } from "@/screens/tower-map";
 import { FloorSelection } from "@/screens/floor-selection";
 import { LessonInterface } from "@/screens/lesson-interface";
-import { Floor4BubbleChallenge } from "@/screens/floor4-bubble-challenge";
+import { Floor4BubbleChallenge } from "@/screens/game-bubble-pop";
 import { Floor4DiacriticBuildChallenge } from "@/screens/game-diacritic-build";
+import { Floor4MemoryFlipChallenge } from "@/screens/game-memory-flip";
 import { worlds, getWorldData } from "@/data/game-config";
 
 type Screen =
@@ -141,6 +142,9 @@ export default function AsobetoApp() {
       const bubbleChallengeLesson = selectedFloor?.content?.find(
         (lesson) => lesson.lessonKind === "bubble_pop_challenge",
       );
+      const memoryFlipChallengeLesson = selectedFloor?.content?.find(
+        (lesson) => lesson.lessonKind === "memory_flip_challenge",
+      );
 
       if (diacriticChallengeLesson) {
         return (
@@ -166,6 +170,21 @@ export default function AsobetoApp() {
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
             floorMaxStars={selectedFloor?.maxStars ?? 3}
             lesson={bubbleChallengeLesson}
+            onComplete={handleLessonComplete}
+            onBack={() => handleBack("floorSelection")}
+          />
+        );
+      }
+
+      if (memoryFlipChallengeLesson) {
+        return (
+          <Floor4MemoryFlipChallenge
+            worldId={gameState.selectedWorld!}
+            towerId={gameState.selectedTower!}
+            floorId={gameState.selectedFloor!}
+            floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
+            floorMaxStars={selectedFloor?.maxStars ?? 3}
+            lesson={memoryFlipChallengeLesson}
             onComplete={handleLessonComplete}
             onBack={() => handleBack("floorSelection")}
           />

@@ -21,6 +21,15 @@ export type {
   DiacriticBuildInteractionMode,
   DiacriticBuildGameConfig,
   DiacriticBuildTutorialConfig,
+  MemoryFlipLevelId,
+  MemoryFlipMoveStarRule,
+  MemoryFlipCardTokenKind,
+  MemoryFlipCardToken,
+  MemoryFlipCardBackIcon,
+  MemoryFlipCardBackOption,
+  MemoryFlipLevelConfig,
+  MemoryFlipTutorialConfig,
+  MemoryFlipGameConfig,
 } from "./world-1-alphabet";
 export {
   getTotalStars,

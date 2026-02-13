@@ -1309,3 +1309,92 @@ Validation
 - `pnpm lint -- src/screens/game-diacritic-build/index.tsx src/data/world-1-alphabet/tower-3/floor-4.ts` pass.
 - Playwright MCP state check:
   - `render_game_to_text` now shows corrected symbols in active entities (`◌̀`, `◌̣`, `´` observed).
+
+---
+
+Update (Tower 5 Floor 4 memory flip challenge)
+
+TODO
+- [x] Add new mini-game type `memory_flip_challenge` to world map structure + game config exports.
+- [x] Add reusable memory game data builder (`src/data/mini-games/memory-flip.ts`) with level presets, star-by-moves rules, token pools, and 3 hologram card-back options.
+- [x] Add lesson template factory `createMemoryFlipChallengeLessons(...)`.
+- [x] Switch tower 5 floor 4 from bubble game to memory game data (`m,e,b,ô`, `m,e,b,ô,c,a`, and hard adds `bố`,`mẹ`).
+- [x] Implement screen `src/screens/floor4-memory-flip-challenge.tsx` with:
+  - level select/countdown/playing/result phases
+  - Fisher–Yates 4x4 deck shuffle
+  - flip 2 cards per move; match clear; mismatch auto flip-back (600-900ms)
+  - ignore double-tap same card
+  - move-limit fail logic and per-level star scoring
+  - easy tutorial flow + replay after fail streak rule
+  - `window.render_game_to_text` and `window.advanceTime(ms)` hooks
+- [x] Wire new screen in `src/app/page.tsx` route selection by `lessonKind`.
+- [x] Fix select-screen stale stats after result (reset moves/pairs display back to 0).
+
+Notes
+- Memory level rules implemented per request:
+  - easy: limit 25, pass gives 1 star
+  - normal: limit 22, <14 moves => 2 stars, otherwise (<=21) => 1 star
+  - hard: limit 20, <11 => 3 stars, 11-15 => 2 stars, 16-19 => 1 star
+- Deck size is always 16 cards (8 pairs):
+  - easy repeats 4 symbols evenly
+  - normal uses 6 symbols and repeats to fill 8 pairs
+  - hard uses 8 distinct pairs including words `bố`, `mẹ`
+- Floor 4 title for tower 5 changed to `Trí nhớ`.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Skill-required Playwright client run attempted and blocked by missing dependency:
+  - `node $WEB_GAME_CLIENT ...` => `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'`.
+- MCP Playwright smoke checks performed on real UI flow:
+  - enter world 1 -> tower 5 -> floor 4 memory game
+  - mismatch path confirmed: board lock + auto flip-back delay works
+  - same-card double tap ignored
+  - fail when moves exceed limit (easy failed at move 26)
+  - pass flow + unlock progression easy -> normal -> hard
+  - hard deck contains `bố` and `mẹ`
+
+Follow-up suggestions for next agent
+- Add a deterministic UI test script for memory game level scoring thresholds (especially normal/hard 1-star vs 2/3-star boundaries).
+- If needed, install local `playwright` dependency so `$WEB_GAME_CLIENT` can run directly without MCP fallback.
+
+---
+
+Update (Memory match-key bug + unified top HUD parity)
+
+TODO
+- [x] Fix memory matching logic so cards match by displayed text (normalized), not by preset pair id.
+- [x] Remove in-game move-limit info block from memory screen UI (keep fail logic when moves exceed limit).
+- [x] Add reusable mini-game top HUD component and apply to memory, bubble, and diacritic screens.
+- [x] Use simple top header on level-select screens (back + game title + mascot only).
+- [x] Remove `Trò chơi` caption from mini-game HUD center.
+- [x] Normalize rules-audio button label to `Nghe luật chơi` on all mini-game level-select screens.
+- [x] Re-run lint/typecheck and smoke-check all 3 mini-game screens.
+
+Notes
+- New shared component: `src/components/minigame/top-hud.tsx`
+  - supports `mode: "simple" | "stats"` for select vs gameplay/countdown.
+  - stats mode renders 3 blocks (left metric, centered game title, right metric).
+- Memory screen changes (`src/screens/floor4-memory-flip-challenge.tsx`):
+  - deck cards now include `matchKey` derived from normalized displayed text.
+  - match resolution compares `firstCard.matchKey === secondCard.matchKey`.
+  - tutorial demo pair selection now groups by `matchKey`.
+  - removed in-body move-limit panel and hid move limit from gameplay HUD value (shows current moves only).
+- Bubble and diacritic screens now also use `MiniGameTopHud` so top area is consistent.
+- Rules button label is explicitly `Nghe luật chơi` in:
+  - `src/screens/floor4-memory-flip-challenge.tsx`
+  - `src/screens/floor4-bubble-challenge.tsx`
+  - `src/screens/game-diacritic-build/index.tsx`
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Skill-required script still blocked in this environment:
+  - `node $WEB_GAME_CLIENT --help` -> `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'`.
+- Playwright MCP smoke checks:
+  - Memory select header shows only back + `Trí nhớ` + mascot; rules button is `Nghe luật chơi`.
+  - Memory gameplay header is 3-block (`Pairs`, centered title, `Moves`) and move-limit body block is removed.
+  - Verified bug fix with repeated letters:
+    - after selecting two `m` cards from different `pairKey` values (`m-7` and `m-3`), state reported `pairsCleared: 1` and both cards in `status: "cleared"`.
+  - Bubble select/gameplay headers match the same top-HUD pattern; rules button text is `Nghe luật chơi`.
+  - Diacritic select/gameplay headers match the same top-HUD pattern; rules button text is `Nghe luật chơi`.

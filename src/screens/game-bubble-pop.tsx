@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, Heart, Volume2 } from "lucide-react";
+import { Heart, Volume2 } from "lucide-react";
 import type {
   BubblePassStarRule,
   BubblePopLevelConfig,
@@ -13,7 +13,6 @@ import {
   getStoredFloorProgress,
   saveFloorProgress,
 } from "@/lib/floor-progress";
-import { Mascot } from "@/components/beto-mascot";
 import {
   BrokenHeartCelebration,
   StarCelebration,
@@ -23,6 +22,7 @@ import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { MiniGameLevelSelectPanel } from "@/components/minigame/level-select-panel";
 import { MiniGameCountdown } from "@/components/minigame/shared-countdown";
+import { MiniGameTopHud } from "@/components/minigame/top-hud";
 
 const LEVEL_ORDER: BubblePopLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
@@ -1071,6 +1071,11 @@ export function Floor4BubbleChallenge({
       actionLabel: "Chơi",
     };
   }).filter((level): level is NonNullable<typeof level> => level !== null);
+  const hudTargetScore = selectedLevel?.targetScore ?? 0;
+  const hudTimeSeconds =
+    phase === "playing"
+      ? Math.max(0, Math.ceil(timeLeft))
+      : (selectedLevel?.durationSeconds ?? 0);
 
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-linear-to-b from-sky-100 via-cyan-50 to-emerald-100">
@@ -1086,47 +1091,24 @@ export function Floor4BubbleChallenge({
         {showFailCelebration && <BrokenHeartCelebration />}
       </AnimatePresence>
 
-      <div className="sticky top-0 z-20 bg-white/90 shadow-sm backdrop-blur-md pt-safe pl-safe pr-safe">
-        <div className="flex items-center gap-3 px-4 pb-4 pt-3">
-          <motion.button
-            onClick={onBack}
-            className="rounded-2xl bg-green-bright p-3 text-white shadow-lg ios-button"
-            initial={{ x: -16, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Quay lại chọn tầng"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </motion.button>
-          <motion.div
-            className="min-w-0 flex-1 pr-1"
-            initial={{ y: -10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut", delay: 0.06 }}
-          >
-            <h1 className="text-[1.7rem] font-bold leading-[1.3] text-foreground font-hp-special">
-              {challengeHeaderTitle}
-            </h1>
-          </motion.div>
-          <motion.div
-            initial={{ x: 16, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.32, ease: "easeOut", delay: 0.1 }}
-          >
-            <Mascot
-              size="sm"
-              emotion={
-                phase === "playing"
-                  ? "excited"
-                  : didPass === false
-                    ? "thinking"
-                    : "happy"
-              }
-            />
-          </motion.div>
-        </div>
-      </div>
+      <MiniGameTopHud
+        mode={phase === "select" ? "simple" : "stats"}
+        title={challengeHeaderTitle}
+        onBack={onBack}
+        mascotEmotion={
+          phase === "playing"
+            ? "excited"
+            : didPass === false
+              ? "thinking"
+              : "happy"
+        }
+        leftLabel="Điểm"
+        leftValue={`${score}/${hudTargetScore || "--"}`}
+        rightLabel="Time"
+        rightValue={`${hudTimeSeconds}s`}
+        leftToneClassName="bg-cyan-100/90 text-cyan-700"
+        rightToneClassName="bg-amber-100/90 text-amber-700"
+      />
 
       <div className="flex-1 app-scroll overflow-y-auto px-4 pb-safe pt-4">
         {phase === "select" && (
@@ -1164,42 +1146,24 @@ export function Floor4BubbleChallenge({
               animate={isShaking ? { x: [0, -6, 6, -4, 0] } : { x: 0 }}
               transition={{ duration: 0.22, ease: "easeInOut" }}
             >
-              <div className="mb-3 grid grid-cols-2 gap-2 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Yêu cầu</p>
-                  <p className="text-sm font-semibold text-foreground">
-                    Chạm vào bóng bay{" "}
-                    <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
-                      &quot;{targetLetter}&quot;
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Điểm</p>
-                  <p className="text-base font-bold text-foreground">
-                    {score}/{selectedLevel.targetScore}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Tim</p>
-                  <div className="mt-1 flex items-center gap-1">
-                    {[...Array(bubbleConfig.startLives)].map((_, lifeIndex) => (
-                      <Heart
-                        key={`life-${lifeIndex}`}
-                        className={`h-5 w-5 ${
-                          lifeIndex < lives
-                            ? "fill-rose-400 text-rose-400"
-                            : "fill-gray-200 text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Thời gian</p>
-                  <p className="text-base font-bold text-foreground">
-                    {Math.max(0, Math.ceil(timeLeft))}s
-                  </p>
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-sm">
+                <p className="text-sm font-semibold text-foreground">
+                  Chạm vào bóng bay{" "}
+                  <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
+                    &quot;{targetLetter}&quot;
+                  </span>
+                </p>
+                <div className="flex items-center gap-1">
+                  {[...Array(bubbleConfig.startLives)].map((_, lifeIndex) => (
+                    <Heart
+                      key={`life-${lifeIndex}`}
+                      className={`h-5 w-5 ${
+                        lifeIndex < lives
+                          ? "fill-rose-400 text-rose-400"
+                          : "fill-gray-200 text-gray-300"
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
 

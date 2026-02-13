@@ -16,7 +16,8 @@ export type LessonKind =
   | "vocab_word_build"
   | "vocab_trace_practice"
   | "bubble_pop_challenge"
-  | "diacritic_build_challenge";
+  | "diacritic_build_challenge"
+  | "memory_flip_challenge";
 export type ScoringMetric =
   | "none"
   | "correct_answer"
@@ -164,6 +165,73 @@ export interface DiacriticBuildGameConfig {
   levels: DiacriticBuildLevelConfig[];
 }
 
+export type MemoryFlipLevelId = "easy" | "normal" | "hard";
+
+export interface MemoryFlipMoveStarRule {
+  stars: 1 | 2 | 3;
+  minMovesInclusive?: number;
+  maxMovesInclusive?: number;
+}
+
+export type MemoryFlipCardTokenKind = "letter" | "word";
+
+export interface MemoryFlipCardToken {
+  id: string;
+  text: string;
+  kind: MemoryFlipCardTokenKind;
+}
+
+export type MemoryFlipCardBackIcon = "diamond" | "star" | "sparkle";
+
+export interface MemoryFlipCardBackOption {
+  id: string;
+  label: string;
+  icon: MemoryFlipCardBackIcon;
+  gradientFrom: string;
+  gradientTo: string;
+  stripeColor: string;
+  iconColor: string;
+  ringColor: string;
+}
+
+export interface MemoryFlipLevelConfig {
+  id: MemoryFlipLevelId;
+  label: string;
+  starsReward: 1 | 2 | 3;
+  moveLimit: number;
+  passStarRules?: MemoryFlipMoveStarRule[];
+}
+
+export interface MemoryFlipTutorialConfig {
+  enabledLevelId: MemoryFlipLevelId;
+  replayAfterFailCount: number;
+  mismatchFlipBackDelayMs: {
+    min: number;
+    max: number;
+  };
+}
+
+export interface MemoryFlipGameConfig {
+  title?: string;
+  headerTitle?: string;
+  instruction?: string;
+  rules: string[];
+  grid: {
+    columns: 4;
+    rows: 4;
+  };
+  pairTarget: number;
+  tutorial: MemoryFlipTutorialConfig;
+  levelTokenPools: Record<MemoryFlipLevelId, MemoryFlipCardToken[]>;
+  levels: MemoryFlipLevelConfig[];
+  cardBackOptions: MemoryFlipCardBackOption[];
+  audio: {
+    flip: string;
+    match: string;
+    mismatch: string;
+  };
+}
+
 export interface LessonAnswer {
   id: string;
   text?: string;
@@ -204,6 +272,7 @@ export interface LessonContent {
   relatedLetters?: string[];
   bubblePopGame?: BubblePopGameConfig;
   diacriticBuildGame?: DiacriticBuildGameConfig;
+  memoryFlipGame?: MemoryFlipGameConfig;
   gating?: LessonGating;
   scoring?: LessonScoring;
 
