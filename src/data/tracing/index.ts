@@ -18,7 +18,6 @@ export const getLetterStrokeAnimation = getTracingStrokeAnimation;
 
 export type {
   LetterStrokeAnimation,
-  LetterStrokePath,
-  StrokePoint,
   TracingGlyphConfig,
+  TracingGridLayout,
 } from "./types";

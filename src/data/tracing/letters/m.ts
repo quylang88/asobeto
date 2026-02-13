@@ -1,15 +1,15 @@
 import { type LetterStrokeAnimation } from "../types";
 
-export const wordStrokeCas: LetterStrokeAnimation = {
-  letter: "cá",
+export const letterStrokeM: LetterStrokeAnimation = {
+  letter: "m",
   layout: {
     columns: 5,
     rows: 4,
     cellSize: 56,
   },
   glyph: {
-    x: 20,
-    y: 74,
-    sizeScale: 1.8,
+    x: 8.5,
+    y: 132,
+    sizeScale: 1.5,
   },
 };

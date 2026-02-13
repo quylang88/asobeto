@@ -1,9 +1,10 @@
 import { wordStrokeAwn } from "./awn";
 import { type LetterStrokeAnimation } from "../types";
-import { wordStrokeBof, wordToneStrokeBoHuyen } from "./bof";
+import { wordStrokeBof } from "./bof";
 import { wordStrokeBos } from "./boos";
-import { wordStrokeCas, wordToneStrokeCaSac } from "./cas";
-import { wordStrokeCor, wordToneStrokeCoHoi } from "./cor";
+import { wordStrokeCas } from "./cas";
+import { wordStrokeCor } from "./cor";
+import { wordStrokeMej } from "./mej";
 
 export const WORD_STROKE_MAP: Record<string, LetterStrokeAnimation> = {
   ăn: wordStrokeAwn,
@@ -11,7 +12,5 @@ export const WORD_STROKE_MAP: Record<string, LetterStrokeAnimation> = {
   bố: wordStrokeBos,
   cá: wordStrokeCas,
   cỏ: wordStrokeCor,
-  "tone-huyen": wordToneStrokeBoHuyen,
-  "tone-sac": wordToneStrokeCaSac,
-  "tone-hoi": wordToneStrokeCoHoi,
+  mẹ: wordStrokeMej,
 };
