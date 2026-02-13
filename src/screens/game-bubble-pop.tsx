@@ -300,11 +300,12 @@ export function Floor4BubbleChallenge({
 
   const isLevelUnlocked = useCallback(
     (levelId: BubblePopLevelId) => {
+      if (pendingUnlockLevelId === levelId) return false;
       if (levelId === "easy") return true;
       if (levelId === "normal") return levelStars.easy > 0;
       return levelStars.normal > 0;
     },
-    [levelStars.easy, levelStars.normal],
+    [levelStars.easy, levelStars.normal, pendingUnlockLevelId],
   );
 
   const clearTimeoutRef = useCallback((ref: { current: number | null }) => {
@@ -806,51 +807,48 @@ export function Floor4BubbleChallenge({
       if (!isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
-      const beginCountdown = () => {
-        stopGameLoop();
-        clearCelebrations();
-        resetVisualFeedback();
-        const nextTargetLetter = pickRandomTargetLetter();
-        setSelectedLevelId(levelId);
-        setTargetLetter(nextTargetLetter);
-        setDidPass(null);
-        setLastEarnedStars(0);
-        setFloatingPopups([]);
-        setBubbleBursts([]);
-        setCountdownValue(3);
-        targetLetterRef.current = nextTargetLetter;
-        const targetAudioKey = nextTargetLetter.toLocaleLowerCase("vi-VN");
-        playNarration(bubbleConfig?.targetAudioByLetter?.[targetAudioKey]);
-        setPhase("countdown");
-      };
-
-      if (pendingUnlockLevelId === levelId) {
-        setRecentlyUnlockedLevelId(levelId);
-        setPendingUnlockLevelId(null);
-        if (unlockAnimationTimeoutRef.current !== null) {
-          window.clearTimeout(unlockAnimationTimeoutRef.current);
-        }
-        unlockAnimationTimeoutRef.current = window.setTimeout(() => {
-          unlockAnimationTimeoutRef.current = null;
-          setRecentlyUnlockedLevelId(null);
-          beginCountdown();
-        }, 920);
-        return;
-      }
-
-      beginCountdown();
+      stopGameLoop();
+      clearCelebrations();
+      resetVisualFeedback();
+      const nextTargetLetter = pickRandomTargetLetter();
+      setSelectedLevelId(levelId);
+      setTargetLetter(nextTargetLetter);
+      setDidPass(null);
+      setLastEarnedStars(0);
+      setFloatingPopups([]);
+      setBubbleBursts([]);
+      setCountdownValue(3);
+      targetLetterRef.current = nextTargetLetter;
+      const targetAudioKey = nextTargetLetter.toLocaleLowerCase("vi-VN");
+      playNarration(bubbleConfig?.targetAudioByLetter?.[targetAudioKey]);
+      setPhase("countdown");
     },
     [
       clearCelebrations,
       isLevelUnlocked,
       levelMap,
-      pendingUnlockLevelId,
       pickRandomTargetLetter,
       playNarration,
       resetVisualFeedback,
       stopGameLoop,
       bubbleConfig,
     ],
+  );
+
+  const handleUnlockLevel = useCallback(
+    (levelId: BubblePopLevelId) => {
+      if (pendingUnlockLevelId !== levelId) return;
+      setPendingUnlockLevelId(null);
+      setRecentlyUnlockedLevelId(levelId);
+      if (unlockAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(unlockAnimationTimeoutRef.current);
+      }
+      unlockAnimationTimeoutRef.current = window.setTimeout(() => {
+        unlockAnimationTimeoutRef.current = null;
+        setRecentlyUnlockedLevelId(null);
+      }, 900);
+    },
+    [pendingUnlockLevelId],
   );
 
   const handleBubbleTap = useCallback(
@@ -1068,6 +1066,7 @@ export function Floor4BubbleChallenge({
       starsReward: level.starsReward,
       earnedStars: levelStars[level.id],
       unlocked: isLevelUnlocked(level.id),
+      pendingUnlock: pendingUnlockLevelId === level.id,
       actionLabel: "Chơi",
     };
   }).filter((level): level is NonNullable<typeof level> => level !== null);
@@ -1102,9 +1101,8 @@ export function Floor4BubbleChallenge({
               ? "thinking"
               : "happy"
         }
-        leftLabel="Điểm"
         leftValue={`${score}/${hudTargetScore || "--"}`}
-        rightLabel="Time"
+        centerHighlightText={phase === "select" ? undefined : targetLetter}
         rightValue={`${hudTimeSeconds}s`}
         leftToneClassName="bg-cyan-100/90 text-cyan-700"
         rightToneClassName="bg-amber-100/90 text-amber-700"
@@ -1119,6 +1117,9 @@ export function Floor4BubbleChallenge({
             recentlyUnlockedLevelId={recentlyUnlockedLevelId}
             onSelectLevel={(levelId) =>
               startLevelCountdown(levelId as BubblePopLevelId)
+            }
+            onUnlockLevel={(levelId) =>
+              handleUnlockLevel(levelId as BubblePopLevelId)
             }
             rulesActionLabel="Nghe luật chơi"
             rulesActionIcon={<Volume2 className="h-4 w-4" />}
@@ -1146,73 +1147,65 @@ export function Floor4BubbleChallenge({
               animate={isShaking ? { x: [0, -6, 6, -4, 0] } : { x: 0 }}
               transition={{ duration: 0.22, ease: "easeInOut" }}
             >
-              <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border-2 border-sky-200 bg-white/90 p-3 shadow-sm">
-                <p className="text-sm font-semibold text-foreground">
-                  Chạm vào bóng bay{" "}
-                  <span className="font-hp-special text-3xl font-black lowercase leading-none text-emerald-600">
-                    &quot;{targetLetter}&quot;
-                  </span>
-                </p>
-                <div className="flex items-center gap-1">
+              <div
+                ref={playfieldRef}
+                className="relative h-[58dvh] min-h-105 w-full overflow-hidden rounded-3xl border-4 border-cyan-200 bg-linear-to-b from-cyan-100 via-sky-100 to-blue-200 shadow-lg"
+              >
+                <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-2xl bg-white/65 px-2.5 py-1.5 shadow-sm">
                   {[...Array(bubbleConfig.startLives)].map((_, lifeIndex) => (
                     <Heart
                       key={`life-${lifeIndex}`}
                       className={`h-5 w-5 ${
                         lifeIndex < lives
                           ? "fill-rose-400 text-rose-400"
-                          : "fill-gray-200 text-gray-300"
+                          : "fill-slate-200 text-slate-300"
                       }`}
                     />
                   ))}
                 </div>
-              </div>
 
-              <div
-                ref={playfieldRef}
-                className="relative h-[58dvh] min-h-105 w-full overflow-hidden rounded-3xl border-4 border-cyan-200 bg-linear-to-b from-cyan-100 via-sky-100 to-blue-200 shadow-lg"
-              >
-              {[...Array(Math.max(0, bubbleConfig.laneCount - 1))].map(
-                (_, laneIndex) => (
-                  <div
-                    key={`lane-${laneIndex}`}
-                    className="pointer-events-none absolute inset-y-0 w-px bg-white/50"
-                    style={{
-                      left: `${((laneIndex + 1) / bubbleConfig.laneCount) * 100}%`,
-                    }}
-                  />
-                ),
-              )}
+                {[...Array(Math.max(0, bubbleConfig.laneCount - 1))].map(
+                  (_, laneIndex) => (
+                    <div
+                      key={`lane-${laneIndex}`}
+                      className="pointer-events-none absolute inset-y-0 w-px bg-white/50"
+                      style={{
+                        left: `${((laneIndex + 1) / bubbleConfig.laneCount) * 100}%`,
+                      }}
+                    />
+                  ),
+                )}
 
-              {bubbles.map((bubble) => {
-                const isTarget = bubble.kind === "target";
-                const isWrong = bubble.kind === "wrong";
-                const letterFontSize = Math.max(
-                  30,
-                  Math.round(bubble.size * 0.38),
-                );
-                return (
-                  <motion.button
-                    key={bubble.id}
-                    onClick={() => handleBubbleTap(bubble.id)}
-                    className={`absolute flex items-center justify-center overflow-visible rounded-full border-2 shadow-md transition active:scale-95 ${
-                      isTarget
-                        ? "border-emerald-500 bg-linear-to-b from-emerald-200 via-emerald-300 to-emerald-500 text-emerald-950"
-                        : isWrong
-                          ? "border-orange-500 bg-linear-to-b from-amber-200 via-orange-300 to-orange-500 text-orange-950"
-                          : "border-cyan-400 bg-linear-to-b from-white via-cyan-50 to-cyan-200 text-cyan-700"
-                    }`}
-                    style={{
-                      width: bubble.size,
-                      height: bubble.size,
-                      left: bubble.x - bubble.size / 2,
-                      top: bubble.y - bubble.size / 2,
-                    }}
-                    aria-label={
-                      bubble.letter
-                        ? `Bóng bay chữ ${bubble.letter}`
-                        : "Bóng bay trống"
-                    }
-                  >
+                {bubbles.map((bubble) => {
+                  const isTarget = bubble.kind === "target";
+                  const isWrong = bubble.kind === "wrong";
+                  const letterFontSize = Math.max(
+                    30,
+                    Math.round(bubble.size * 0.38),
+                  );
+                  return (
+                    <motion.button
+                      key={bubble.id}
+                      onClick={() => handleBubbleTap(bubble.id)}
+                      className={`absolute flex items-center justify-center overflow-visible rounded-full border-2 shadow-md transition active:scale-95 ${
+                        isTarget
+                          ? "border-emerald-500 bg-linear-to-b from-emerald-200 via-emerald-300 to-emerald-500 text-emerald-950"
+                          : isWrong
+                            ? "border-orange-500 bg-linear-to-b from-amber-200 via-orange-300 to-orange-500 text-orange-950"
+                            : "border-cyan-400 bg-linear-to-b from-white via-cyan-50 to-cyan-200 text-cyan-700"
+                      }`}
+                      style={{
+                        width: bubble.size,
+                        height: bubble.size,
+                        left: bubble.x - bubble.size / 2,
+                        top: bubble.y - bubble.size / 2,
+                      }}
+                      aria-label={
+                        bubble.letter
+                          ? `Bóng bay chữ ${bubble.letter}`
+                          : "Bóng bay trống"
+                      }
+                    >
                     <span className="pointer-events-none absolute left-[26%] top-[16%] h-[22%] w-[28%] rounded-full bg-white/65 blur-[0.3px]" />
                     <span
                       className={`pointer-events-none absolute left-1/2 top-[95%] h-[14%] w-[12%] -translate-x-1/2 rotate-45 rounded-[3px] ${

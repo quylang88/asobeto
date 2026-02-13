@@ -480,11 +480,12 @@ export function Floor4MemoryFlipChallenge({
 
   const isLevelUnlocked = useCallback(
     (levelId: MemoryFlipLevelId) => {
+      if (pendingUnlockLevelId === levelId) return false;
       if (levelId === "easy") return true;
       if (levelId === "normal") return levelStars.easy > 0;
       return levelStars.normal > 0;
     },
-    [levelStars.easy, levelStars.normal],
+    [levelStars.easy, levelStars.normal, pendingUnlockLevelId],
   );
 
   const persistProgress = useCallback(
@@ -802,17 +803,6 @@ export function Floor4MemoryFlipChallenge({
         setPhase("countdown");
       };
 
-      if (pendingUnlockLevelId === levelId) {
-        setRecentlyUnlockedLevelId(levelId);
-        setPendingUnlockLevelId(null);
-        const unlockActionId = scheduleAction(860, () => {
-          setRecentlyUnlockedLevelId(null);
-          beginCountdown();
-        });
-        tutorialActionIdsRef.current = [...tutorialActionIdsRef.current, unlockActionId];
-        return;
-      }
-
       beginCountdown();
     },
     [
@@ -820,10 +810,21 @@ export function Floor4MemoryFlipChallenge({
       isLevelUnlocked,
       levelMap,
       memoryConfig,
-      pendingUnlockLevelId,
-      scheduleAction,
       setBoardLock,
     ],
+  );
+
+  const handleUnlockLevel = useCallback(
+    (levelId: MemoryFlipLevelId) => {
+      if (pendingUnlockLevelId !== levelId) return;
+      setPendingUnlockLevelId(null);
+      setRecentlyUnlockedLevelId(levelId);
+      const unlockActionId = scheduleAction(900, () => {
+        setRecentlyUnlockedLevelId(null);
+      });
+      tutorialActionIdsRef.current = [...tutorialActionIdsRef.current, unlockActionId];
+    },
+    [pendingUnlockLevelId, scheduleAction],
   );
 
   const handleCardTap = useCallback(
@@ -1109,6 +1110,7 @@ export function Floor4MemoryFlipChallenge({
       starsReward: level.starsReward,
       earnedStars: levelStars[level.id],
       unlocked: isLevelUnlocked(level.id),
+      pendingUnlock: pendingUnlockLevelId === level.id,
       actionLabel: "Chơi",
     };
   }).filter((level): level is NonNullable<typeof level> => level !== null);
@@ -1141,7 +1143,7 @@ export function Floor4MemoryFlipChallenge({
         leftLabel="Pairs"
         leftValue={`${pairsCleared}/${pairTarget}`}
         rightLabel="Moves"
-        rightValue={`${moves}`}
+        rightValue={`${moves} lần`}
         leftToneClassName="bg-cyan-100/90 text-cyan-700"
         rightToneClassName="bg-amber-100/90 text-amber-700"
       />
@@ -1155,6 +1157,9 @@ export function Floor4MemoryFlipChallenge({
             recentlyUnlockedLevelId={recentlyUnlockedLevelId}
             onSelectLevel={(levelId) =>
               startLevelCountdown(levelId as MemoryFlipLevelId)
+            }
+            onUnlockLevel={(levelId) =>
+              handleUnlockLevel(levelId as MemoryFlipLevelId)
             }
             rulesActionLabel="Nghe luật chơi"
             rulesActionIcon={<Volume2 className="h-4 w-4" />}
@@ -1335,7 +1340,7 @@ export function Floor4MemoryFlipChallenge({
       <AnimatePresence>
         {phase === "tutorial" && (
           <motion.div
-            className="pointer-events-none absolute inset-0 z-[25] bg-black/40"
+            className="pointer-events-none absolute inset-0 z-25 bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

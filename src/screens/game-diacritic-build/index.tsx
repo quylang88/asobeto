@@ -398,11 +398,12 @@ export function Floor4DiacriticBuildChallenge({
 
   const isLevelUnlocked = useCallback(
     (levelId: DiacriticBuildLevelId) => {
+      if (pendingUnlockLevelId === levelId) return false;
       if (levelId === "easy") return true;
       if (levelId === "normal") return levelStars.easy > 0;
       return levelStars.normal > 0;
     },
-    [levelStars.easy, levelStars.normal],
+    [levelStars.easy, levelStars.normal, pendingUnlockLevelId],
   );
 
   const clearTimeoutRef = useCallback((ref: { current: number | null }) => {
@@ -1276,28 +1277,18 @@ export function Floor4DiacriticBuildChallenge({
     ],
   );
 
-  const startLevelWithUnlockAnimation = useCallback(
+  const handleUnlockLevel = useCallback(
     (levelId: DiacriticBuildLevelId) => {
-      if (!isLevelUnlocked(levelId)) return;
-      if (pendingUnlockLevelId === levelId) {
-        setRecentlyUnlockedLevelId(levelId);
-        setPendingUnlockLevelId(null);
-        clearTimeoutRef(unlockAnimationTimeoutRef);
-        unlockAnimationTimeoutRef.current = window.setTimeout(() => {
-          unlockAnimationTimeoutRef.current = null;
-          setRecentlyUnlockedLevelId(null);
-          startLevelCountdown(levelId);
-        }, 880);
-        return;
-      }
-      startLevelCountdown(levelId);
+      if (pendingUnlockLevelId !== levelId) return;
+      setPendingUnlockLevelId(null);
+      setRecentlyUnlockedLevelId(levelId);
+      clearTimeoutRef(unlockAnimationTimeoutRef);
+      unlockAnimationTimeoutRef.current = window.setTimeout(() => {
+        unlockAnimationTimeoutRef.current = null;
+        setRecentlyUnlockedLevelId(null);
+      }, 900);
     },
-    [
-      clearTimeoutRef,
-      isLevelUnlocked,
-      pendingUnlockLevelId,
-      startLevelCountdown,
-    ],
+    [clearTimeoutRef, pendingUnlockLevelId],
   );
 
   useEffect(() => {
@@ -1575,6 +1566,7 @@ export function Floor4DiacriticBuildChallenge({
       starsReward: level.starsReward,
       earnedStars: levelStars[level.id],
       unlocked: isLevelUnlocked(level.id),
+      pendingUnlock: pendingUnlockLevelId === level.id,
     };
   }).filter((level): level is NonNullable<typeof level> => level !== null);
   const countdownHintText =
@@ -1609,9 +1601,10 @@ export function Floor4DiacriticBuildChallenge({
               ? "thinking"
               : "happy"
         }
-        leftLabel="Tiến độ"
         leftValue={`${progressCount}/${selectedTarget || "--"}`}
-        rightLabel="Time"
+        centerHighlightText={
+          phase === "select" ? undefined : diacriticConfig.targetLetter
+        }
         rightValue={`${hudTimeSeconds}s`}
         leftToneClassName="bg-cyan-100/90 text-cyan-700"
         rightToneClassName="bg-amber-100/90 text-amber-700"
@@ -1625,7 +1618,10 @@ export function Floor4DiacriticBuildChallenge({
             levels={levelSelectCards}
             recentlyUnlockedLevelId={recentlyUnlockedLevelId}
             onSelectLevel={(levelId) =>
-              startLevelWithUnlockAnimation(levelId as DiacriticBuildLevelId)
+              startLevelCountdown(levelId as DiacriticBuildLevelId)
+            }
+            onUnlockLevel={(levelId) =>
+              handleUnlockLevel(levelId as DiacriticBuildLevelId)
             }
             rulesActionLabel="Nghe luật chơi"
             rulesActionIcon={<Volume2 className="h-4 w-4" />}

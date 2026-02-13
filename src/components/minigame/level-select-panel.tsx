@@ -2,7 +2,7 @@
 
 import { type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Flame, Heart, Lock, Sparkles, Star } from "lucide-react";
+import { Flame, Heart, Lock, LockOpen, Sparkles, Star } from "lucide-react";
 import { PrimaryButton } from "@/components/common/primary-button";
 
 interface LevelTheme {
@@ -18,6 +18,7 @@ export interface MiniGameLevelCard {
   starsReward: number;
   earnedStars: number;
   unlocked: boolean;
+  pendingUnlock?: boolean;
   actionLabel?: string;
 }
 
@@ -27,6 +28,7 @@ interface MiniGameLevelSelectPanelProps {
   levels: MiniGameLevelCard[];
   recentlyUnlockedLevelId?: string | null;
   onSelectLevel: (levelId: string) => void;
+  onUnlockLevel?: (levelId: string) => void;
   rulesActionLabel?: string;
   rulesActionIcon?: ReactNode;
   onRulesAction: () => void;
@@ -79,6 +81,7 @@ export function MiniGameLevelSelectPanel({
   levels,
   recentlyUnlockedLevelId,
   onSelectLevel,
+  onUnlockLevel,
   rulesActionLabel = "Nghe luật chơi",
   rulesActionIcon,
   onRulesAction,
@@ -122,6 +125,9 @@ export function MiniGameLevelSelectPanel({
         {levels.map((level, levelIndex) => {
           const theme = getTheme(level.id);
           const isRecentlyUnlocked = recentlyUnlockedLevelId === level.id;
+          const isPendingUnlock = Boolean(level.pendingUnlock);
+          const isLocked = !level.unlocked && !isPendingUnlock;
+          const canUnlock = isPendingUnlock && Boolean(onUnlockLevel);
 
           return (
             <motion.div
@@ -135,8 +141,14 @@ export function MiniGameLevelSelectPanel({
               }}
             >
               <motion.button
-                onClick={() => onSelectLevel(level.id)}
-                disabled={!level.unlocked}
+                onClick={() => {
+                  if (isPendingUnlock) {
+                    onUnlockLevel?.(level.id);
+                    return;
+                  }
+                  onSelectLevel(level.id);
+                }}
+                disabled={isLocked || (isPendingUnlock && !canUnlock)}
                 initial={false}
                 animate={
                   isRecentlyUnlocked
@@ -150,9 +162,11 @@ export function MiniGameLevelSelectPanel({
                 className={`relative w-full overflow-hidden rounded-[1.75rem] border-2 p-1.5 text-left ios-button ${
                   level.unlocked
                     ? "border-cyan-300 bg-white shadow-lg"
-                    : "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500 grayscale"
+                    : isPendingUnlock
+                      ? "border-slate-300 bg-slate-200 text-slate-600"
+                      : "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500 grayscale"
                 }`}
-                whileTap={level.unlocked ? { scale: 0.96 } : {}}
+                whileTap={!isLocked ? { scale: 0.96 } : {}}
               >
                 <span
                   className={`pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-r ${
@@ -175,6 +189,10 @@ export function MiniGameLevelSelectPanel({
                         className={`flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br ${theme.iconGradient} ${theme.iconColor}`}
                       >
                         <DifficultyIcon levelId={level.id} />
+                      </span>
+                    ) : isPendingUnlock ? (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                        <LockOpen className="h-5 w-5" />
                       </span>
                     ) : (
                       <Lock className="h-5 w-5 text-slate-600" />
@@ -215,6 +233,10 @@ export function MiniGameLevelSelectPanel({
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                         {level.actionLabel ?? "Chơi"}
                       </span>
+                    ) : isPendingUnlock ? (
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        Chạm mở
+                      </span>
                     ) : (
                       <span className="rounded-full bg-slate-300 px-3 py-1 text-xs font-semibold text-slate-600">
                         Khóa
@@ -239,6 +261,33 @@ export function MiniGameLevelSelectPanel({
                       >
                         <Sparkles className="h-4 w-4" />
                         Mở khóa!
+                      </motion.span>
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {isPendingUnlock && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.92 }}
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    >
+                      <motion.span
+                        animate={{
+                          y: [0, -1, 0],
+                          rotate: [0, -2, 2, -2, 0],
+                          scale: [1, 1.04, 1],
+                        }}
+                        transition={{
+                          duration: 0.95,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        }}
+                        className="rounded-full border-2 border-emerald-300 bg-white/95 px-4 py-2 text-sm font-black text-emerald-700 shadow-lg"
+                      >
+                        Mở khóa
                       </motion.span>
                     </motion.span>
                   )}

@@ -1398,3 +1398,50 @@ Validation
     - after selecting two `m` cards from different `pairKey` values (`m-7` and `m-3`), state reported `pairsCleared: 1` and both cards in `status: "cleared"`.
   - Bubble select/gameplay headers match the same top-HUD pattern; rules button text is `Nghe luật chơi`.
   - Diacritic select/gameplay headers match the same top-HUD pattern; rules button text is `Nghe luật chơi`.
+
+---
+
+Update (HUD simplification + heart placement + tap-to-unlock flow)
+
+TODO
+- [x] Simplify shared `top-hud`:
+  - left/right show value only (no text labels),
+  - center supports highlighted main letter/word (green, bold, larger),
+  - simple mode title spacing adjusted to reduce clipping artifacts on select screen.
+- [x] Bubble gameplay: remove top objective+heart block and move hearts into playfield top-left (same style as diacritic).
+- [x] Keep hearts top-left for diacritic gameplay; align HUD style with simplified 3-slot format.
+- [x] Update memory HUD right value to moves with unit (`lần`) and keep no labels.
+- [x] Replace auto-unlock behavior with pending unlock state:
+  - next level stays gray after pass,
+  - lock icon becomes open lock,
+  - center `Mở khóa` badge wiggles,
+  - user taps level card to trigger unlock effect,
+  - unlock no longer auto-starts countdown.
+- [x] Re-run lint/typecheck and Playwright MCP smoke checks.
+
+Notes
+- Updated shared components:
+  - `src/components/minigame/top-hud.tsx`
+  - `src/components/minigame/level-select-panel.tsx`
+- New level-card state:
+  - `pendingUnlock?: boolean` (gray card + open lock + `Mở khóa` animated badge + `Chạm mở` chip).
+  - Optional `onUnlockLevel(levelId)` flow added to select panel.
+- Applied to screens:
+  - `src/screens/game-memory-flip.tsx`
+  - `src/screens/game-bubble-pop.tsx`
+  - `src/screens/game-diacritic-build/index.tsx`
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Skill-required script still blocked:
+  - `node $WEB_GAME_CLIENT --help` -> `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'`.
+- Playwright MCP smoke checks:
+  - Bubble countdown HUD shows `0/10 | c | 35s` (no `Điểm/Time` labels).
+  - Bubble gameplay no longer has `Chạm vào bóng bay...` info block; hearts are shown on playfield top-left.
+  - Diacritic countdown HUD shows simplified values + green center `ă`; no label text on left/right.
+  - Memory HUD shows simplified values + right side `0 lần`; no `Pairs/Moves` labels.
+  - Unlock flow verified on bubble game with cleared storage:
+    - after passing easy, normal card became gray with `Chạm mở` + animated `Mở khóa`,
+    - tapping normal card only unlocked card (kept `mode: select`, no auto-start countdown),
+    - normal then showed regular `Chơi`; hard remained locked.
