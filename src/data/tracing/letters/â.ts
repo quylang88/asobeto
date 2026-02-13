@@ -1,7 +1,7 @@
 import { type LetterStrokeAnimation } from "../types";
 
-export const letterStrokeA: LetterStrokeAnimation = {
-  letter: "a",
+export const letterStrokeÂ: LetterStrokeAnimation = {
+  letter: "â",
   layout: {
     columns: 3,
     rows: 4,
