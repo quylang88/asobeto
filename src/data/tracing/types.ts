@@ -33,16 +33,22 @@ export interface TracingStrokePath {
   pauseBeforeMs?: number;
   pauseAfterMs?: number;
   pausePoints?: TracingPausePoint[];
+  maskOverlapPx?: number;
 }
 
 export interface TracingAutoStrokeHint {
+  mode?: "centerline" | "closedLoop" | "pathThroughAnchors";
+  componentIndex?: number;
+  initialDirection?: "left" | "right" | "up" | "down";
   start?: TracingStrokePoint;
   end?: TracingStrokePoint;
+  pathAnchors?: TracingStrokePoint[];
   durationMs?: number;
   pauseBeforeMs?: number;
   pauseAfterMs?: number;
   pausePoints?: TracingPausePoint[];
   pauseAnchors?: TracingPauseAnchor[];
+  maskOverlapPx?: number;
 }
 
 export interface TracingAutoDemoConfig {

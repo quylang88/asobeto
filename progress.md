@@ -1085,3 +1085,45 @@ Validation
   - `tmp/after-auto-trace-a-v2.png` (after patch, letter `a`)
   - `tmp/after-auto-trace-aw.png` (after patch, letter `ă` with 2 strokes)
 - Existing unrelated issue observed: missing audio files for `aw` (`/assets/audio/intro-letters/aw/*.mp3`, `/assets/audio/letters/aw.mp3`) still logs load errors.
+
+Update (Auto tracing safety + continuity pass for letter `ă` demo)
+
+TODO
+- [x] Prevent unsafe cross-component joining (no bridging line between disconnected glyph parts).
+- [x] Allow safe joining only when connector stays inside glyph mask.
+- [x] Reduce stroke jitter by smoothing + point-density reduction.
+- [x] Tune `ă` demo pauses to avoid visible stutter between body and breve.
+
+Notes
+- `GeneratedStrokeCandidate` now carries `componentId` and merge only occurs within same component.
+- Added glyph-mask connector validator (`isConnectorInsideGlyphMask`) so long joins are accepted only if samples stay inside filled glyph area.
+- If target stroke normalization cannot be reached safely, renderer keeps complete candidate set instead of dropping segments.
+- Added lightweight smoothing and spacing normalization in candidate creation to make animation more fluid.
+- For `ă` (`src/data/tracing/letters/aw.ts`): set first stroke `pauseAfterMs: 220` and removed explicit `pauseBeforeMs` on second stroke.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- Playwright demo screenshots for letter `ă` lesson 3:
+  - `tmp/demo-aw-after-safety-1.2s.png` (mid animation)
+  - `tmp/demo-aw-after-mask-merge-final.png` (final frame)
+
+Update (Auto demo alignment + curve quality hardening for `ă`)
+
+TODO
+- [x] Guarantee auto-demo paint stays inside glyph bounds during animation.
+- [x] Improve curve smoothness to avoid jagged/angled segments.
+- [x] Ensure final painted result matches underlying faded glyph shape.
+
+Notes
+- In `letter-tracing-canvas.tsx`:
+  - Auto demo now clips painted timeline with glyph mask using `destination-in` each frame.
+  - Final frame forces full glyph fill in trace color for exact visual parity with guide glyph.
+  - Trail-to-source conversion now keeps sub-pixel precision (no integer rounding).
+  - Added Chaikin smoothing + distance-based resampling for rounder curves.
+- Existing component-safe merge guards remain in place, so disconnected parts stay disconnected unless connector is safely inside glyph mask.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- Playwright (letter `ă`, lesson 3) screenshots:
+  - `tmp/demo-aw-smooth-mask-1.3s.png`
+  - `tmp/demo-aw-smooth-mask-0.45s.png`
