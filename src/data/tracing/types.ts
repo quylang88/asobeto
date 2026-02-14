@@ -5,6 +5,17 @@ export interface TracingGridLayout {
   margin?: number;
 }
 
+export interface TracingGridMetrics {
+  margin: number;
+  columns: number;
+  rows: number;
+  cellSize: number;
+  drawAreaWidth: number;
+  drawAreaHeight: number;
+  canvasWidth: number;
+  canvasHeight: number;
+}
+
 export interface TracingGlyphConfig {
   fontFamily?: string;
   sizeScale?: number;
