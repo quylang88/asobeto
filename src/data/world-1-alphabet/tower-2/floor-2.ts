@@ -1,9 +1,36 @@
 import { LessonContent } from "../map-structure";
-import { createLetterFloorLessons } from "../lesson-templates";
+import {
+  createLetterListenLesson,
+  createLetterQuizLesson,
+  createLetterTraceDemoLesson,
+  createLetterTracePracticeLesson,
+} from "../../lesson-templates/letter";
 
-export const floor2Lessons: LessonContent[] = createLetterFloorLessons({
-  lessonPrefix: "t2-f2",
-  letter: "n",
-  letterAssetKey: "n",
-  distractors: ["m", "h"],
-});
+const lessonPrefix = "t2-f2";
+const letter = "n";
+const letterAssetKey = "n";
+const distractors: [string, string] = ["m", "h"];
+
+export const floor2Lessons: LessonContent[] = [
+  createLetterListenLesson({
+    lessonId: `${lessonPrefix}-l1`,
+    letter,
+    letterAssetKey,
+  }),
+  createLetterQuizLesson({
+    lessonId: `${lessonPrefix}-l2`,
+    letter,
+    letterAssetKey,
+    distractors,
+  }),
+  createLetterTraceDemoLesson({
+    lessonId: `${lessonPrefix}-l3`,
+    letter,
+    letterAssetKey,
+  }),
+  createLetterTracePracticeLesson({
+    lessonId: `${lessonPrefix}-l4`,
+    letter,
+    letterAssetKey,
+  }),
+];

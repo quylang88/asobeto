@@ -11,6 +11,7 @@ import { GameDiacriticBuild } from "@/screens/game-diacritic-build";
 import { GameMemoryFlip } from "@/screens/game-memory-flip";
 import { GameAnimalFeed } from "@/screens/game-animal-feed";
 import { worlds, getWorldData } from "@/data/game-config";
+import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 
 type Screen =
   | "welcome"
@@ -24,6 +25,38 @@ interface GameState {
   selectedWorld: number | null;
   selectedTower: number | null;
   selectedFloor: number | null;
+}
+
+const BOSS_REVIEW_PASS_THRESHOLD = 5;
+
+function resolveBossAutoFloorId(worldId: number, towerId: number): number | null {
+  const worldData = getWorldData(worldId);
+  const bossTower = worldData.towers.find((tower) => tower.id === towerId);
+  if (!bossTower?.isBoss || !bossTower.floors?.length) {
+    return null;
+  }
+
+  const hydratedFloors = hydrateFloorsWithStoredProgress({
+    worldId,
+    towerId,
+    floors: bossTower.floors,
+  });
+  const reviewFloor = hydratedFloors.find((floor) => floor.id === 1) ?? hydratedFloors[0];
+  const mysteryFloor =
+    hydratedFloors.find((floor) =>
+      floor.content?.some((lesson) => lesson.lessonKind === "memory_flip_challenge"),
+    ) ?? hydratedFloors[hydratedFloors.length - 1];
+
+  if (!reviewFloor) {
+    return mysteryFloor?.id ?? null;
+  }
+
+  const hasPassedReview = (reviewFloor.stars ?? 0) >= BOSS_REVIEW_PASS_THRESHOLD;
+  if (hasPassedReview && mysteryFloor) {
+    return mysteryFloor.id;
+  }
+
+  return reviewFloor.id;
 }
 
 export default function AsobetoApp() {
@@ -47,10 +80,30 @@ export default function AsobetoApp() {
   };
 
   const handleSelectTower = (towerId: number) => {
+    const selectedWorldId = gameState.selectedWorld;
+    if (selectedWorldId === null) return;
+
+    const worldData = getWorldData(selectedWorldId);
+    const selectedTower = worldData.towers.find((tower) => tower.id === towerId);
+
+    if (selectedTower?.isBoss) {
+      const autoFloorId = resolveBossAutoFloorId(selectedWorldId, towerId);
+      if (autoFloorId !== null) {
+        setGameState({
+          ...gameState,
+          currentScreen: "lesson",
+          selectedTower: towerId,
+          selectedFloor: autoFloorId,
+        });
+        return;
+      }
+    }
+
     setGameState({
       ...gameState,
       currentScreen: "floorSelection",
       selectedTower: towerId,
+      selectedFloor: null,
     });
   };
 
@@ -80,6 +133,42 @@ export default function AsobetoApp() {
   };
 
   const handleLessonComplete = () => {
+    const selectedWorldId = gameState.selectedWorld;
+    const selectedTowerId = gameState.selectedTower;
+
+    if (selectedWorldId !== null && selectedTowerId !== null) {
+      const worldData = getWorldData(selectedWorldId);
+      const selectedTower = worldData.towers.find(
+        (tower) => tower.id === selectedTowerId,
+      );
+
+      if (selectedTower?.isBoss) {
+        const nextBossFloorId = resolveBossAutoFloorId(
+          selectedWorldId,
+          selectedTowerId,
+        );
+
+        if (
+          nextBossFloorId !== null &&
+          nextBossFloorId !== gameState.selectedFloor
+        ) {
+          setGameState({
+            ...gameState,
+            currentScreen: "lesson",
+            selectedFloor: nextBossFloorId,
+          });
+          return;
+        }
+
+        setGameState({
+          ...gameState,
+          currentScreen: "towerSelection",
+          selectedFloor: null,
+        });
+        return;
+      }
+    }
+
     setGameState({
       ...gameState,
       currentScreen: "floorSelection",
@@ -137,6 +226,10 @@ export default function AsobetoApp() {
       const selectedFloor = selectedTower?.floors?.find(
         (f) => f.id === gameState.selectedFloor!,
       );
+      const shouldSkipFloorSelection = Boolean(selectedTower?.isBoss);
+      const lessonBackScreen: Screen = shouldSkipFloorSelection
+        ? "towerSelection"
+        : "floorSelection";
       const diacriticChallengeLesson = selectedFloor?.content?.find(
         (lesson) => lesson.lessonKind === "diacritic_build_challenge",
       );
@@ -160,7 +253,7 @@ export default function AsobetoApp() {
             floorMaxStars={selectedFloor?.maxStars ?? 3}
             lesson={diacriticChallengeLesson}
             onComplete={handleLessonComplete}
-            onBack={() => handleBack("floorSelection")}
+            onBack={() => handleBack(lessonBackScreen)}
           />
         );
       }
@@ -175,7 +268,7 @@ export default function AsobetoApp() {
             floorMaxStars={selectedFloor?.maxStars ?? 3}
             lesson={bubbleChallengeLesson}
             onComplete={handleLessonComplete}
-            onBack={() => handleBack("floorSelection")}
+            onBack={() => handleBack(lessonBackScreen)}
           />
         );
       }
@@ -190,7 +283,7 @@ export default function AsobetoApp() {
             floorMaxStars={selectedFloor?.maxStars ?? 3}
             lesson={memoryFlipChallengeLesson}
             onComplete={handleLessonComplete}
-            onBack={() => handleBack("floorSelection")}
+            onBack={() => handleBack(lessonBackScreen)}
           />
         );
       }
@@ -205,7 +298,7 @@ export default function AsobetoApp() {
             floorMaxStars={selectedFloor?.maxStars ?? 3}
             lesson={animalFeedChallengeLesson}
             onComplete={handleLessonComplete}
-            onBack={() => handleBack("floorSelection")}
+            onBack={() => handleBack(lessonBackScreen)}
           />
         );
       }
@@ -219,7 +312,7 @@ export default function AsobetoApp() {
           floorMaxStars={selectedFloor?.maxStars ?? 3}
           lessons={selectedFloor?.content || []}
           onComplete={handleLessonComplete}
-          onBack={() => handleBack("floorSelection")}
+          onBack={() => handleBack(lessonBackScreen)}
         />
       );
     }

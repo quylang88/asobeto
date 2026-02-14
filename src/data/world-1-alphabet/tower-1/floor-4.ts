@@ -1,11 +1,13 @@
 import { LessonContent } from "../map-structure";
-import { createBubblePopChallengeLessons } from "../lesson-templates";
+import { createBubblePopChallengeLesson } from "../../lesson-templates/challenges";
 
-export const floor4Lessons: LessonContent[] = createBubblePopChallengeLessons({
-  lessonPrefix: "t1-f4",
-  targetLetters: ["a", "c"],
-  targetAudioByLetter: {
-    a: "/assets/audio/game/bubble-pop/target-a.mp3",
-    c: "/assets/audio/game/bubble-pop/target-c.mp3",
-  },
-});
+export const floor4Lessons: LessonContent[] = [
+  createBubblePopChallengeLesson({
+    lessonId: "t1-f4-bubble-pop",
+    targetLetters: ["a", "c"],
+    targetAudioByLetter: {
+      a: "/assets/audio/game/bubble-pop/target-a.mp3",
+      c: "/assets/audio/game/bubble-pop/target-c.mp3",
+    },
+  }),
+];

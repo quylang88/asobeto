@@ -375,6 +375,7 @@ import { tower2Floors } from "./tower-2";
 import { tower3Floors } from "./tower-3";
 import { tower4Floors } from "./tower-4";
 import { tower5Floors } from "./tower-5";
+import { towerBossFloors } from "./tower-boss-1";
 
 export interface TowerConnection {
   from: number;
@@ -453,15 +454,16 @@ export const towers: Tower[] = [
   },
   {
     id: 6,
-    name: "BOSS!!!!",
+    name: "BOSS",
     letters: "Thử Thách",
     stars: 0,
-    maxStars: 5,
+    maxStars: 2,
     completed: false,
     unlocked: false,
     position: { x: 50, y: 85 },
     parentIds: [4, 5],
     isBoss: true,
+    floors: towerBossFloors,
   },
 ];
 
@@ -491,6 +493,10 @@ export function canUnlockBoss(
   requiredStars: number = 15,
 ): boolean {
   const regularTowers = towerList.filter((t) => !t.isBoss);
+  const allUnlocked = regularTowers.every((t) => t.unlocked);
+  if (allUnlocked) {
+    return true;
+  }
   const allCompleted = regularTowers.every((t) => t.completed);
   const totalStars = getTotalStars(regularTowers);
   return allCompleted && totalStars >= requiredStars;

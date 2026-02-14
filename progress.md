@@ -1716,3 +1716,115 @@ Notes
 - Validation:
   - `pnpm exec tsc --noEmit` pass
   - `pnpm lint` pass
+
+---
+
+Update (Boss tower unlock fix + review data + mystery game placeholder)
+
+TODO
+- [x] Fix boss tower tap/unlock behavior so boss can be entered when unlock condition is met (and no longer blocked by stale `canBossUnlock` mismatch).
+- [x] Add dedicated `tower-boss` data with 2 internal floors:
+  - review floor (10 active lessons)
+  - mystery floor (memory mini-game placeholder).
+- [x] Implement boss entry flow to skip floor-selection and go straight into lesson flow.
+- [x] Add gating rule for mystery game: unlock when review floor reaches at least `5/10` stars.
+- [x] Add placeholder image assets for review word-image quiz options.
+- [x] Keep unlock/testing logic independent from persistent tower unlock storage (boss unlock now accepts all regular towers unlocked).
+- [x] Re-run lint/typecheck and smoke test boss flows.
+
+Notes
+- New boss data files:
+  - `src/data/world-1-alphabet/tower-boss/index.ts`
+  - `src/data/world-1-alphabet/tower-boss/floor-1.ts`
+  - `src/data/world-1-alphabet/tower-boss/floor-2.ts`
+- Boss tower in map structure now has internal floors and starts `unlocked: false` with runtime unlock condition.
+- Boss review floor (`floor-1`) currently contains 10 active lessons:
+  - 2x letter listen+choose
+  - 2x vocab listen+choose image
+  - 2x letter listen+repeat (speech threshold 60%)
+  - 1x vocab listen+repeat (speech threshold 60%)
+  - 2x letter trace (threshold 60%)
+  - 1x vocab trace (threshold 60%)
+- `LessonInterface` now hides the large preview card for active image-answer quizzes so the answer is not revealed before selecting an image.
+- Boss auto-routing is handled in `src/app/page.tsx`:
+  - first entry -> review floor
+  - after review stars >= 5 -> auto route to mystery game floor.
+- Added placeholder vocabulary image cards under:
+  - `public/assets/images/review/*.svg`
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Skill-loop check attempted:
+  - `node $WEB_GAME_CLIENT --help` -> blocked in this environment (`ERR_MODULE_NOT_FOUND: playwright`).
+- Playwright MCP smoke checks on running app (`http://127.0.0.1:3100`):
+  - world-1 tower map shows boss progress `5/5`, boss tap enters lesson flow directly.
+  - boss review starts at step `1/10` (no floor-selection screen).
+  - step `3/10` (vocab image quiz) shows image choices and no answer-revealing preview card.
+  - when `1:6:1` floor stars are set to `5` in local storage, tapping boss routes directly to mystery memory mini-game (`Boss`).
+
+Assumption recorded
+- User-provided numbering had one duplicate (`l6`) and an over-specified trace section for a 10-lesson cap. Current implementation keeps total at 10 lessons while preserving all requested activity types and the 5/10 unlock gate.
+
+---
+
+Update (Refactor lesson templates: split lesson vs game data)
+
+TODO
+- [x] Tách `lesson-templates` monolith thành nhiều file theo từng lesson type.
+- [x] Tách riêng lớp `game data templates` cho các challenge game (`bubble-pop`, `animal-feed`, `memory-flip`, `diacritic-build`).
+- [x] Giữ nguyên API factory hiện tại để các file `floor-*` chỉ cần truyền biến riêng như cũ.
+- [x] Chạy kiểm tra lint + typecheck sau refactor.
+
+Notes
+- Xóa file cũ: `src/data/world-1-alphabet/lesson-templates.ts`.
+- Thêm thư mục mới:
+  - `src/data/world-1-alphabet/lesson-templates/`
+    - `letter-floor-lessons.ts`
+    - `vocab-floor-lessons.ts`
+    - `bubble-pop-challenge-lessons.ts`
+    - `animal-feed-challenge-lessons.ts`
+    - `memory-flip-challenge-lessons.ts`
+    - `diacritic-build-challenge-lessons.ts`
+    - `index.ts` (barrel export)
+  - `src/data/world-1-alphabet/game-data-templates/`
+    - `bubble-pop.ts`
+    - `animal-feed.ts`
+    - `memory-flip.ts`
+    - `diacritic-build.ts`
+    - `index.ts`
+- Sau refactor:
+  - Layer `lesson-templates/*` chỉ tạo `LessonContent` (id/type/kind/scoring/title/instruction) và gắn payload game.
+  - Layer `game-data-templates/*` chỉ xử lý phần config data game trước khi trả về `*GameConfig`.
+
+Validation
+- `pnpm lint -- src/data/world-1-alphabet/lesson-templates src/data/world-1-alphabet/game-data-templates src/data/world-1-alphabet/tower-1/floor-1.ts` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Global lesson templates by lesson-kind + floor migration)
+
+TODO
+- [x] Move lesson templates to global scope at `src/data/lesson-templates` for cross-world reuse.
+- [x] Split letter lessons into separate files by lesson-kind (listen, quiz, trace-demo, trace-practice).
+- [x] Split vocab lessons into separate files by lesson-kind (listen-look, listen-repeat, word-build, trace-practice).
+- [x] Keep mini-game config logic in existing `src/data/mini-games/*`; challenge lesson templates now call mini-game factories directly.
+- [x] Migrate world-1 floor files to call lesson templates per lesson item (no grouped letter/vocab factory file).
+- [x] Remove legacy monolithic file `src/data/world-1-alphabet/lesson-templates.ts`.
+- [x] Run lint + typecheck.
+
+Notes
+- New shared template structure:
+  - `src/data/lesson-templates/letter/*`
+  - `src/data/lesson-templates/vocab/*`
+  - `src/data/lesson-templates/challenges/*`
+  - `src/data/lesson-templates/index.ts`
+- Each floor now composes `LessonContent[]` by explicitly calling each lesson template function, and customizes only floor-specific variables.
+- Challenge lesson templates (`bubble`, `animal-feed`, `memory-flip`, `diacritic`) separate lesson metadata from game data by:
+  - taking `lessonId` at lesson layer
+  - forwarding remaining game input directly to `create*GameConfig` in `src/data/mini-games/*`.
+
+Validation
+- `pnpm lint -- src/data/lesson-templates src/data/world-1-alphabet/tower-1 src/data/world-1-alphabet/tower-2 src/data/world-1-alphabet/tower-3 src/data/world-1-alphabet/tower-4 src/data/world-1-alphabet/tower-5 src/data/world-1-alphabet/tower-boss-1` pass.
+- `pnpm exec tsc --noEmit` pass.

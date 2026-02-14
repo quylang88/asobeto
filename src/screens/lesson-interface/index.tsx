@@ -78,7 +78,6 @@ function getDisplayAnswersForLesson(
   lesson: LessonContent | undefined,
 ): LessonAnswer[] {
   if (!lesson?.answers?.length) return [];
-  if (lesson.lessonKind !== "letter_quiz") return lesson.answers;
   return shuffleLessonAnswers(lesson.answers);
 }
 
@@ -187,6 +186,8 @@ export function LessonInterface({
     !shouldPromoteTitleToInstruction &&
     Boolean(currentLesson?.instruction);
   const hasAnswerOptions = answerOptions.length > 0;
+  const hasImageAnswerOptions =
+    hasAnswerOptions && answerOptions.some((answer) => Boolean(answer.image));
   const targetText =
     currentLesson?.targetText ?? currentLesson?.targetLetter ?? "";
   const wordBuildExpectedTokens = isWordBuildLesson
@@ -263,7 +264,10 @@ export function LessonInterface({
   const traceTwoStarThreshold =
     currentLesson?.scoring?.starThresholds?.twoStars ?? 0.85;
   const showPreviewCard =
-    !isTracePracticeLesson && !isLetterTraceDemoLesson && !isWordBuildLesson;
+    !isTracePracticeLesson &&
+    !isLetterTraceDemoLesson &&
+    !isWordBuildLesson &&
+    !hasImageAnswerOptions;
   const requiresAnimationComplete =
     currentLesson?.type === "passive" &&
     Boolean(currentLesson.gating?.requireAnimationComplete);

@@ -144,13 +144,19 @@ function TowerNode({
   onBossUnlock: () => void;
 }) {
   const canUnlock = tower.isBoss && canBossUnlock;
-  const isLocked = !tower.unlocked && !canUnlock;
+  const isBossAccessible = tower.isBoss && (tower.unlocked || canUnlock);
+  const isLocked = tower.isBoss ? !isBossAccessible : !tower.unlocked;
 
   const handleTap = () => {
     if (tower.isBoss) {
-      if (canUnlock) {
-        onBossUnlock();
+      if (!isBossAccessible) {
+        return;
       }
+      if (!tower.unlocked && canUnlock) {
+        onBossUnlock();
+        return;
+      }
+      onSelect(tower.id);
       return;
     }
     if (tower.unlocked) {
@@ -162,20 +168,20 @@ function TowerNode({
     return (
       <motion.button
         onClick={handleTap}
-        disabled={!canUnlock && !tower.unlocked}
+        disabled={!isBossAccessible}
         className={`absolute -translate-x-1/2 -translate-y-1/2 ios-button ${
-          !canUnlock && !tower.unlocked ? "cursor-not-allowed" : ""
+          !isBossAccessible ? "cursor-not-allowed" : ""
         }`}
         style={{ left: `${tower.position.x}%`, top: `${tower.position.y}%` }}
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5, type: "spring" }}
-        whileTap={canUnlock ? { scale: 0.95 } : {}}
+        whileTap={isBossAccessible ? { scale: 0.95 } : {}}
       >
         {/* Boss Tower - Thiết kế cổng vàng đặc biệt */}
         <div className="relative">
           {/* Hiệu ứng phát sáng */}
-          {canUnlock && (
+          {isBossAccessible && (
             <motion.div
               className="absolute inset-0 rounded-full bg-yellow-bright/50 blur-xl"
               animate={{
@@ -195,7 +201,7 @@ function TowerNode({
               width="80"
               height="85"
               rx="8"
-              fill={canUnlock ? "#F59E0B" : "#6B7280"}
+              fill={isBossAccessible ? "#F59E0B" : "#6B7280"}
             />
 
             {/* Cột cổng */}
@@ -204,20 +210,20 @@ function TowerNode({
               y="30"
               width="15"
               height="85"
-              fill={canUnlock ? "#D97706" : "#4B5563"}
+              fill={isBossAccessible ? "#D97706" : "#4B5563"}
             />
             <rect
               x="75"
               y="30"
               width="15"
               height="85"
-              fill={canUnlock ? "#D97706" : "#4B5563"}
+              fill={isBossAccessible ? "#D97706" : "#4B5563"}
             />
 
             {/* Vòm cổng */}
             <path
               d="M 10 30 Q 50 0 90 30"
-              fill={canUnlock ? "#FBBF24" : "#9CA3AF"}
+              fill={isBossAccessible ? "#FBBF24" : "#9CA3AF"}
             />
 
             {/* Trang trí đỉnh */}
@@ -225,7 +231,7 @@ function TowerNode({
               cx="50"
               cy="15"
               r="12"
-              fill={canUnlock ? "#FCD34D" : "#9CA3AF"}
+              fill={isBossAccessible ? "#FCD34D" : "#9CA3AF"}
             />
             <Star
               className="absolute"
@@ -239,19 +245,19 @@ function TowerNode({
               width="40"
               height="55"
               rx="4"
-              fill={canUnlock ? "#78350F" : "#374151"}
+              fill={isBossAccessible ? "#78350F" : "#374151"}
             />
             <line
               x1="50"
               y1="55"
               x2="50"
               y2="110"
-              stroke={canUnlock ? "#451A03" : "#1F2937"}
+              stroke={isBossAccessible ? "#451A03" : "#1F2937"}
               strokeWidth="2"
             />
 
             {/* Chỉ báo khóa hoặc sao */}
-            {!canUnlock && (
+            {!isBossAccessible && (
               <g>
                 <circle cx="50" cy="80" r="15" fill="#4B5563" />
                 <rect
@@ -271,7 +277,7 @@ function TowerNode({
               </g>
             )}
 
-            {canUnlock && (
+            {isBossAccessible && (
               <motion.g
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
@@ -540,8 +546,10 @@ export function TowerSelection({
     height: 0,
   });
 
-  const totalStars = getTotalStars(towerState.filter((t) => !t.isBoss));
-  const requiredStars = 15;
+  const regularTowers = towerState.filter((tower) => !tower.isBoss);
+  const totalStars = getTotalStars(regularTowers);
+  const requiredStars = regularTowers.length;
+  const bossUnlockProgress = regularTowers.filter((tower) => tower.unlocked).length;
   const isBossUnlockable = canUnlockBoss(towerState, requiredStars);
 
   useEffect(() => {
@@ -669,7 +677,7 @@ export function TowerSelection({
             >
               <TowerNode
                 tower={tower}
-                totalStars={totalStars}
+                totalStars={bossUnlockProgress}
                 requiredStars={requiredStars}
                 canBossUnlock={isBossUnlockable}
                 onSelect={onSelectTower}
