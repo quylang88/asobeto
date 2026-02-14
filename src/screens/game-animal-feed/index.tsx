@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Heart } from "lucide-react";
 import type {
-  CowGrassFeedLevelConfig,
-  CowGrassFeedLevelId,
-  CowGrassFeedRoundSide,
+  AnimalFeedLevelConfig,
+  AnimalFeedLevelId,
+  AnimalFeedRoundSide,
   LessonContent,
 } from "@/data/game-config";
 import {
@@ -22,12 +22,17 @@ import {
   MiniGameRulesModal,
   MiniGameTopHud,
 } from "@/components/minigame";
-import { BofSvg } from "@/screens/floor-selection/components/bof-svg";
+import {
+  FeedAnimalIcon,
+  FeedFoodVisual,
+  FeedProgressBar,
+} from "./components/index";
 
-const LEVEL_ORDER: CowGrassFeedLevelId[] = ["easy", "normal", "hard"];
-const PASS_FLY_EFFECT_AUDIO = "/assets/audio/game/bubble-pop/pop.mp3";
+const LEVEL_ORDER: AnimalFeedLevelId[] = ["easy", "normal", "hard"];
+const PASS_FLY_EFFECT_AUDIO = "/assets/audio/game/common/pop.mp3";
 const PASS_PROGRESS_PING_AUDIO = "/assets/audio/feedback/success-answer.mp3";
 const LIFE_LOSS_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
+const EATING_GRASS_AUDIO = "/assets/audio/game/animal-feed/eating-grass.mp3";
 const MAX_FAIL_STREAK = 99;
 const COW_OPEN_MOUTH_MS = 320;
 
@@ -43,7 +48,7 @@ type RoundResolutionType = "correct" | "wrong" | "timeout";
 
 interface BushChoice {
   id: string;
-  side: CowGrassFeedRoundSide;
+  side: AnimalFeedRoundSide;
   text: string;
   isCorrect: boolean;
 }
@@ -65,7 +70,7 @@ interface RoundRuntime {
 
 interface FloatingText {
   id: number;
-  side: CowGrassFeedRoundSide;
+  side: AnimalFeedRoundSide;
   label: string;
   tone: "good" | "bad";
 }
@@ -76,11 +81,11 @@ interface HeartDrop {
 
 interface FlightOverlay {
   id: number;
-  side: CowGrassFeedRoundSide;
+  side: AnimalFeedRoundSide;
 }
 
 interface TutorialRuntime {
-  levelId: CowGrassFeedLevelId;
+  levelId: AnimalFeedLevelId;
   durationMs: number;
   elapsedMs: number;
   choices: BushChoice[];
@@ -94,10 +99,10 @@ interface TutorialStorageState {
 
 interface PendingResult {
   passed: boolean;
-  level: CowGrassFeedLevelConfig;
+  level: AnimalFeedLevelConfig;
 }
 
-interface GameCowGrassFeedProps {
+interface GameAnimalFeedProps {
   worldId: number;
   towerId: number;
   floorId: number;
@@ -120,19 +125,19 @@ function clampInteger(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
-function sumStars(stars: Record<CowGrassFeedLevelId, number>): number {
+function sumStars(stars: Record<AnimalFeedLevelId, number>): number {
   return stars.easy + stars.normal + stars.hard;
 }
 
-function getNextLevelId(levelId: CowGrassFeedLevelId): CowGrassFeedLevelId | null {
+function getNextLevelId(levelId: AnimalFeedLevelId): AnimalFeedLevelId | null {
   const levelIndex = LEVEL_ORDER.indexOf(levelId);
   if (levelIndex < 0 || levelIndex >= LEVEL_ORDER.length - 1) return null;
   return LEVEL_ORDER[levelIndex + 1];
 }
 
 function isLevelUnlockedByStars(
-  levelId: CowGrassFeedLevelId,
-  stars: Record<CowGrassFeedLevelId, number>,
+  levelId: AnimalFeedLevelId,
+  stars: Record<AnimalFeedLevelId, number>,
 ): boolean {
   if (levelId === "easy") return true;
   if (levelId === "normal") return stars.easy > 0;
@@ -141,7 +146,7 @@ function isLevelUnlockedByStars(
 
 function getLevelStorageKey(
   lessonId: string,
-  levelId: CowGrassFeedLevelId,
+  levelId: AnimalFeedLevelId,
 ): string {
   return `${lessonId}:${levelId}`;
 }
@@ -210,8 +215,8 @@ function getInitialLevelStars({
   floorId: number;
   floorMaxStars: number;
   lessonId: string;
-}): Record<CowGrassFeedLevelId, number> {
-  const emptyStars: Record<CowGrassFeedLevelId, number> = {
+}): Record<AnimalFeedLevelId, number> {
+  const emptyStars: Record<AnimalFeedLevelId, number> = {
     easy: 0,
     normal: 0,
     hard: 0,
@@ -254,7 +259,7 @@ function formatRoundTime(value: number): string {
   return `${Math.max(0, value).toFixed(1)}s`;
 }
 
-export function GameCowGrassFeed({
+export function GameAnimalFeed({
   worldId,
   towerId,
   floorId,
@@ -262,8 +267,8 @@ export function GameCowGrassFeed({
   floorMaxStars,
   lesson,
   onBack,
-}: GameCowGrassFeedProps) {
-  const cowGrassConfig = lesson.cowGrassFeedGame;
+}: GameAnimalFeedProps) {
+  const cowGrassConfig = lesson.animalFeedGame;
   const levelList = useMemo(() => cowGrassConfig?.levels ?? [], [cowGrassConfig]);
   const levelMap = useMemo(
     () => new Map(levelList.map((level) => [level.id, level])),
@@ -271,7 +276,7 @@ export function GameCowGrassFeed({
   );
   const [phase, setPhase] = useState<ChallengePhase>("select");
   const [selectedLevelId, setSelectedLevelId] =
-    useState<CowGrassFeedLevelId | null>("easy");
+    useState<AnimalFeedLevelId | null>("easy");
   const [countdownValue, setCountdownValue] = useState(3);
   const [pendingTutorial, setPendingTutorial] = useState(false);
   const [didPass, setDidPass] = useState<boolean | null>(null);
@@ -286,10 +291,10 @@ export function GameCowGrassFeed({
   const [progressPingIndex, setProgressPingIndex] = useState<number | null>(null);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [recentlyUnlockedLevelId, setRecentlyUnlockedLevelId] =
-    useState<CowGrassFeedLevelId | null>(null);
+    useState<AnimalFeedLevelId | null>(null);
   const [pendingUnlockLevelId, setPendingUnlockLevelId] =
-    useState<CowGrassFeedLevelId | null>(null);
-  const [levelStars, setLevelStars] = useState<Record<CowGrassFeedLevelId, number>>(
+    useState<AnimalFeedLevelId | null>(null);
+  const [levelStars, setLevelStars] = useState<Record<AnimalFeedLevelId, number>>(
     () =>
       getInitialLevelStars({
         worldId,
@@ -311,11 +316,15 @@ export function GameCowGrassFeed({
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
   const challengeHeaderTitle = cowGrassConfig?.headerTitle?.trim() || floorName;
-  const sentenceText =
+  const sentenceText = (
+    cowGrassConfig?.progressSentence ||
     cowGrassConfig?.sentenceTokens
       ?.map((token) => token.trim().toLocaleLowerCase("vi-VN"))
       .filter((token) => token.length > 0)
-      .join(" ") || "bò ăn cỏ";
+      .join(" ")
+  )
+    ?.trim()
+    .toLocaleLowerCase("vi-VN") || "bò ăn cỏ";
 
   const runningRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
@@ -329,7 +338,7 @@ export function GameCowGrassFeed({
   const progressHitsRef = useRef<number[]>([]);
   const cowMoodRef = useRef<CowMood>("idle");
   const cowMoodMsRef = useRef(0);
-  const currentLevelRef = useRef<CowGrassFeedLevelConfig | null>(null);
+  const currentLevelRef = useRef<AnimalFeedLevelConfig | null>(null);
   const roundIdRef = useRef(1);
   const floatingTextIdRef = useRef(1);
   const heartDropIdRef = useRef(1);
@@ -347,7 +356,7 @@ export function GameCowGrassFeed({
     value: null,
     count: 0,
   });
-  const sideStreakRef = useRef<{ value: CowGrassFeedRoundSide | null; count: number }>({
+  const sideStreakRef = useRef<{ value: AnimalFeedRoundSide | null; count: number }>({
     value: null,
     count: 0,
   });
@@ -384,7 +393,7 @@ export function GameCowGrassFeed({
   }, []);
 
   const queueFloatingText = useCallback(
-    (side: CowGrassFeedRoundSide, label: string, tone: "good" | "bad") => {
+    (side: AnimalFeedRoundSide, label: string, tone: "good" | "bad") => {
       const id = floatingTextIdRef.current;
       floatingTextIdRef.current += 1;
       setFloatingTexts((current) => [...current, { id, side, label, tone }]);
@@ -439,8 +448,8 @@ export function GameCowGrassFeed({
   }, []);
 
   const persistProgress = useCallback(
-    (nextLevelStars: Record<CowGrassFeedLevelId, number>) => {
-      const normalized: Record<CowGrassFeedLevelId, number> = {
+    (nextLevelStars: Record<AnimalFeedLevelId, number>) => {
+      const normalized: Record<AnimalFeedLevelId, number> = {
         easy: clampInteger(nextLevelStars.easy, 0, 1),
         normal: clampInteger(nextLevelStars.normal, 0, 2),
         hard: clampInteger(nextLevelStars.hard, 0, 3),
@@ -464,7 +473,7 @@ export function GameCowGrassFeed({
   );
 
   const isLevelUnlocked = useCallback(
-    (levelId: CowGrassFeedLevelId) => {
+    (levelId: AnimalFeedLevelId) => {
       if (pendingUnlockLevelId === levelId) return false;
       if (levelId === "easy") return true;
       if (levelId === "normal") return levelStars.easy > 0;
@@ -474,7 +483,7 @@ export function GameCowGrassFeed({
   );
 
   const getSegmentRequirements = useCallback(
-    (level: CowGrassFeedLevelConfig): number[] =>
+    (level: AnimalFeedLevelConfig): number[] =>
       level.progressSegments.map((segment) =>
         clampInteger(segment.requiredHits, 1, 5),
       ),
@@ -482,7 +491,7 @@ export function GameCowGrassFeed({
   );
 
   const getTotalTargetHits = useCallback(
-    (level: CowGrassFeedLevelConfig): number =>
+    (level: AnimalFeedLevelConfig): number =>
       getSegmentRequirements(level).reduce((sum, value) => sum + value, 0),
     [getSegmentRequirements],
   );
@@ -514,9 +523,9 @@ export function GameCowGrassFeed({
     return selected;
   }, [cowGrassConfig]);
 
-  const pickCorrectSide = useCallback((): CowGrassFeedRoundSide => {
+  const pickCorrectSide = useCallback((): AnimalFeedRoundSide => {
     if (!cowGrassConfig) return "left";
-    const allSides: CowGrassFeedRoundSide[] = ["left", "right"];
+    const allSides: AnimalFeedRoundSide[] = ["left", "right"];
     const streak = sideStreakRef.current;
     const blockedSide =
       streak.value &&
@@ -537,7 +546,7 @@ export function GameCowGrassFeed({
   }, [cowGrassConfig]);
 
   const createRound = useCallback(
-    (level: CowGrassFeedLevelConfig): RoundRuntime => {
+    (level: AnimalFeedLevelConfig): RoundRuntime => {
       const distractor = pickDistractorWord();
       const correctSide = pickCorrectSide();
       const leftChoice: BushChoice = {
@@ -574,7 +583,7 @@ export function GameCowGrassFeed({
   );
 
   const setupRound = useCallback(
-    (level: CowGrassFeedLevelConfig) => {
+    (level: AnimalFeedLevelConfig) => {
       roundRef.current = createRound(level);
       syncRoundState();
     },
@@ -595,7 +604,7 @@ export function GameCowGrassFeed({
   }, [cowGrassConfig, lesson.id]);
 
   const updateTutorialAttemptState = useCallback(
-    (levelId: CowGrassFeedLevelId, passed: boolean) => {
+    (levelId: AnimalFeedLevelId, passed: boolean) => {
       if (!cowGrassConfig?.tutorial) return;
       if (levelId !== cowGrassConfig.tutorial.enabledLevelId) return;
       const current = readTutorialState(lesson.id);
@@ -614,7 +623,7 @@ export function GameCowGrassFeed({
   );
 
   const finalizeLevel = useCallback(
-    (passed: boolean, level: CowGrassFeedLevelConfig) => {
+    (passed: boolean, level: AnimalFeedLevelConfig) => {
       stopGameLoop();
       phaseRef.current = "result";
       setPhase("result");
@@ -652,7 +661,7 @@ export function GameCowGrassFeed({
     [clearRoundVisuals, persistProgress, stopGameLoop, updateTutorialAttemptState],
   );
 
-  const startSentenceCelebration = useCallback((level: CowGrassFeedLevelConfig) => {
+  const startSentenceCelebration = useCallback((level: AnimalFeedLevelConfig) => {
     if (!cowGrassConfig) return;
     pendingResultRef.current = { passed: true, level };
     sentenceCelebrateRemainingMsRef.current = cowGrassConfig.sentenceCelebrateMs;
@@ -662,7 +671,7 @@ export function GameCowGrassFeed({
   }, [cowGrassConfig, startGameLoop]);
 
   const triggerLevelFail = useCallback(
-    (level: CowGrassFeedLevelConfig) => {
+    (level: AnimalFeedLevelConfig) => {
       pendingResultRef.current = null;
       sentenceCelebrateRemainingMsRef.current = 0;
       finalizeLevel(false, level);
@@ -671,14 +680,14 @@ export function GameCowGrassFeed({
   );
 
   const applyLifeLoss = useCallback(
-    (from: "wrong" | "timeout", side: CowGrassFeedRoundSide) => {
+    (from: "wrong" | "timeout", side: AnimalFeedRoundSide) => {
       if (!cowGrassConfig) return;
       livesRef.current = Math.max(0, livesRef.current - 1);
       setLives(livesRef.current);
       queueFloatingText(side, "-1 tim", "bad");
       queueHeartDrop();
       playSfx(LIFE_LOSS_AUDIO);
-      updateCowMood("sad", cowGrassConfig.cowSadMs);
+      updateCowMood("sad", cowGrassConfig.animalSadMs);
       if (from === "wrong" && "vibrate" in navigator) {
         navigator.vibrate(40);
       }
@@ -690,7 +699,7 @@ export function GameCowGrassFeed({
   );
 
   const applyProgressIncrement = useCallback(
-    (level: CowGrassFeedLevelConfig): boolean => {
+    (level: AnimalFeedLevelConfig): boolean => {
       const requirements = getSegmentRequirements(level);
       const nextHits = [...progressHitsRef.current];
       let updatedIndex = -1;
@@ -814,7 +823,8 @@ export function GameCowGrassFeed({
       }
 
       if (!tutorialDidChewRef.current && tutorial.elapsedMs >= chewTriggerMs) {
-        updateCowMood("chew", cowGrassConfig.cowChewMs);
+        updateCowMood("chew", cowGrassConfig.animalChewMs);
+        playSfx(EATING_GRASS_AUDIO);
         tutorialDidChewRef.current = true;
       }
 
@@ -876,12 +886,13 @@ export function GameCowGrassFeed({
         !round.chewStarted &&
         round.resolutionMsRemaining <=
           Math.max(
-            cowGrassConfig.cowChewMs,
+            cowGrassConfig.animalChewMs,
             cowGrassConfig.correctResolveMs - COW_OPEN_MOUTH_MS,
           )
       ) {
         round.chewStarted = true;
-        updateCowMood("chew", cowGrassConfig.cowChewMs);
+        updateCowMood("chew", cowGrassConfig.animalChewMs);
+        playSfx(EATING_GRASS_AUDIO);
       }
 
       if (round.resolutionType === "timeout" && !round.penaltyApplied) {
@@ -931,6 +942,7 @@ export function GameCowGrassFeed({
       applyProgressIncrement,
       cowGrassConfig,
       getSegmentRequirements,
+      playSfx,
       setupRound,
       startSentenceCelebration,
       startTimeoutResolution,
@@ -990,7 +1002,7 @@ export function GameCowGrassFeed({
   }, [frameLoop]);
 
   const shouldShowTutorialForLevel = useCallback(
-    (levelId: CowGrassFeedLevelId): boolean => {
+    (levelId: AnimalFeedLevelId): boolean => {
       if (!cowGrassConfig?.tutorial) return false;
       if (levelId !== cowGrassConfig.tutorial.enabledLevelId) return false;
       const tutorialState = readTutorialState(lesson.id);
@@ -1004,7 +1016,7 @@ export function GameCowGrassFeed({
   );
 
   const startTutorial = useCallback(
-    (level: CowGrassFeedLevelConfig) => {
+    (level: AnimalFeedLevelConfig) => {
       if (!cowGrassConfig) return;
       const distractor = pickDistractorWord();
       const correctSide = pickCorrectSide();
@@ -1104,7 +1116,7 @@ export function GameCowGrassFeed({
   }, [startGameplay]);
 
   const startLevelFlow = useCallback(
-    (levelId: CowGrassFeedLevelId) => {
+    (levelId: AnimalFeedLevelId) => {
       if (!isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
@@ -1134,7 +1146,7 @@ export function GameCowGrassFeed({
   );
 
   const handleUnlockLevel = useCallback(
-    (levelId: CowGrassFeedLevelId) => {
+    (levelId: AnimalFeedLevelId) => {
       if (pendingUnlockLevelId !== levelId) return;
       setPendingUnlockLevelId(null);
       setRecentlyUnlockedLevelId(levelId);
@@ -1458,79 +1470,25 @@ export function GameCowGrassFeed({
 
       {shouldShowProgressBar && (
         <div className="px-4 pt-3">
-          <div className="mx-auto w-full max-w-md rounded-3xl border-[3px] border-emerald-200 bg-white/90 px-3 py-3 shadow-[0_12px_24px_rgba(4,120,87,0.14)] backdrop-blur-sm">
-            <div className="grid grid-cols-3 gap-2">
-              {progressSegments.map((segment, index) => {
-                const required = Math.max(1, segment.requiredHits);
-                const current = Math.min(required, currentProgressHits[index] ?? 0);
-                const completed = current >= required;
-                const isPing = progressPingIndex === index;
-
-                return (
-                  <motion.div
-                    key={segment.id}
-                    initial={false}
-                    animate={
-                      isPing
-                        ? { scale: [1, 1.06, 1], y: [0, -2, 0] }
-                        : { scale: 1, y: 0 }
-                    }
-                    transition={{ duration: 0.45, ease: "easeOut" }}
-                    className={`relative h-[4.85rem] overflow-hidden rounded-2xl border-2 pl-2 pr-8 ${
-                      completed
-                        ? "border-emerald-300 bg-linear-to-b from-lime-100 via-emerald-100 to-cyan-100 shadow-[0_0_14px_rgba(16,185,129,0.35)]"
-                        : "border-slate-200 bg-slate-100/80 opacity-55"
-                    }`}
-                  >
-                    {completed && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.7 }}
-                        animate={{
-                          opacity: [0.1, 0.3, 0.1],
-                          scale: [0.8, 1.1, 1],
-                        }}
-                        transition={{ duration: 0.9, ease: "easeOut" }}
-                        className="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-tr from-yellow-100/55 via-transparent to-emerald-100/45"
-                      />
-                    )}
-                    <span
-                      className={`absolute bottom-1.5 left-2 right-8 text-center font-hp-special text-[2rem] font-black lowercase leading-none ${
-                        completed ? "text-emerald-700" : "text-slate-500"
-                      }`}
-                    >
-                      {segment.label.toLocaleLowerCase("vi-VN")}
-                    </span>
-                    <span className="absolute right-2 top-1/2 flex -translate-y-1/2 flex-col gap-1">
-                      {[...Array(required)].map((_, dotIndex) => (
-                        <span
-                          key={`${segment.id}-dot-${dotIndex}`}
-                          className={`h-1.5 w-3 rounded-full ${
-                            dotIndex < current
-                              ? "bg-emerald-500"
-                              : "bg-slate-300/85"
-                          }`}
-                        />
-                      ))}
-                    </span>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
+          <FeedProgressBar
+            segments={progressSegments}
+            hits={currentProgressHits}
+            pingIndex={progressPingIndex}
+          />
         </div>
       )}
 
       <div className="flex-1 app-scroll overflow-y-auto px-4 pb-safe pt-4">
         {phase === "select" && (
-          <div className="mx-auto flex w-full max-w-md flex-col gap-3 pb-6">
+          <div className="mx-auto mt-2 flex w-full max-w-md flex-col gap-3 pb-6">
             <MiniGameLevelSelectPanel
               title={cowGrassConfig.title ?? "Chọn mức độ"}
               description={cowGrassConfig.instruction ?? ""}
               levels={levelSelectCards}
               recentlyUnlockedLevelId={recentlyUnlockedLevelId}
-              onSelectLevel={(levelId) => startLevelFlow(levelId as CowGrassFeedLevelId)}
+              onSelectLevel={(levelId) => startLevelFlow(levelId as AnimalFeedLevelId)}
               onUnlockLevel={(levelId) =>
-                handleUnlockLevel(levelId as CowGrassFeedLevelId)
+                handleUnlockLevel(levelId as AnimalFeedLevelId)
               }
               onRulesAction={() => setShowRulesModal(true)}
             />
@@ -1552,11 +1510,11 @@ export function GameCowGrassFeed({
         )}
 
         {shouldRenderGameplayScreen && (
-          <div className="mx-auto mt-3 flex w-full max-w-md flex-col pb-6">
-            <div className="relative h-[60dvh] min-h-[430px] w-full overflow-hidden rounded-3xl border-4 border-emerald-200 bg-linear-to-b from-lime-100 via-green-100 to-emerald-200 shadow-lg">
+          <div className="mx-auto mt-4 flex w-full max-w-md flex-col pb-6">
+            <div className="relative h-[60dvh] min-h-107.5 w-full overflow-hidden rounded-3xl border-4 border-emerald-200 bg-linear-to-b from-lime-100 via-green-100 to-emerald-200 shadow-lg">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-b from-white/40 via-transparent to-transparent" />
-              <div className="pointer-events-none absolute -left-8 bottom-[4.5rem] h-[7.5rem] w-[7.5rem] rounded-full bg-emerald-200/45 blur-xl" />
-              <div className="pointer-events-none absolute -right-8 bottom-10 h-[8.5rem] w-[8.5rem] rounded-full bg-lime-200/40 blur-xl" />
+              <div className="pointer-events-none absolute -left-8 bottom-18 h-30 w-30 rounded-full bg-emerald-200/45 blur-xl" />
+              <div className="pointer-events-none absolute -right-8 bottom-10 h-34 w-34 rounded-full bg-lime-200/40 blur-xl" />
 
               {phase === "tutorial" && (
                 <div className="pointer-events-none absolute inset-0 z-20 bg-slate-900/45" />
@@ -1588,7 +1546,10 @@ export function GameCowGrassFeed({
                       : ""
                   }`}
                 >
-                  <BofSvg mood={cowMood} />
+                  <FeedAnimalIcon
+                    animalIconId={cowGrassConfig.animalIconId}
+                    mood={cowMood}
+                  />
                 </motion.div>
               </div>
 
@@ -1611,7 +1572,7 @@ export function GameCowGrassFeed({
                     key={choice.id}
                     onClick={() => handleChoiceTap(choice.id)}
                     disabled={disabled}
-                    className={`absolute bottom-4 flex h-[9.5rem] w-[44%] items-end justify-center overflow-visible rounded-[46%] border-[3px] px-3 pb-8 text-center shadow-[0_14px_24px_rgba(5,46,22,0.22)] transition ${
+                    className={`absolute bottom-4 flex h-38 w-[44%] items-end justify-center overflow-visible rounded-[46%] border-[3px] px-3 pb-8 text-center shadow-[0_14px_24px_rgba(5,46,22,0.22)] transition ${
                       choice.side === "left" ? "left-[5%]" : "right-[5%]"
                     } ${
                       isSelectedWrong
@@ -1632,26 +1593,10 @@ export function GameCowGrassFeed({
                     transition={{ duration: 0.26, ease: "easeInOut" }}
                     aria-label={`Bụi cỏ ${choice.text}`}
                   >
-                    <span className="pointer-events-none absolute inset-x-3 bottom-[13%] h-[58%] rounded-[48%] bg-linear-to-b from-lime-300/88 to-emerald-800/82" />
-                    <span className="pointer-events-none absolute -left-1 top-4 h-16 w-16 rounded-full bg-emerald-500/92" />
-                    <span className="pointer-events-none absolute left-[10%] top-0 h-20 w-20 rounded-full bg-lime-300/95" />
-                    <span className="pointer-events-none absolute left-[29%] top-1 h-18 w-18 rounded-full bg-emerald-500/94" />
-                    <span className="pointer-events-none absolute right-[26%] top-1 h-18 w-18 rounded-full bg-lime-400/93" />
-                    <span className="pointer-events-none absolute right-[8%] top-1 h-20 w-20 rounded-full bg-emerald-500/95" />
-                    <span className="pointer-events-none absolute -right-1 top-5 h-16 w-16 rounded-full bg-emerald-600/92" />
-                    <span className="pointer-events-none absolute bottom-[23%] left-[11%] h-14 w-3 rotate-[-24deg] rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute bottom-[22%] left-[21%] h-16 w-3 rotate-[-15deg] rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute bottom-[24%] left-[33%] h-18 w-3 rotate-[-8deg] rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute bottom-[24%] left-[46%] h-17 w-3 rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute bottom-[23%] left-[58%] h-18 w-3 rotate-[8deg] rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute bottom-[21%] left-[70%] h-16 w-3 rotate-[16deg] rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute bottom-[20%] left-[80%] h-14 w-3 rotate-[24deg] rounded-full bg-linear-to-t from-emerald-900 to-lime-300" />
-                    <span className="pointer-events-none absolute left-1/2 top-[14%] h-6 w-[6.5rem] -translate-x-1/2 rounded-full bg-white/28 blur-[1px]" />
-                    <span className="pointer-events-none absolute bottom-[8%] left-1/2 h-5 w-9 -translate-x-1/2 rounded-full bg-emerald-900/55" />
-                    <span className="pointer-events-none absolute bottom-[1%] left-1/2 h-6 w-1.5 -translate-x-1/2 rounded-full bg-lime-950/55" />
-                    <span className="relative z-10 rounded-xl border-2 border-emerald-900/35 bg-white/90 px-2.5 pb-0.5 pt-0.5 font-hp-special text-[2.95rem] font-black leading-none text-emerald-950 shadow-[0_3px_10px_rgba(0,0,0,0.18)] [text-shadow:0_1px_0_rgba(255,255,255,0.65)]">
-                      {choice.text}
-                    </span>
+                    <FeedFoodVisual
+                      foodVisualId={cowGrassConfig.foodVisualId}
+                      text={choice.text}
+                    />
 
                     {showTutorialTap && (
                       <motion.span
@@ -1711,7 +1656,7 @@ export function GameCowGrassFeed({
                     animate={{ opacity: 0, y: -24, scale: 1.06 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.72, ease: "easeOut" }}
-                    className={`pointer-events-none absolute bottom-[8.5rem] text-lg font-bold ${
+                    className={`pointer-events-none absolute bottom-34 text-lg font-bold ${
                       item.tone === "good" ? "text-emerald-700" : "text-rose-600"
                     } ${item.side === "left" ? "left-[22%]" : "right-[22%]"}`}
                   >

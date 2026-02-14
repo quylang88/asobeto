@@ -9,7 +9,7 @@ import { LessonInterface } from "@/screens/lesson-interface";
 import { GameBubblePop } from "@/screens/game-bubble-pop";
 import { GameDiacriticBuild } from "@/screens/game-diacritic-build";
 import { GameMemoryFlip } from "@/screens/game-memory-flip";
-import { GameCowGrassFeed } from "@/screens/game-cow-grass-feed";
+import { GameAnimalFeed } from "@/screens/game-animal-feed";
 import { worlds, getWorldData } from "@/data/game-config";
 
 type Screen =
@@ -146,8 +146,8 @@ export default function AsobetoApp() {
       const memoryFlipChallengeLesson = selectedFloor?.content?.find(
         (lesson) => lesson.lessonKind === "memory_flip_challenge",
       );
-      const cowGrassChallengeLesson = selectedFloor?.content?.find(
-        (lesson) => lesson.lessonKind === "cow_grass_feed_challenge",
+      const animalFeedChallengeLesson = selectedFloor?.content?.find(
+        (lesson) => lesson.lessonKind === "animal_feed_challenge",
       );
 
       if (diacriticChallengeLesson) {
@@ -195,15 +195,15 @@ export default function AsobetoApp() {
         );
       }
 
-      if (cowGrassChallengeLesson) {
+      if (animalFeedChallengeLesson) {
         return (
-          <GameCowGrassFeed
+          <GameAnimalFeed
             worldId={gameState.selectedWorld!}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
             floorMaxStars={selectedFloor?.maxStars ?? 3}
-            lesson={cowGrassChallengeLesson}
+            lesson={animalFeedChallengeLesson}
             onComplete={handleLessonComplete}
             onBack={() => handleBack("floorSelection")}
           />

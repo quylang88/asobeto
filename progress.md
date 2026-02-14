@@ -1651,3 +1651,68 @@ Notes
 Validation
 - `pnpm exec tsc --noEmit` pass.
 - `pnpm lint` pass.
+
+---
+
+Update (Requested follow-up: reusable feed-game UI + timing/audio)
+
+TODO
+- [x] Add minigame barrel index and switch mini game imports to reduce import noise.
+- [x] Increase sentence celebration hold time a bit longer.
+- [x] Refactor cow-feed screen into folder module and extract feed-specific UI into `ui/` with `index.tsx` export.
+- [x] Make mascot/food visuals data-driven (`animalIconId`, `foodVisualId`) for future reusable animal-feed variants.
+- [x] Move progress sentence source to config data (`progressSentence`) and use it as primary sentence text source.
+- [x] Compact progress bar visuals and tune dot proportions/alignment.
+- [x] Increase wrong/timeout round delay to 2.5s while keeping correct answer highlight visible.
+- [x] Migrate all old pop SFX paths to new common asset path.
+- [x] Add grass-eating audio during chew phase.
+
+Notes
+- Cow feed module moved to folder:
+  - from `src/screens/game-cow-grass-feed.tsx`
+  - to `src/screens/game-cow-grass-feed/index.tsx`
+- New reusable feed UI components:
+  - `src/screens/game-cow-grass-feed/ui/animal-icon.tsx`
+  - `src/screens/game-cow-grass-feed/ui/food-visual.tsx`
+  - `src/screens/game-cow-grass-feed/ui/progress-bar.tsx`
+  - `src/screens/game-cow-grass-feed/ui/index.tsx`
+- New config fields in data schema:
+  - `animalIconId`, `foodVisualId`, `progressSentence` in `CowGrassFeedGameConfig`.
+- Default cow-feed timing/audio updates:
+  - `wrongResolveMs = 2500`
+  - `timeoutResolveMs = 2500`
+  - `sentenceCelebrateMs = 1800`
+  - chew phase uses `/assets/audio/game/cow-grass-feed/eating-grass.mp3`.
+- Pop SFX path updates to `/assets/audio/game/common/pop.mp3` in:
+  - bubble
+  - diacritic
+  - cow-feed.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Asset existence check pass:
+  - `public/assets/audio/game/common/pop.mp3`
+  - `public/assets/audio/game/cow-grass-feed/eating-grass.mp3`
+
+---
+
+Update (Animal feed naming generalization + floor-4 explicit config)
+
+TODO
+- [x] Rename minigame naming from cow-specific to generic animal feed across screen/data/type layers.
+- [x] Rename lesson kind from `cow_grass_feed_challenge` to `animal_feed_challenge` and wire in app routing.
+- [x] Rename mini-game data builder file to `src/data/mini-games/animal-feed.ts` and update imports.
+- [x] Keep floor-4 specific reusable fields explicitly declared in data (`animalIconId`, `foodVisualId`, `progressSentence`).
+- [x] Move game audio folder from `public/assets/audio/game/cow-grass-feed` to `public/assets/audio/game/animal-feed` and update runtime path.
+- [x] Re-run lint + typecheck.
+
+Notes
+- Generic types/config names are now `AnimalFeed*` and lesson payload property is `animalFeedGame`.
+- `floor-4.ts` explicitly sets:
+  - `animalIconId: "bof"`
+  - `foodVisualId: "grass-bush"`
+  - `progressSentence: "bò ăn cỏ"`
+- Validation:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass

@@ -35,7 +35,7 @@ const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
 };
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
-const TARGET_BUBBLE_HIT_AUDIO = "/assets/audio/game/bubble-pop/pop.mp3";
+const TARGET_BUBBLE_HIT_AUDIO = "/assets/audio/game/common/pop.mp3";
 const WRONG_BUBBLE_HIT_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 
 type BubbleKind = "target" | "wrong" | "empty";

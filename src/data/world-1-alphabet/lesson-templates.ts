@@ -1,6 +1,6 @@
 import {
-  CowGrassFeedLevelConfig,
-  CowGrassFeedLevelId,
+  AnimalFeedLevelConfig,
+  AnimalFeedLevelId,
   DiacriticBuildLevelConfig,
   DiacriticBuildInteractionMode,
   DiacriticBuildLevelId,
@@ -13,10 +13,10 @@ import {
   WordToken,
 } from "./map-structure";
 import {
-  COW_GRASS_GAME_INSTRUCTION,
-  COW_GRASS_GAME_TITLE,
-  createCowGrassFeedGameConfig,
-} from "../mini-games/cow-grass-feed";
+  ANIMAL_FEED_GAME_INSTRUCTION,
+  ANIMAL_FEED_GAME_TITLE,
+  createAnimalFeedGameConfig,
+} from "../mini-games/animal-feed";
 import {
   BUBBLE_GAME_INSTRUCTION,
   BUBBLE_GAME_TITLE,
@@ -57,12 +57,15 @@ interface BubblePopFloorLessonConfig {
   targetAudioByLetter?: Record<string, string>;
 }
 
-interface CowGrassFeedFloorLessonConfig {
+interface AnimalFeedFloorLessonConfig {
   lessonPrefix: string;
   title?: string;
   headerTitle?: string;
   instruction?: string;
   rules?: string[];
+  animalIconId?: string;
+  foodVisualId?: string;
+  progressSentence?: string;
   sentenceTokens?: string[];
   correctWord?: string;
   distractorWords?: [string, string, string];
@@ -70,7 +73,7 @@ interface CowGrassFeedFloorLessonConfig {
   antiRepeatMaxCorrectSideStreak?: number;
   tutorialDurationMs?: number;
   levelOverrides?: Partial<
-    Record<CowGrassFeedLevelId, Partial<CowGrassFeedLevelConfig>>
+    Record<AnimalFeedLevelId, Partial<AnimalFeedLevelConfig>>
   >;
 }
 
@@ -337,8 +340,8 @@ export function createBubblePopChallengeLessons(
   ];
 }
 
-export function createCowGrassFeedChallengeLessons(
-  config: CowGrassFeedFloorLessonConfig,
+export function createAnimalFeedChallengeLessons(
+  config: AnimalFeedFloorLessonConfig,
 ): LessonContent[] {
   const {
     lessonPrefix,
@@ -346,6 +349,9 @@ export function createCowGrassFeedChallengeLessons(
     headerTitle,
     instruction,
     rules,
+    animalIconId,
+    foodVisualId,
+    progressSentence,
     sentenceTokens,
     correctWord,
     distractorWords,
@@ -357,21 +363,24 @@ export function createCowGrassFeedChallengeLessons(
 
   return [
     {
-      id: `${lessonPrefix}-cow-grass-feed`,
+      id: `${lessonPrefix}-animal-feed`,
       type: "active",
-      lessonKind: "cow_grass_feed_challenge",
-      title: COW_GRASS_GAME_TITLE,
-      instruction: COW_GRASS_GAME_INSTRUCTION,
+      lessonKind: "animal_feed_challenge",
+      title: ANIMAL_FEED_GAME_TITLE,
+      instruction: ANIMAL_FEED_GAME_INSTRUCTION,
       scoring: {
         metric: "none",
         passPolicy: "always",
         maxStars: 6,
       },
-      cowGrassFeedGame: createCowGrassFeedGameConfig({
+      animalFeedGame: createAnimalFeedGameConfig({
         title,
         headerTitle,
         instruction,
         rules,
+        animalIconId,
+        foodVisualId,
+        progressSentence,
         sentenceTokens,
         correctWord,
         distractorWords,

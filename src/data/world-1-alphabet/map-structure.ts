@@ -15,7 +15,7 @@ export type LessonKind =
   | "vocab_listen_repeat"
   | "vocab_word_build"
   | "vocab_trace_practice"
-  | "cow_grass_feed_challenge"
+  | "animal_feed_challenge"
   | "bubble_pop_challenge"
   | "diacritic_build_challenge"
   | "memory_flip_challenge";
@@ -99,36 +99,39 @@ export interface BubblePopGameConfig {
   levels: BubblePopLevelConfig[];
 }
 
-export type CowGrassFeedLevelId = "easy" | "normal" | "hard";
-export type CowGrassFeedRoundSide = "left" | "right";
+export type AnimalFeedLevelId = "easy" | "normal" | "hard";
+export type AnimalFeedRoundSide = "left" | "right";
 
-export interface CowGrassFeedProgressSegment {
+export interface AnimalFeedProgressSegment {
   id: string;
   label: string;
   requiredHits: number;
 }
 
-export interface CowGrassFeedLevelConfig {
-  id: CowGrassFeedLevelId;
+export interface AnimalFeedLevelConfig {
+  id: AnimalFeedLevelId;
   label: string;
   starsReward: 1 | 2 | 3;
   roundDurationSeconds: number;
   startLives: number;
-  progressSegments: CowGrassFeedProgressSegment[];
+  progressSegments: AnimalFeedProgressSegment[];
   easyHintSecondsLeft?: number;
 }
 
-export interface CowGrassFeedTutorialConfig {
-  enabledLevelId: CowGrassFeedLevelId;
+export interface AnimalFeedTutorialConfig {
+  enabledLevelId: AnimalFeedLevelId;
   durationMs: number;
   replayAfterFailCount: number;
 }
 
-export interface CowGrassFeedGameConfig {
+export interface AnimalFeedGameConfig {
   title?: string;
   headerTitle?: string;
   instruction?: string;
   rules: string[];
+  animalIconId: string;
+  foodVisualId: string;
+  progressSentence: string;
   sentenceTokens: string[];
   correctWord: string;
   distractorWords: [string, string, string];
@@ -139,10 +142,10 @@ export interface CowGrassFeedGameConfig {
   wrongResolveMs: number;
   timeoutResolveMs: number;
   sentenceCelebrateMs: number;
-  cowChewMs: number;
-  cowSadMs: number;
-  tutorial: CowGrassFeedTutorialConfig;
-  levels: CowGrassFeedLevelConfig[];
+  animalChewMs: number;
+  animalSadMs: number;
+  tutorial: AnimalFeedTutorialConfig;
+  levels: AnimalFeedLevelConfig[];
 }
 
 export type DiacriticBuildLevelId = "easy" | "normal" | "hard";
@@ -322,7 +325,7 @@ export interface LessonContent {
   targetTokens?: WordToken[];
   tokenPool?: WordToken[];
   relatedLetters?: string[];
-  cowGrassFeedGame?: CowGrassFeedGameConfig;
+  animalFeedGame?: AnimalFeedGameConfig;
   bubblePopGame?: BubblePopGameConfig;
   diacriticBuildGame?: DiacriticBuildGameConfig;
   memoryFlipGame?: MemoryFlipGameConfig;

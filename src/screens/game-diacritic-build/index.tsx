@@ -69,7 +69,7 @@ const LEVEL_LABEL: Record<DiacriticBuildLevelId, string> = {
 };
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
-const CORRECT_TAP_AUDIO = "/assets/audio/game/bubble-pop/pop.mp3";
+const CORRECT_TAP_AUDIO = "/assets/audio/game/common/pop.mp3";
 const WRONG_TAP_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 const PASS_AUDIO = "/assets/audio/feedback/success-answer.mp3";
 const FAIL_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";

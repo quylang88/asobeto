@@ -1,14 +1,14 @@
 import {
-  CowGrassFeedGameConfig,
-  CowGrassFeedLevelConfig,
-  CowGrassFeedLevelId,
-  CowGrassFeedProgressSegment,
+  AnimalFeedGameConfig,
+  AnimalFeedLevelConfig,
+  AnimalFeedLevelId,
+  AnimalFeedProgressSegment,
 } from "../world-1-alphabet/map-structure";
 
-export const COW_GRASS_GAME_TITLE = "Bò ăn cỏ";
-export const COW_GRASS_GAME_INSTRUCTION =
+export const ANIMAL_FEED_GAME_TITLE = "Bò ăn cỏ";
+export const ANIMAL_FEED_GAME_INSTRUCTION =
   "Chạm đúng bụi cỏ để cho bò ăn từng miếng.";
-export const COW_GRASS_GAME_RULES = [
+export const ANIMAL_FEED_GAME_RULES = [
   "Mỗi lượt có 2 bụi cỏ: 1 bụi đúng là cỏ, 1 bụi gây nhiễu.",
   "Chạm đúng cỏ để bò ăn và tăng tiến độ câu bò ăn cỏ.",
   "Chạm sai hoặc hết giờ sẽ mất 1 tim.",
@@ -17,7 +17,7 @@ export const COW_GRASS_GAME_RULES = [
 const DEFAULT_SENTENCE_TOKENS = ["bò", "ăn", "cỏ"] as const;
 const DEFAULT_DISTRACTOR_WORDS = ["co", "cò", "có"] as const;
 
-const LEVEL_PRESETS: Record<CowGrassFeedLevelId, CowGrassFeedLevelConfig> = {
+const LEVEL_PRESETS: Record<AnimalFeedLevelId, AnimalFeedLevelConfig> = {
   easy: {
     id: "easy",
     label: "Dễ",
@@ -45,11 +45,14 @@ const LEVEL_PRESETS: Record<CowGrassFeedLevelId, CowGrassFeedLevelConfig> = {
   },
 };
 
-export interface CowGrassFeedGameDataInput {
+export interface AnimalFeedGameDataInput {
   title?: string;
   headerTitle?: string;
   instruction?: string;
   rules?: string[];
+  animalIconId?: string;
+  foodVisualId?: string;
+  progressSentence?: string;
   sentenceTokens?: string[];
   correctWord?: string;
   distractorWords?: [string, string, string];
@@ -60,21 +63,21 @@ export interface CowGrassFeedGameDataInput {
   wrongResolveMs?: number;
   timeoutResolveMs?: number;
   sentenceCelebrateMs?: number;
-  cowChewMs?: number;
-  cowSadMs?: number;
+  animalChewMs?: number;
+  animalSadMs?: number;
   tutorialDurationMs?: number;
   tutorialReplayAfterFailCount?: number;
   levelOverrides?: Partial<
-    Record<CowGrassFeedLevelId, Partial<CowGrassFeedLevelConfig>>
+    Record<AnimalFeedLevelId, Partial<AnimalFeedLevelConfig>>
   >;
 }
 
-export function createCowGrassFeedLevelConfigs({
+export function createAnimalFeedLevelConfigs({
   sentenceTokens,
   levelOverrides,
-}: Pick<CowGrassFeedGameDataInput, "sentenceTokens" | "levelOverrides">): CowGrassFeedLevelConfig[] {
+}: Pick<AnimalFeedGameDataInput, "sentenceTokens" | "levelOverrides">): AnimalFeedLevelConfig[] {
   const normalizedTokens = normalizeSentenceTokens(sentenceTokens);
-  const levelIds: CowGrassFeedLevelId[] = ["easy", "normal", "hard"];
+  const levelIds: AnimalFeedLevelId[] = ["easy", "normal", "hard"];
 
   return levelIds.map((levelId) => {
     const preset = LEVEL_PRESETS[levelId];
@@ -103,26 +106,31 @@ export function createCowGrassFeedLevelConfigs({
         12,
       ),
       startLives: clampInteger(override?.startLives ?? preset.startLives, 1, 8),
-    } satisfies CowGrassFeedLevelConfig;
+    } satisfies AnimalFeedLevelConfig;
 
     return merged;
   });
 }
 
-export function createCowGrassFeedGameConfig(
-  input: CowGrassFeedGameDataInput = {},
-): CowGrassFeedGameConfig {
+export function createAnimalFeedGameConfig(
+  input: AnimalFeedGameDataInput = {},
+): AnimalFeedGameConfig {
   const sentenceTokens = normalizeSentenceTokens(input.sentenceTokens);
   const distractorWords = normalizeDistractorWords(input.distractorWords);
   const correctWord =
     input.correctWord?.trim().toLocaleLowerCase("vi-VN") || "cỏ";
-  const rules = input.rules?.length ? input.rules : COW_GRASS_GAME_RULES;
+  const rules = input.rules?.length ? input.rules : ANIMAL_FEED_GAME_RULES;
 
   return {
     title: input.title ?? "Chọn mức độ",
-    headerTitle: input.headerTitle ?? COW_GRASS_GAME_TITLE,
-    instruction: input.instruction ?? COW_GRASS_GAME_INSTRUCTION,
+    headerTitle: input.headerTitle ?? ANIMAL_FEED_GAME_TITLE,
+    instruction: input.instruction ?? ANIMAL_FEED_GAME_INSTRUCTION,
     rules,
+    animalIconId: input.animalIconId?.trim() || "bof",
+    foodVisualId: input.foodVisualId?.trim() || "grass-bush",
+    progressSentence:
+      input.progressSentence?.trim() ||
+      sentenceTokens.map((token) => token.trim()).join(" "),
     sentenceTokens,
     correctWord,
     distractorWords,
@@ -138,15 +146,15 @@ export function createCowGrassFeedGameConfig(
     ),
     timeoutRevealMs: clampInteger(input.timeoutRevealMs ?? 300, 120, 1200),
     correctResolveMs: clampInteger(input.correctResolveMs ?? 1600, 240, 2000),
-    wrongResolveMs: clampInteger(input.wrongResolveMs ?? 1500, 220, 1800),
-    timeoutResolveMs: clampInteger(input.timeoutResolveMs ?? 1500, 320, 2200),
+    wrongResolveMs: clampInteger(input.wrongResolveMs ?? 2500, 220, 3000),
+    timeoutResolveMs: clampInteger(input.timeoutResolveMs ?? 2500, 320, 3000),
     sentenceCelebrateMs: clampInteger(
-      input.sentenceCelebrateMs ?? 1300,
+      input.sentenceCelebrateMs ?? 1800,
       400,
-      2200,
+      3000,
     ),
-    cowChewMs: clampInteger(input.cowChewMs ?? 1200, 200, 2000),
-    cowSadMs: clampInteger(input.cowSadMs ?? 1000, 180, 1600),
+    animalChewMs: clampInteger(input.animalChewMs ?? 1200, 200, 2000),
+    animalSadMs: clampInteger(input.animalSadMs ?? 1000, 180, 1600),
     tutorial: {
       enabledLevelId: "easy",
       durationMs: clampInteger(input.tutorialDurationMs ?? 6800, 4000, 10000),
@@ -156,7 +164,7 @@ export function createCowGrassFeedGameConfig(
         8,
       ),
     },
-    levels: createCowGrassFeedLevelConfigs({
+    levels: createAnimalFeedLevelConfigs({
       sentenceTokens,
       levelOverrides: input.levelOverrides,
     }),
@@ -166,7 +174,7 @@ export function createCowGrassFeedGameConfig(
 function buildProgressSegments(
   tokens: readonly string[],
   requiredHits: number,
-): CowGrassFeedProgressSegment[] {
+): AnimalFeedProgressSegment[] {
   return tokens.map((token, index) => ({
     id: `token-${index + 1}`,
     label: token,
@@ -199,9 +207,9 @@ function normalizeDistractorWords(
 }
 
 function normalizeProgressSegments(
-  provided: CowGrassFeedProgressSegment[] | undefined,
-  fallback: CowGrassFeedProgressSegment[],
-): CowGrassFeedProgressSegment[] {
+  provided: AnimalFeedProgressSegment[] | undefined,
+  fallback: AnimalFeedProgressSegment[],
+): AnimalFeedProgressSegment[] {
   if (!provided?.length) return fallback;
 
   const normalized = provided
@@ -212,10 +220,10 @@ function normalizeProgressSegments(
         id: segment.id?.trim() || `token-${index + 1}`,
         label,
         requiredHits: clampInteger(segment.requiredHits, 1, 4),
-      } satisfies CowGrassFeedProgressSegment;
+      } satisfies AnimalFeedProgressSegment;
     })
     .filter(
-      (segment): segment is CowGrassFeedProgressSegment => segment !== null,
+      (segment): segment is AnimalFeedProgressSegment => segment !== null,
     );
 
   if (!normalized.length) return fallback;
