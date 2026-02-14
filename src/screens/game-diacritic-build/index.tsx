@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Sparkles, Volume2 } from "lucide-react";
+import { Heart, Sparkles } from "lucide-react";
 import type {
   ChallengePassStarRule,
   DiacriticBuildInteractionMode,
@@ -21,9 +21,12 @@ import {
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
-import { MiniGameLevelSelectPanel } from "@/components/minigame/level-select-panel";
-import { MiniGameCountdown } from "@/components/minigame/shared-countdown";
-import { MiniGameTopHud } from "@/components/minigame/top-hud";
+import {
+  MiniGameCountdown,
+  MiniGameLevelSelectPanel,
+  MiniGameRulesModal,
+  MiniGameTopHud,
+} from "@/components/minigame";
 import {
   CatcherDragFallingEntity,
   CatcherDragFooter,
@@ -72,7 +75,7 @@ const PASS_AUDIO = "/assets/audio/feedback/success-answer.mp3";
 const FAIL_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 const CATCHER_TONE_TARGET_OFFSET_X = 56;
 
-interface Floor4DiacriticBuildChallengeProps {
+interface GameDiacriticBuildProps {
   worldId: number;
   towerId: number;
   floorId: number;
@@ -266,18 +269,7 @@ function playAudio(src: string): void {
   audio.play().catch(() => undefined);
 }
 
-function speakRulesText(text: string): void {
-  if (typeof window === "undefined") return;
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "vi-VN";
-  utterance.rate = 0.95;
-  utterance.pitch = 1;
-  window.speechSynthesis.speak(utterance);
-}
-
-export function Floor4DiacriticBuildChallenge({
+export function GameDiacriticBuild({
   worldId,
   towerId,
   floorId,
@@ -285,7 +277,7 @@ export function Floor4DiacriticBuildChallenge({
   floorMaxStars,
   lesson,
   onBack,
-}: Floor4DiacriticBuildChallengeProps) {
+}: GameDiacriticBuildProps) {
   const diacriticConfig = lesson.diacriticBuildGame;
   const levelList = useMemo(
     () => diacriticConfig?.levels ?? [],
@@ -317,6 +309,7 @@ export function Floor4DiacriticBuildChallenge({
   const [lastEarnedStars, setLastEarnedStars] = useState(0);
   const [passCelebrationStars, setPassCelebrationStars] = useState(0);
   const [showFailCelebration, setShowFailCelebration] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialCue, setTutorialCue] = useState<TutorialCue>("drop");
   const [showDamageFlash, setShowDamageFlash] = useState(false);
@@ -1501,15 +1494,6 @@ export function Floor4DiacriticBuildChallenge({
     stopGameLoop,
   ]);
 
-  const replayRulesAudio = useCallback(() => {
-    const rulesText =
-      diacriticConfig?.rulesAudioText?.trim() ||
-      diacriticConfig?.rules.join(" ").trim() ||
-      "";
-    if (!rulesText) return;
-    speakRulesText(rulesText);
-  }, [diacriticConfig?.rules, diacriticConfig?.rulesAudioText]);
-
   if (!diacriticConfig || levelList.length === 0) {
     return (
       <div className="relative flex h-dvh w-full flex-col items-center justify-center gap-4 bg-background p-6">
@@ -1623,9 +1607,7 @@ export function Floor4DiacriticBuildChallenge({
             onUnlockLevel={(levelId) =>
               handleUnlockLevel(levelId as DiacriticBuildLevelId)
             }
-            rulesActionLabel="Nghe luật chơi"
-            rulesActionIcon={<Volume2 className="h-4 w-4" />}
-            onRulesAction={replayRulesAudio}
+            onRulesAction={() => setShowRulesModal(true)}
           />
         )}
 
@@ -1851,6 +1833,12 @@ export function Floor4DiacriticBuildChallenge({
           </div>
         )}
       </div>
+
+      <MiniGameRulesModal
+        open={showRulesModal}
+        rules={diacriticConfig.rules}
+        onClose={() => setShowRulesModal(false)}
+      />
     </div>
   );
 }

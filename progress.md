@@ -1445,3 +1445,209 @@ Validation
     - after passing easy, normal card became gray with `Chạm mở` + animated `Mở khóa`,
     - tapping normal card only unlocked card (kept `mode: select`, no auto-start countdown),
     - normal then showed regular `Chơi`; hard remained locked.
+
+---
+
+Update (Memory grid resize + new move-star thresholds)
+
+TODO
+- [x] Change memory easy/normal board to `3 x 4` (12 cards, 6 pairs).
+- [x] Change memory hard board to `3 x 6` (18 cards, 9 pairs).
+- [x] Update normal star rule: `<19 moves` => 2 stars, otherwise 1 star (within move limit).
+- [x] Update hard rules:
+  - move limit `35`
+  - `<21` => 3 stars
+  - `<26` => 2 stars
+  - remaining valid moves => 1 star
+- [x] Refactor memory screen to use per-level `pairTarget` and dynamic grid columns.
+
+Notes
+- Updated memory types in map structure:
+  - `MemoryFlipLevelConfig` now includes `pairTarget` and `grid`.
+  - `MemoryFlipGameConfig.grid` now accepts numeric rows/columns (not hardcoded `4x4` type).
+- Updated memory presets (`src/data/mini-games/memory-flip.ts`):
+  - easy: `pairTarget=6`, `grid=3x4`, `moveLimit=25`
+  - normal: `pairTarget=6`, `grid=3x4`, `moveLimit=22`, 2-star threshold `<=18`
+  - hard: `pairTarget=9`, `grid=3x6`, `moveLimit=35`, thresholds `<=20`, `21..25`, `26..35`
+- Memory renderer now:
+  - builds deck with pair target from current level
+  - checks pass by current level pair target
+  - renders board with dynamic `gridTemplateColumns`
+  - shows per-level pair count in select subtitles and HUD denominator.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright MCP smoke check (tower `e` floor 4):
+  - easy state: `pairTarget=6`, `cards=12`, `moveLimit=25`
+  - normal state: `pairTarget=6`, `cards=12`, `moveLimit=22`
+  - hard state: `pairTarget=9`, `cards=18`, `moveLimit=35`
+  - select subtitles show:
+    - `Mức Dễ 6 cặp • tối đa 25 lượt`
+    - `Mức Vừa 6 cặp • tối đa 22 lượt`
+    - `Mức Khó 9 cặp • tối đa 35 lượt`
+
+---
+
+Update (Tower 4 floor 4: mini game "Bò ăn cỏ")
+
+TODO
+- [x] Add new floor-4 mini-game data model + lesson kind for cow-feed gameplay (separate from bubble game).
+- [x] Switch tower-4/floor-4 to the new mini-game and rename floor title to `Bò ăn cỏ`.
+- [x] Implement dedicated screen with requested loop:
+  - 2 bushes/round (`cỏ` + distractor in `co|cò|có`)
+  - correct/wrong/timeout outcomes with heart loss and auto next round
+  - timeout reveal (flash correct bush before deducting life)
+  - easy hint at `<=3s`
+  - progress sentence `[Bò] [ăn] [cỏ]` (easy/normal: 1 hit each, hard: 2 hits each)
+  - pass star mapping easy/normal/hard => 1/2/3 stars
+  - sentence completion celebration (scale+glow + light confetti) then result
+- [x] Add tutorial flow for easy (first play + replay after 2 easy fails), 6-8s demo with frozen interaction.
+- [x] Add runtime hooks `window.render_game_to_text` and `window.advanceTime(ms)` for deterministic checks.
+- [x] Re-run lint/typecheck and gameplay smoke checks.
+
+Notes
+- New types added in map schema:
+  - `cow_grass_feed_challenge`
+  - `CowGrassFeed*` config interfaces
+  - `LessonContent.cowGrassFeedGame`
+- New data builder:
+  - `src/data/mini-games/cow-grass-feed.ts`
+  - includes extensible knobs: sentence tokens, distractors, anti-repeat limits, tutorial settings, timing constants, per-level overrides.
+- New lesson template factory:
+  - `createCowGrassFeedChallengeLessons(...)` in `src/data/world-1-alphabet/lesson-templates.ts`.
+- Tower 4 floor 4 now uses cow-feed config:
+  - `src/data/world-1-alphabet/tower-4/floor-4.ts`
+  - floor card label changed in `src/data/world-1-alphabet/tower-4/index.ts`.
+- New screen:
+  - `src/screens/game-cow-grass-feed.tsx`
+  - route wired in `src/app/page.tsx`.
+- Fixed during smoke pass:
+  - countdown freeze bug (`3 -> 2` stuck) caused by missing `countdownValue` dependency in countdown effect.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Skill-required Playwright client still blocked by environment dependency:
+  - `node $WEB_GAME_CLIENT --help` -> `ERR_MODULE_NOT_FOUND: Cannot find package 'playwright'`.
+- Playwright MCP smoke checks on `http://127.0.0.1:3100`:
+  - tower `o` floor card shows `Bò ăn cỏ`.
+  - easy first-run tutorial appears, then countdown and gameplay starts.
+  - timeout flow deducts exactly 1 life and advances to next round.
+  - easy pass reaches result with `progressHits: [1,1,1]`.
+  - normal unlock flow is tap-to-unlock (no auto-start after unlock tap).
+  - hard pass reaches result with `progressHits: [2,2,2]` and success summary.
+  - anti-repeat sampling (normal, multiple sessions) shows max streak `2` for both distractor and correct-side.
+
+Follow-up suggestion for next agent
+- Optional polish: if needed, expose a tiny debug payload for countdown/tutorial timers in `render_game_to_text` to make automated assertions even stricter.
+
+---
+
+Update (Cow grass feed UX pass + shared rules modal)
+
+TODO
+- [x] Move rules UI to a shared modal component and switch all mini-game level screens to the same `Xem luật chơi` action.
+- [x] Remove close `X` from rules modal and close by tapping outside only.
+- [x] Restyle rules modal and set title `Luật chơi` to Mali font.
+- [x] Fix cow-game countdown flow so tutorial reliably starts after `3,2,1` (no StrictMode side-effect race).
+- [x] Tutorial visual cleanup: no extra helper text, dark overlay + spotlight emphasis on cow + correct bush + hand tap.
+- [x] Redraw grass bushes with more natural layered mound/blades look.
+- [x] Redraw `BofSvg` to balance eye backgrounds and add mood variants (`idle/open/chew/sad`).
+- [x] Remove extra blank visual area under cow icon and drive feedback via mouth/face animations.
+- [x] Correct tap behavior: mouth opens then chew loop (~1.5s total).
+- [x] Wrong tap behavior: sad face lasts ~1s.
+- [x] Update sentence/progress text to lowercase `bò ăn cỏ`.
+- [x] Difficulty hit targets: easy/normal `6` hits, hard `9` hits.
+- [x] Redesign progress bar (dim incomplete words, glow/ping on completed words) and place it lower under playfield.
+- [x] Ensure progress bar only renders in gameplay/tutorial/celebration screen, not level select.
+
+Notes
+- New shared component:
+  - `src/components/minigame/rules-modal.tsx`
+- Level select default rules CTA now unified:
+  - `src/components/minigame/level-select-panel.tsx` (`rulesActionLabel = "Xem luật chơi"`)
+- All mini-games now open the shared rules modal on select screen:
+  - `src/screens/game-bubble-pop.tsx`
+  - `src/screens/game-diacritic-build/index.tsx`
+  - `src/screens/game-memory-flip.tsx`
+  - `src/screens/game-cow-grass-feed.tsx`
+- Cow config changes (`src/data/mini-games/cow-grass-feed.ts`):
+  - sentence tokens -> `bò ăn cỏ`
+  - easy/normal required hits per word: `2` (total `6`)
+  - hard required hits per word: `3` (total `9`)
+  - `correctResolveMs` -> `1600`
+  - `wrongResolveMs` -> `1080`
+  - `cowChewMs` -> `1200`
+  - `cowSadMs` -> `1000`
+- Cow screen fixes (`src/screens/game-cow-grass-feed.tsx`):
+  - fixed countdown effect to avoid side-effects inside state updater
+  - added deterministic cow mood telemetry in `render_game_to_text`
+  - cleared stale tutorial runtime when entering gameplay
+  - corrected tutorial highlight logic for correct bush.
+- `BofSvg` now accepts optional `mood` prop and preserves default rendering for floor-selection usage:
+  - `src/screens/floor-selection/components/bof-svg.tsx`
+- Cleanup fix from prior partial edit:
+  - removed leftover `setShowRulesHint(false)` reference in `src/screens/game-memory-flip.tsx`.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Playwright MCP checks on `http://127.0.0.1:3100`:
+  - level-select shows `Xem luật chơi`; modal opens and closes by outside tap.
+  - cow level cards show updated targets: easy/normal `6 lượt`, hard `9 lượt`.
+  - runtime state confirms countdown -> tutorial transition (with tutorial pending true before start).
+  - runtime state confirms correct flow: `open` -> `chew` -> `idle`.
+  - runtime state confirms wrong flow: `sad` persists around 1s before returning idle.
+
+---
+
+Update (Rules modal alignment + cow HUD/progress refinements)
+
+TODO
+- [x] Rules modal header layout: move `Mini game` badge to same row, right side of `Luật chơi`.
+- [x] Remove helper text `Chạm ra ngoài để đóng` from modal body.
+- [x] Keep level-select layout shared via common panel; adjust cow select HUD to use shared simple top HUD like other mini games.
+- [x] Cow gameplay: move progress block to top under HUD with spacing.
+- [x] Cow gameplay: remove duplicate top `bò ăn cỏ` heading and keep phrase below progress boxes.
+- [x] Cow gameplay: replace HUD center game name with progress value (`x/y`).
+- [x] Increase grass-choice text contrast with white badge + stronger shadow.
+- [x] Progress segment boxes tuned to avoid clipping tall letters (padding/size/line-height consistency).
+
+Notes
+- Updated files:
+  - `src/components/minigame/rules-modal.tsx`
+  - `src/screens/game-cow-grass-feed.tsx`
+- Also normalized several invalid Tailwind utility remnants in cow screen (`h-38`, `z-70`, `rotate-16deg`, etc.) to bracket syntax so styles apply correctly.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Playwright MCP visual pass could not be rerun in this round due persistent Chrome profile lock/permission issue (`named_platform_channel_mac ... Permission denied`, `database is locked`).
+
+---
+
+Update (Follow-up polish: minigame barrel + cow gameplay pacing/layout)
+
+TODO
+- [x] Add shared minigame barrel export (`src/components/minigame/index.ts`) and switch mini game screen imports to it.
+- [x] Align cow level-select spacing with other mini games (select content no longer hugs header).
+- [x] Increase sentence-finish hold duration so center phrase stays visible longer.
+- [x] Remove redundant bottom `bò ăn cỏ` text under progress bar.
+- [x] On wrong/timeout, keep correct answer highlighted and delay next round about `1.5s`.
+- [x] Compact progress bar: vertical bite dots on right and lower text baseline to avoid clipping.
+- [x] Add visible gap between progress bar block and gameplay playfield.
+
+Notes
+- Import cleanup using barrel:
+  - `src/components/minigame/index.ts`
+  - updated screens: bubble, memory, diacritic, cow.
+- Cow pacing defaults updated in `src/data/mini-games/cow-grass-feed.ts`:
+  - `wrongResolveMs: 1500`
+  - `timeoutResolveMs: 1500`
+  - `sentenceCelebrateMs: 1300`
+- Cow resolution logic updated so wrong answer state also enables `correctFlashVisible`, and timeout no longer clears flash before round transition.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.

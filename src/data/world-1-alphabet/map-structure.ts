@@ -15,6 +15,7 @@ export type LessonKind =
   | "vocab_listen_repeat"
   | "vocab_word_build"
   | "vocab_trace_practice"
+  | "cow_grass_feed_challenge"
   | "bubble_pop_challenge"
   | "diacritic_build_challenge"
   | "memory_flip_challenge";
@@ -96,6 +97,52 @@ export interface BubblePopGameConfig {
   laneCount: number;
   minSpawnVerticalGap: number;
   levels: BubblePopLevelConfig[];
+}
+
+export type CowGrassFeedLevelId = "easy" | "normal" | "hard";
+export type CowGrassFeedRoundSide = "left" | "right";
+
+export interface CowGrassFeedProgressSegment {
+  id: string;
+  label: string;
+  requiredHits: number;
+}
+
+export interface CowGrassFeedLevelConfig {
+  id: CowGrassFeedLevelId;
+  label: string;
+  starsReward: 1 | 2 | 3;
+  roundDurationSeconds: number;
+  startLives: number;
+  progressSegments: CowGrassFeedProgressSegment[];
+  easyHintSecondsLeft?: number;
+}
+
+export interface CowGrassFeedTutorialConfig {
+  enabledLevelId: CowGrassFeedLevelId;
+  durationMs: number;
+  replayAfterFailCount: number;
+}
+
+export interface CowGrassFeedGameConfig {
+  title?: string;
+  headerTitle?: string;
+  instruction?: string;
+  rules: string[];
+  sentenceTokens: string[];
+  correctWord: string;
+  distractorWords: [string, string, string];
+  antiRepeatMaxDistractorStreak: number;
+  antiRepeatMaxCorrectSideStreak: number;
+  timeoutRevealMs: number;
+  correctResolveMs: number;
+  wrongResolveMs: number;
+  timeoutResolveMs: number;
+  sentenceCelebrateMs: number;
+  cowChewMs: number;
+  cowSadMs: number;
+  tutorial: CowGrassFeedTutorialConfig;
+  levels: CowGrassFeedLevelConfig[];
 }
 
 export type DiacriticBuildLevelId = "easy" | "normal" | "hard";
@@ -198,6 +245,11 @@ export interface MemoryFlipLevelConfig {
   id: MemoryFlipLevelId;
   label: string;
   starsReward: 1 | 2 | 3;
+  pairTarget: number;
+  grid: {
+    columns: number;
+    rows: number;
+  };
   moveLimit: number;
   passStarRules?: MemoryFlipMoveStarRule[];
 }
@@ -217,8 +269,8 @@ export interface MemoryFlipGameConfig {
   instruction?: string;
   rules: string[];
   grid: {
-    columns: 4;
-    rows: 4;
+    columns: number;
+    rows: number;
   };
   pairTarget: number;
   tutorial: MemoryFlipTutorialConfig;
@@ -270,6 +322,7 @@ export interface LessonContent {
   targetTokens?: WordToken[];
   tokenPool?: WordToken[];
   relatedLetters?: string[];
+  cowGrassFeedGame?: CowGrassFeedGameConfig;
   bubblePopGame?: BubblePopGameConfig;
   diacriticBuildGame?: DiacriticBuildGameConfig;
   memoryFlipGame?: MemoryFlipGameConfig;

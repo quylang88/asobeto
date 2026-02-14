@@ -6,9 +6,10 @@ import { WorldMap } from "@/screens/world-map";
 import { TowerSelection } from "@/screens/tower-map";
 import { FloorSelection } from "@/screens/floor-selection";
 import { LessonInterface } from "@/screens/lesson-interface";
-import { Floor4BubbleChallenge } from "@/screens/game-bubble-pop";
-import { Floor4DiacriticBuildChallenge } from "@/screens/game-diacritic-build";
-import { Floor4MemoryFlipChallenge } from "@/screens/game-memory-flip";
+import { GameBubblePop } from "@/screens/game-bubble-pop";
+import { GameDiacriticBuild } from "@/screens/game-diacritic-build";
+import { GameMemoryFlip } from "@/screens/game-memory-flip";
+import { GameCowGrassFeed } from "@/screens/game-cow-grass-feed";
 import { worlds, getWorldData } from "@/data/game-config";
 
 type Screen =
@@ -145,10 +146,13 @@ export default function AsobetoApp() {
       const memoryFlipChallengeLesson = selectedFloor?.content?.find(
         (lesson) => lesson.lessonKind === "memory_flip_challenge",
       );
+      const cowGrassChallengeLesson = selectedFloor?.content?.find(
+        (lesson) => lesson.lessonKind === "cow_grass_feed_challenge",
+      );
 
       if (diacriticChallengeLesson) {
         return (
-          <Floor4DiacriticBuildChallenge
+          <GameDiacriticBuild
             worldId={gameState.selectedWorld!}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
@@ -163,7 +167,7 @@ export default function AsobetoApp() {
 
       if (bubbleChallengeLesson) {
         return (
-          <Floor4BubbleChallenge
+          <GameBubblePop
             worldId={gameState.selectedWorld!}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
@@ -178,13 +182,28 @@ export default function AsobetoApp() {
 
       if (memoryFlipChallengeLesson) {
         return (
-          <Floor4MemoryFlipChallenge
+          <GameMemoryFlip
             worldId={gameState.selectedWorld!}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
             floorMaxStars={selectedFloor?.maxStars ?? 3}
             lesson={memoryFlipChallengeLesson}
+            onComplete={handleLessonComplete}
+            onBack={() => handleBack("floorSelection")}
+          />
+        );
+      }
+
+      if (cowGrassChallengeLesson) {
+        return (
+          <GameCowGrassFeed
+            worldId={gameState.selectedWorld!}
+            towerId={gameState.selectedTower!}
+            floorId={gameState.selectedFloor!}
+            floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
+            floorMaxStars={selectedFloor?.maxStars ?? 3}
+            lesson={cowGrassChallengeLesson}
             onComplete={handleLessonComplete}
             onBack={() => handleBack("floorSelection")}
           />

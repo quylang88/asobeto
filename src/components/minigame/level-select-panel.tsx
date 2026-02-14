@@ -82,7 +82,7 @@ export function MiniGameLevelSelectPanel({
   recentlyUnlockedLevelId,
   onSelectLevel,
   onUnlockLevel,
-  rulesActionLabel = "Nghe luật chơi",
+  rulesActionLabel = "Xem luật chơi",
   rulesActionIcon,
   onRulesAction,
 }: MiniGameLevelSelectPanelProps) {

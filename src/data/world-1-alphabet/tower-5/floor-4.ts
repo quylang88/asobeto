@@ -5,7 +5,7 @@ export const floor4Lessons: LessonContent[] = createMemoryFlipChallengeLessons({
   lessonPrefix: "t5-f4",
   title: "Chọn mức độ",
   headerTitle: "Trí nhớ",
-  instruction: "Lật thẻ giống nhau để xóa hết 8 cặp.",
+  instruction: "Lật thẻ giống nhau để xóa hết các cặp.",
   rules: [
     "Mỗi lượt bé lật 2 thẻ.",
     "Giống nhau thì thẻ biến mất.",

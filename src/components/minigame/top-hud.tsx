@@ -38,7 +38,7 @@ export function MiniGameTopHud({
 
   return (
     <div className="sticky top-0 z-20 bg-white/90 shadow-sm backdrop-blur-md pt-safe pl-safe pr-safe">
-      <div className="flex items-center gap-2 px-3 pb-2 pt-2.5">
+      <div className="flex items-center gap-2 px-3 pb-3 pt-3">
         <button
           onClick={onBack}
           className="rounded-xl bg-green-bright p-2.5 text-white shadow ios-button"
@@ -49,7 +49,7 @@ export function MiniGameTopHud({
 
         {mode === "simple" ? (
           <div className="min-w-0 flex-1 px-1">
-            <h1 className="truncate py-0.5 text-[1.35rem] font-black leading-[1.24] text-slate-800 font-hp-special sm:text-[1.55rem]">
+            <h1 className="truncate py-1 text-[1.35rem] font-black leading-[1.3] text-slate-800 font-hp-special sm:text-[1.55rem]">
               {title}
             </h1>
           </div>
@@ -67,7 +67,7 @@ export function MiniGameTopHud({
             </div>
             <div className="rounded-xl bg-white/95 px-2 py-1.5 text-center shadow-sm">
               <p
-                className={`truncate font-hp-special font-black leading-[1.1] ${
+                className={`truncate font-hp-special font-black leading-[1.22] ${
                   hasCenterHighlight
                     ? "text-[1.6rem] text-emerald-600 sm:text-[1.8rem]"
                     : "text-sm text-slate-800 sm:text-base"

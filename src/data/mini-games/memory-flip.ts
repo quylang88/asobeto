@@ -9,7 +9,7 @@ import {
 
 export const MEMORY_FLIP_GAME_TITLE = "Trí nhớ";
 export const MEMORY_FLIP_GAME_INSTRUCTION =
-  "Lật 2 thẻ giống nhau để xóa hết 8 cặp.";
+  "Lật 2 thẻ giống nhau để xóa hết các cặp.";
 export const MEMORY_FLIP_GAME_RULES = [
   "Mỗi lượt bé lật 2 thẻ.",
   "Giống nhau thì thẻ biến mất.",
@@ -19,29 +19,29 @@ export const MEMORY_FLIP_GAME_RULES = [
 const NORMAL_PASS_STAR_RULES: MemoryFlipMoveStarRule[] = [
   {
     stars: 2,
-    maxMovesInclusive: 13,
+    maxMovesInclusive: 18,
   },
   {
     stars: 1,
-    minMovesInclusive: 14,
-    maxMovesInclusive: 21,
+    minMovesInclusive: 19,
+    maxMovesInclusive: 22,
   },
 ];
 
 const HARD_PASS_STAR_RULES: MemoryFlipMoveStarRule[] = [
   {
     stars: 3,
-    maxMovesInclusive: 10,
+    maxMovesInclusive: 20,
   },
   {
     stars: 2,
-    minMovesInclusive: 11,
-    maxMovesInclusive: 15,
+    minMovesInclusive: 21,
+    maxMovesInclusive: 25,
   },
   {
     stars: 1,
-    minMovesInclusive: 16,
-    maxMovesInclusive: 19,
+    minMovesInclusive: 26,
+    maxMovesInclusive: 35,
   },
 ];
 
@@ -50,6 +50,11 @@ const MEMORY_LEVEL_PRESETS: Record<MemoryFlipLevelId, MemoryFlipLevelConfig> = {
     id: "easy",
     label: "Dễ",
     starsReward: 1,
+    pairTarget: 6,
+    grid: {
+      columns: 3,
+      rows: 4,
+    },
     moveLimit: 25,
     passStarRules: [
       {
@@ -62,6 +67,11 @@ const MEMORY_LEVEL_PRESETS: Record<MemoryFlipLevelId, MemoryFlipLevelConfig> = {
     id: "normal",
     label: "Vừa",
     starsReward: 2,
+    pairTarget: 6,
+    grid: {
+      columns: 3,
+      rows: 4,
+    },
     moveLimit: 22,
     passStarRules: NORMAL_PASS_STAR_RULES,
   },
@@ -69,7 +79,12 @@ const MEMORY_LEVEL_PRESETS: Record<MemoryFlipLevelId, MemoryFlipLevelConfig> = {
     id: "hard",
     label: "Khó",
     starsReward: 3,
-    moveLimit: 20,
+    pairTarget: 9,
+    grid: {
+      columns: 3,
+      rows: 6,
+    },
+    moveLimit: 35,
     passStarRules: HARD_PASS_STAR_RULES,
   },
 };
@@ -241,7 +256,7 @@ export function createMemoryFlipGameConfig({
   cardBackOptions,
   levelOverrides,
 }: MemoryFlipGameDataInput = {}): MemoryFlipGameConfig {
-  const pairTargetValue = Math.max(1, Math.min(8, Math.round(pairTarget ?? 8)));
+  const pairTargetValue = Math.max(1, Math.min(18, Math.round(pairTarget ?? 8)));
 
   return {
     title: title ?? "Chọn mức độ",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gem, Sparkles, Star, Volume2 } from "lucide-react";
+import { Gem, Sparkles, Star } from "lucide-react";
 import type {
   LessonContent,
   MemoryFlipCardBackIcon,
@@ -23,9 +23,12 @@ import {
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
-import { MiniGameCountdown } from "@/components/minigame/shared-countdown";
-import { MiniGameLevelSelectPanel } from "@/components/minigame/level-select-panel";
-import { MiniGameTopHud } from "@/components/minigame/top-hud";
+import {
+  MiniGameCountdown,
+  MiniGameLevelSelectPanel,
+  MiniGameRulesModal,
+  MiniGameTopHud,
+} from "@/components/minigame";
 
 const LEVEL_ORDER: MemoryFlipLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<MemoryFlipLevelId, string> = {
@@ -36,7 +39,6 @@ const LEVEL_LABEL: Record<MemoryFlipLevelId, string> = {
 const PASS_EFFECT_HOLD_MS = 1900;
 const FAIL_EFFECT_HOLD_MS = 1900;
 const CARD_MATCH_CLEAR_DELAY_MS = 320;
-const RULES_HINT_DURATION_MS = 2200;
 const MAX_FAIL_STREAK = 99;
 
 type ChallengePhase = "select" | "countdown" | "tutorial" | "playing" | "result";
@@ -56,7 +58,7 @@ interface MemoryCard {
   status: CardStatus;
 }
 
-interface Floor4MemoryFlipChallengeProps {
+interface GameMemoryFlipProps {
   worldId: number;
   towerId: number;
   floorId: number;
@@ -96,6 +98,20 @@ function fisherYates<T>(items: T[]): T[] {
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
+}
+
+function resolveLevelPairTarget(
+  level: MemoryFlipLevelConfig | null | undefined,
+  fallbackPairTarget: number,
+): number {
+  return clampInteger(level?.pairTarget ?? fallbackPairTarget, 1, 24);
+}
+
+function resolveLevelGridColumns(
+  level: MemoryFlipLevelConfig | null | undefined,
+  fallbackColumns: number,
+): number {
+  return clampInteger(level?.grid?.columns ?? fallbackColumns, 2, 8);
 }
 
 function doesMoveStarRuleMatch(
@@ -297,7 +313,7 @@ function CardBackIcon({
   return <Gem className="h-8 w-8" style={{ color }} />;
 }
 
-export function Floor4MemoryFlipChallenge({
+export function GameMemoryFlip({
   worldId,
   towerId,
   floorId,
@@ -305,14 +321,15 @@ export function Floor4MemoryFlipChallenge({
   floorMaxStars,
   lesson,
   onBack,
-}: Floor4MemoryFlipChallengeProps) {
+}: GameMemoryFlipProps) {
   const memoryConfig = lesson.memoryFlipGame;
   const levelList = useMemo(() => memoryConfig?.levels ?? [], [memoryConfig]);
   const levelMap = useMemo(
     () => new Map(levelList.map((level) => [level.id, level])),
     [levelList],
   );
-  const pairTarget = memoryConfig?.pairTarget ?? 8;
+  const defaultPairTarget = memoryConfig?.pairTarget ?? 8;
+  const defaultGridColumns = memoryConfig?.grid?.columns ?? 4;
   const challengeHeaderTitle = memoryConfig?.headerTitle?.trim() || floorName;
 
   const [phase, setPhase] = useState<ChallengePhase>("select");
@@ -334,7 +351,8 @@ export function Floor4MemoryFlipChallenge({
     useState<MemoryFlipLevelId | null>(null);
   const [activeBackOption, setActiveBackOption] =
     useState<MemoryFlipCardBackOption | null>(null);
-  const [showRulesHint, setShowRulesHint] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
+  const [boardWidthPx, setBoardWidthPx] = useState<number | null>(null);
   const [tutorialStep, setTutorialStep] = useState<TutorialStep>(null);
   const [tutorialPairIds, setTutorialPairIds] = useState<[string, string] | null>(
     null,
@@ -370,13 +388,26 @@ export function Floor4MemoryFlipChallenge({
   const matchActionIdRef = useRef<number | null>(null);
   const passActionIdRef = useRef<number | null>(null);
   const failActionIdRef = useRef<number | null>(null);
-  const rulesActionIdRef = useRef<number | null>(null);
   const shakeActionIdRef = useRef<number | null>(null);
   const tutorialActionIdsRef = useRef<number[]>([]);
 
   const selectedLevel = selectedLevelId
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
+  const selectedPairTarget = resolveLevelPairTarget(
+    selectedLevel,
+    defaultPairTarget,
+  );
+  const selectedGridColumns = resolveLevelGridColumns(
+    selectedLevel,
+    defaultGridColumns,
+  );
+  const selectedGridRows = clampInteger(
+    selectedLevel?.grid?.rows ??
+      Math.ceil(selectedPairTarget / selectedGridColumns),
+    1,
+    12,
+  );
   const tutorialSeenStorageKey = useMemo(
     () => getTutorialSeenStorageKey(lesson.id),
     [lesson.id],
@@ -637,9 +668,10 @@ export function Floor4MemoryFlipChallenge({
     (level: MemoryFlipLevelConfig) => {
       if (!memoryConfig) return;
       clearRoundActions();
+      const levelPairTarget = resolveLevelPairTarget(level, defaultPairTarget);
       const deck = buildDeck({
         levelId: level.id,
-        pairTarget,
+        pairTarget: levelPairTarget,
         tokenPools: memoryConfig.levelTokenPools,
       });
       cardsRef.current = deck;
@@ -664,16 +696,17 @@ export function Floor4MemoryFlipChallenge({
       );
       setPhase("playing");
     },
-    [clearRoundActions, memoryConfig, pairTarget, setBoardLock],
+    [clearRoundActions, defaultPairTarget, memoryConfig, setBoardLock],
   );
 
   const startTutorialThenPlay = useCallback(
     (level: MemoryFlipLevelConfig) => {
       if (!memoryConfig) return;
       clearRoundActions();
+      const levelPairTarget = resolveLevelPairTarget(level, defaultPairTarget);
       const tutorialDeck = buildDeck({
         levelId: level.id,
-        pairTarget,
+        pairTarget: levelPairTarget,
         tokenPools: memoryConfig.levelTokenPools,
       });
       const pairMap = new Map<string, string[]>();
@@ -772,7 +805,7 @@ export function Floor4MemoryFlipChallenge({
       easyFailStreak,
       hasSeenEasyTutorial,
       memoryConfig,
-      pairTarget,
+      defaultPairTarget,
       persistEasyFailStreak,
       persistEasyTutorialSeen,
       playSfx,
@@ -798,7 +831,6 @@ export function Floor4MemoryFlipChallenge({
         setLastEarnedStars(0);
         setTutorialStep(null);
         setTutorialPairIds(null);
-        setShowRulesHint(false);
         setBoardLock(true);
         setPhase("countdown");
       };
@@ -889,7 +921,10 @@ export function Floor4MemoryFlipChallenge({
           pairsClearedRef.current += 1;
           syncBoardState();
 
-          if (pairsClearedRef.current >= pairTarget) {
+          if (
+            pairsClearedRef.current >=
+            resolveLevelPairTarget(level, defaultPairTarget)
+          ) {
             triggerLevelPass(level);
           }
         });
@@ -926,8 +961,8 @@ export function Floor4MemoryFlipChallenge({
     },
     [
       clearScheduledAction,
+      defaultPairTarget,
       memoryConfig,
-      pairTarget,
       playSfx,
       scheduleAction,
       setBoardLock,
@@ -936,17 +971,6 @@ export function Floor4MemoryFlipChallenge({
       triggerLevelPass,
     ],
   );
-
-  const showRulesQuickHint = useCallback(() => {
-    if (!memoryConfig) return;
-    setShowRulesHint(true);
-    playSfx(memoryConfig.audio.flip);
-    clearScheduledAction(rulesActionIdRef.current);
-    rulesActionIdRef.current = scheduleAction(RULES_HINT_DURATION_MS, () => {
-      rulesActionIdRef.current = null;
-      setShowRulesHint(false);
-    });
-  }, [clearScheduledAction, memoryConfig, playSfx, scheduleAction]);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -1011,11 +1035,12 @@ export function Floor4MemoryFlipChallenge({
         coordinateSystem:
           "grid index starts at top-left, row-major order; rows grow downward, columns to the right",
         level: currentLevelRef.current?.id ?? selectedLevelId,
-      moveLimit: currentLevelRef.current?.moveLimit ?? selectedLevel?.moveLimit ?? 0,
-      moves: movesRef.current,
-      pairsCleared: pairsClearedRef.current,
-      pairTarget,
-      boardLocked: boardLockedRef.current,
+        moveLimit:
+          currentLevelRef.current?.moveLimit ?? selectedLevel?.moveLimit ?? 0,
+        moves: movesRef.current,
+        pairsCleared: pairsClearedRef.current,
+        pairTarget: resolveLevelPairTarget(currentLevelRef.current, defaultPairTarget),
+        boardLocked: boardLockedRef.current,
         tutorialStep,
         cards: cardsRef.current.map((card, index) => ({
           id: card.id,
@@ -1039,17 +1064,58 @@ export function Floor4MemoryFlipChallenge({
     };
   }, [
     advanceScheduledTime,
-    pairTarget,
+    defaultPairTarget,
     selectedLevel,
     selectedLevelId,
     tutorialStep,
   ]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (phase !== "playing" && phase !== "tutorial") return;
+
+    const CARD_GAP_PX = 10;
+    const BOARD_PADDING_PX = 20;
+    const VIEWPORT_HORIZONTAL_PADDING_PX = 32;
+    const RESERVED_VERTICAL_SPACE_PX = 220;
+
+    const updateBoardWidth = () => {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const maxBoardWidthByViewport = Math.max(
+        220,
+        viewportWidth - VIEWPORT_HORIZONTAL_PADDING_PX,
+      );
+      const availableHeight = Math.max(
+        220,
+        viewportHeight - RESERVED_VERTICAL_SPACE_PX,
+      );
+      const cardSizeByHeight =
+        (availableHeight -
+          BOARD_PADDING_PX -
+          CARD_GAP_PX * (selectedGridRows - 1)) /
+        selectedGridRows;
+      const widthByHeight =
+        BOARD_PADDING_PX +
+        cardSizeByHeight * selectedGridColumns +
+        CARD_GAP_PX * (selectedGridColumns - 1);
+      const nextWidth = Math.floor(
+        Math.max(220, Math.min(maxBoardWidthByViewport, widthByHeight)),
+      );
+      setBoardWidthPx(nextWidth);
+    };
+
+    updateBoardWidth();
+    window.addEventListener("resize", updateBoardWidth);
+    return () => {
+      window.removeEventListener("resize", updateBoardWidth);
+    };
+  }, [phase, selectedGridColumns, selectedGridRows]);
+
+  useEffect(() => {
     return () => {
       clearRoundActions();
       clearScheduledAction(countdownActionIdRef.current);
-      clearScheduledAction(rulesActionIdRef.current);
       setBoardLock(true);
       scheduledActionsRef.current = [];
     };
@@ -1077,7 +1143,7 @@ export function Floor4MemoryFlipChallenge({
       <LessonCompletionView
         stars={lastEarnedStars}
         score={pairsCleared}
-        activeLessonsCount={pairTarget}
+        activeLessonsCount={selectedPairTarget}
         activeLessonsTotalStars={selectedLevel.starsReward}
         floorMaxStars={selectedLevel.starsReward}
         successSummary={`Bé đã hoàn thành mức ${LEVEL_LABEL[selectedLevel.id]} với ${moves} lượt!`}
@@ -1106,7 +1172,7 @@ export function Floor4MemoryFlipChallenge({
     return {
       id: level.id,
       label: LEVEL_LABEL[level.id],
-      subtitle: `${pairTarget} cặp • tối đa ${level.moveLimit} lượt`,
+      subtitle: `${resolveLevelPairTarget(level, defaultPairTarget)} cặp • tối đa ${level.moveLimit} lượt`,
       starsReward: level.starsReward,
       earnedStars: levelStars[level.id],
       unlocked: isLevelUnlocked(level.id),
@@ -1141,14 +1207,18 @@ export function Floor4MemoryFlipChallenge({
               : "happy"
         }
         leftLabel="Pairs"
-        leftValue={`${pairsCleared}/${pairTarget}`}
+        leftValue={`${pairsCleared}/${selectedPairTarget}`}
         rightLabel="Moves"
         rightValue={`${moves} lần`}
         leftToneClassName="bg-cyan-100/90 text-cyan-700"
         rightToneClassName="bg-amber-100/90 text-amber-700"
       />
 
-      <div className="relative flex-1 app-scroll overflow-y-auto px-4 pb-safe pt-4">
+      <div
+        className={`relative flex-1 px-4 pb-safe pt-4 ${
+          phase === "select" ? "app-scroll overflow-y-auto" : "overflow-hidden"
+        }`}
+      >
         {phase === "select" && (
           <MiniGameLevelSelectPanel
             title={memoryConfig.title ?? "Chọn mức độ"}
@@ -1161,14 +1231,12 @@ export function Floor4MemoryFlipChallenge({
             onUnlockLevel={(levelId) =>
               handleUnlockLevel(levelId as MemoryFlipLevelId)
             }
-            rulesActionLabel="Nghe luật chơi"
-            rulesActionIcon={<Volume2 className="h-4 w-4" />}
-            onRulesAction={showRulesQuickHint}
+            onRulesAction={() => setShowRulesModal(true)}
           />
         )}
 
         {(phase === "countdown" || phase === "tutorial" || phase === "playing") && (
-          <div className="mx-auto flex w-full max-w-md flex-col pb-6">
+          <div className="mx-auto flex w-full max-w-md flex-col pb-3">
             {phase === "countdown" && (
               <MiniGameCountdown
                 value={countdownValue}
@@ -1186,8 +1254,19 @@ export function Floor4MemoryFlipChallenge({
                 transition={{ duration: 0.22, ease: "easeInOut" }}
                 className="mt-2"
               >
-                <div className="rounded-3xl border-4 border-cyan-200/80 bg-white/70 p-2.5 shadow-lg">
-                  <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+                <div
+                  className="mx-auto rounded-3xl border-4 border-cyan-200/80 bg-white/70 p-2.5 shadow-lg"
+                  style={{
+                    width: boardWidthPx ? `${boardWidthPx}px` : undefined,
+                    maxWidth: "100%",
+                  }}
+                >
+                  <div
+                    className="grid gap-2.5 sm:gap-3"
+                    style={{
+                      gridTemplateColumns: `repeat(${selectedGridColumns}, minmax(0, 1fr))`,
+                    }}
+                  >
                     {cards.map((card) => {
                       const isFaceUp = card.status !== "face_down";
                       const isMatched = card.status === "matched";
@@ -1275,10 +1354,10 @@ export function Floor4MemoryFlipChallenge({
                               }}
                             >
                               <span
-                                className={`font-hp-special leading-none text-slate-900 ${
+                                className={`font-hp-special text-slate-900 ${
                                   card.kind === "word"
-                                    ? "text-3xl sm:text-4xl"
-                                    : "text-5xl sm:text-6xl"
+                                    ? "translate-y-[6%] text-3xl leading-[1.12] sm:text-4xl"
+                                    : "translate-y-[8%] text-5xl leading-[1.08] sm:text-6xl"
                                 }`}
                               >
                                 {card.text}
@@ -1310,32 +1389,11 @@ export function Floor4MemoryFlipChallenge({
         )}
       </div>
 
-      <AnimatePresence>
-        {showRulesHint && (
-          <motion.div
-            className="pointer-events-none absolute inset-0 z-30 flex items-end justify-center bg-black/40 px-6 pb-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="w-full max-w-sm rounded-3xl border-2 border-cyan-200 bg-white p-4 shadow-2xl"
-              initial={{ y: 24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 16, opacity: 0 }}
-            >
-              <p className="mb-2 text-base font-bold text-slate-900 font-hp-special">
-                Luật chơi nhanh
-              </p>
-              <ul className="space-y-1 text-sm text-slate-700">
-                {memoryConfig.rules.map((rule, index) => (
-                  <li key={`${rule}-${index}`}>• {rule}</li>
-                ))}
-              </ul>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <MiniGameRulesModal
+        open={showRulesModal}
+        rules={memoryConfig.rules}
+        onClose={() => setShowRulesModal(false)}
+      />
 
       <AnimatePresence>
         {phase === "tutorial" && (

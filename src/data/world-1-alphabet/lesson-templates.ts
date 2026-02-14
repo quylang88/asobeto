@@ -1,4 +1,6 @@
 import {
+  CowGrassFeedLevelConfig,
+  CowGrassFeedLevelId,
   DiacriticBuildLevelConfig,
   DiacriticBuildInteractionMode,
   DiacriticBuildLevelId,
@@ -10,6 +12,11 @@ import {
   LessonContent,
   WordToken,
 } from "./map-structure";
+import {
+  COW_GRASS_GAME_INSTRUCTION,
+  COW_GRASS_GAME_TITLE,
+  createCowGrassFeedGameConfig,
+} from "../mini-games/cow-grass-feed";
 import {
   BUBBLE_GAME_INSTRUCTION,
   BUBBLE_GAME_TITLE,
@@ -48,6 +55,23 @@ interface BubblePopFloorLessonConfig {
   lessonPrefix: string;
   targetLetters: [string, string];
   targetAudioByLetter?: Record<string, string>;
+}
+
+interface CowGrassFeedFloorLessonConfig {
+  lessonPrefix: string;
+  title?: string;
+  headerTitle?: string;
+  instruction?: string;
+  rules?: string[];
+  sentenceTokens?: string[];
+  correctWord?: string;
+  distractorWords?: [string, string, string];
+  antiRepeatMaxDistractorStreak?: number;
+  antiRepeatMaxCorrectSideStreak?: number;
+  tutorialDurationMs?: number;
+  levelOverrides?: Partial<
+    Record<CowGrassFeedLevelId, Partial<CowGrassFeedLevelConfig>>
+  >;
 }
 
 interface MemoryFlipFloorLessonConfig {
@@ -308,6 +332,53 @@ export function createBubblePopChallengeLessons(
       bubblePopGame: createBubblePopGameConfig({
         targetLetters,
         targetAudioByLetter,
+      }),
+    },
+  ];
+}
+
+export function createCowGrassFeedChallengeLessons(
+  config: CowGrassFeedFloorLessonConfig,
+): LessonContent[] {
+  const {
+    lessonPrefix,
+    title,
+    headerTitle,
+    instruction,
+    rules,
+    sentenceTokens,
+    correctWord,
+    distractorWords,
+    antiRepeatMaxDistractorStreak,
+    antiRepeatMaxCorrectSideStreak,
+    tutorialDurationMs,
+    levelOverrides,
+  } = config;
+
+  return [
+    {
+      id: `${lessonPrefix}-cow-grass-feed`,
+      type: "active",
+      lessonKind: "cow_grass_feed_challenge",
+      title: COW_GRASS_GAME_TITLE,
+      instruction: COW_GRASS_GAME_INSTRUCTION,
+      scoring: {
+        metric: "none",
+        passPolicy: "always",
+        maxStars: 6,
+      },
+      cowGrassFeedGame: createCowGrassFeedGameConfig({
+        title,
+        headerTitle,
+        instruction,
+        rules,
+        sentenceTokens,
+        correctWord,
+        distractorWords,
+        antiRepeatMaxDistractorStreak,
+        antiRepeatMaxCorrectSideStreak,
+        tutorialDurationMs,
+        levelOverrides,
       }),
     },
   ];

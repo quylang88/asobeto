@@ -40,7 +40,7 @@ export const tower4Floors: Floor[] = [
   }),
   createGameFloor({
     id: 4,
-    nameUnlocked: "Bóng bay chữ",
+    nameUnlocked: "Bò ăn cỏ",
     descriptionUnlocked: "Mini game",
     letter: "?",
     maxStars: 6,

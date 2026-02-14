@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Volume2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import type {
   BubblePassStarRule,
   BubblePopLevelConfig,
@@ -20,9 +20,12 @@ import {
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
-import { MiniGameLevelSelectPanel } from "@/components/minigame/level-select-panel";
-import { MiniGameCountdown } from "@/components/minigame/shared-countdown";
-import { MiniGameTopHud } from "@/components/minigame/top-hud";
+import {
+  MiniGameCountdown,
+  MiniGameLevelSelectPanel,
+  MiniGameRulesModal,
+  MiniGameTopHud,
+} from "@/components/minigame";
 
 const LEVEL_ORDER: BubblePopLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
@@ -65,7 +68,7 @@ interface BubbleBurst {
   size: number;
 }
 
-interface Floor4BubbleChallengeProps {
+interface GameBubblePopProps {
   worldId: number;
   towerId: number;
   floorId: number;
@@ -202,7 +205,7 @@ function getInitialLevelStars({
   };
 }
 
-export function Floor4BubbleChallenge({
+export function GameBubblePop({
   worldId,
   towerId,
   floorId,
@@ -210,7 +213,7 @@ export function Floor4BubbleChallenge({
   floorMaxStars,
   lesson,
   onBack,
-}: Floor4BubbleChallengeProps) {
+}: GameBubblePopProps) {
   const bubbleConfig = lesson.bubblePopGame;
   const levelList = useMemo(() => bubbleConfig?.levels ?? [], [bubbleConfig]);
   const levelMap = useMemo(
@@ -245,6 +248,7 @@ export function Floor4BubbleChallenge({
   const [lastEarnedStars, setLastEarnedStars] = useState(0);
   const [passCelebrationStars, setPassCelebrationStars] = useState(0);
   const [showFailCelebration, setShowFailCelebration] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [showDamageFlash, setShowDamageFlash] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [recentlyUnlockedLevelId, setRecentlyUnlockedLevelId] =
@@ -903,11 +907,6 @@ export function Floor4BubbleChallenge({
     ],
   );
 
-  const replayRulesAudio = useCallback(() => {
-    if (!bubbleConfig) return;
-    playNarration(bubbleConfig.rulesAudio);
-  }, [bubbleConfig, playNarration]);
-
   useEffect(() => {
     const playfield = playfieldRef.current;
     if (!playfield) return;
@@ -1121,9 +1120,7 @@ export function Floor4BubbleChallenge({
             onUnlockLevel={(levelId) =>
               handleUnlockLevel(levelId as BubblePopLevelId)
             }
-            rulesActionLabel="Nghe luật chơi"
-            rulesActionIcon={<Volume2 className="h-4 w-4" />}
-            onRulesAction={replayRulesAudio}
+            onRulesAction={() => setShowRulesModal(true)}
           />
         )}
 
@@ -1218,7 +1215,7 @@ export function Floor4BubbleChallenge({
                     />
                     <span className="pointer-events-none absolute left-1/2 top-[108%] h-[25%] w-px -translate-x-1/2 bg-slate-500/60" />
                     <span
-                      className="relative select-none font-hp-special font-black lowercase leading-none"
+                      className="relative translate-y-[8%] select-none font-hp-special font-black lowercase leading-[1.08]"
                       style={{ fontSize: letterFontSize }}
                     >
                       {bubble.letter}
@@ -1366,6 +1363,12 @@ export function Floor4BubbleChallenge({
           </div>
         )}
       </div>
+
+      <MiniGameRulesModal
+        open={showRulesModal}
+        rules={bubbleConfig.rules}
+        onClose={() => setShowRulesModal(false)}
+      />
     </div>
   );
 }
