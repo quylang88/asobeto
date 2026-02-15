@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
-  <rect width="320" height="240" rx="28" fill="#0F766E" />
-  <ellipse cx="160" cy="132" rx="86" ry="42" fill="#14B8A6" />
-  <ellipse cx="160" cy="122" rx="72" ry="30" fill="#5EEAD4" />
-  <text x="160" y="210" text-anchor="middle" font-family="Mali, sans-serif" font-size="46" font-weight="700" fill="#FFFFFF">cỏ</text>
-</svg>

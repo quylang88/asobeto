@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240">
-  <rect width="320" height="240" rx="28" fill="#16A34A" />
-  <rect x="84" y="66" width="152" height="90" rx="20" fill="#4ADE80" />
-  <circle cx="130" cy="108" r="18" fill="#DCFCE7" />
-  <circle cx="190" cy="108" r="18" fill="#DCFCE7" />
-  <text x="160" y="210" text-anchor="middle" font-family="Mali, sans-serif" font-size="46" font-weight="700" fill="#FFFFFF">ăn</text>
-</svg>
