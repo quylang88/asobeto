@@ -24,6 +24,7 @@ export type {
   TracingGlyphConfig,
   TracingPauseAnchor,
   TracingGridLayout,
+  TracingGridMetrics,
   TracingPausePoint,
   TracingStrokePath,
   TracingStrokePoint,
