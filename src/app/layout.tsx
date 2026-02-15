@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata, Viewport } from "next";
 import { Mali, Varela_Round } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { AudioContextInitializer } from "@/components/audio-context-initializer";
 import "./globals.css";
 
 const mali = Mali({
@@ -59,6 +60,7 @@ export default function RootLayout({
         className={`font-sans antialiased ${mali.variable} ${varelaRound.variable} min-h-dvh`}
       >
         {children}
+        <AudioContextInitializer />
         <Analytics />
       </body>
     </html>

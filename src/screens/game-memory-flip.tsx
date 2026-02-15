@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gem, Sparkles, Star, Volume2 } from "lucide-react";
+import { audioManager } from "@/lib/audio-manager";
 import type {
   LessonContent,
   MemoryFlipCardBackIcon,
@@ -474,9 +475,15 @@ export function Floor4MemoryFlipChallenge({
   const playSfx = useCallback((audioSrc?: string | null) => {
     const src = audioSrc?.trim();
     if (!src) return;
-    const audio = new Audio(src);
-    audio.play().catch(() => undefined);
+    audioManager.play(src);
   }, []);
+
+  useEffect(() => {
+    if (!memoryConfig) return;
+    const { flip, match, mismatch } = memoryConfig.audio;
+    const urls = [flip, match, mismatch].filter((url): url is string => !!url);
+    audioManager.preload(urls);
+  }, [memoryConfig]);
 
   const isLevelUnlocked = useCallback(
     (levelId: MemoryFlipLevelId) => {

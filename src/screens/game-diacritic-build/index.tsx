@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, Sparkles, Volume2 } from "lucide-react";
+import { audioManager } from "@/lib/audio-manager";
 import type {
   ChallengePassStarRule,
   DiacriticBuildInteractionMode,
@@ -262,8 +263,7 @@ function getInitialLevelStars({
 }
 
 function playAudio(src: string): void {
-  const audio = new Audio(src);
-  audio.play().catch(() => undefined);
+  audioManager.play(src);
 }
 
 function speakRulesText(text: string): void {
@@ -352,6 +352,16 @@ export function Floor4DiacriticBuildChallenge({
   const selectedLevel = selectedLevelId
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
+
+  useEffect(() => {
+    audioManager.preload([
+      CORRECT_TAP_AUDIO,
+      WRONG_TAP_AUDIO,
+      PASS_AUDIO,
+      FAIL_AUDIO,
+    ]);
+  }, []);
+
   const challengeHeaderTitle = diacriticConfig?.headerTitle?.trim() || floorName;
   const catcherToneTargetX = useMemo(
     () =>

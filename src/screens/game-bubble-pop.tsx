@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, Volume2 } from "lucide-react";
+import { audioManager } from "@/lib/audio-manager";
 import type {
   BubblePassStarRule,
   BubblePopLevelConfig,
@@ -265,7 +266,7 @@ export function Floor4BubbleChallenge({
 
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
-  const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const narrationSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
@@ -333,10 +334,14 @@ export function Floor4BubbleChallenge({
 
   const stopNarration = useCallback(() => {
     narrationSequenceIdRef.current += 1;
-    if (!narrationAudioRef.current) return;
-    narrationAudioRef.current.pause();
-    narrationAudioRef.current.currentTime = 0;
-    narrationAudioRef.current = null;
+    if (narrationSourceRef.current) {
+      try {
+        narrationSourceRef.current.stop();
+      } catch {
+        // Ignore
+      }
+      narrationSourceRef.current = null;
+    }
   }, []);
 
   const clearCelebrations = useCallback(() => {
@@ -354,9 +359,7 @@ export function Floor4BubbleChallenge({
       const src = audioSrc?.trim();
       if (!src) return;
       stopNarration();
-      const audio = new Audio(src);
-      narrationAudioRef.current = audio;
-      audio.play().catch(() => undefined);
+      narrationSourceRef.current = audioManager.play(src);
     },
     [stopNarration],
   );
@@ -364,8 +367,14 @@ export function Floor4BubbleChallenge({
   const playTapFeedbackAudio = useCallback((kind: "target" | "wrong") => {
     const src =
       kind === "target" ? TARGET_BUBBLE_HIT_AUDIO : WRONG_BUBBLE_HIT_AUDIO;
-    const audio = new Audio(src);
-    audio.play().catch(() => undefined);
+    audioManager.play(src);
+  }, []);
+
+  useEffect(() => {
+    audioManager.preload([
+      TARGET_BUBBLE_HIT_AUDIO,
+      WRONG_BUBBLE_HIT_AUDIO,
+    ]);
   }, []);
 
   const enqueuePopup = useCallback(

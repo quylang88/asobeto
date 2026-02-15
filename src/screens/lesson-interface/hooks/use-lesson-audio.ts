@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { audioManager } from "@/lib/audio-manager";
 
 interface UseLessonAudioParams {
   currentStep: number;
@@ -15,28 +16,44 @@ export function useLessonAudio({
   currentLessonIntroVoice,
   currentLessonMainAudio,
 }: UseLessonAudioParams) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   const stopAudio = useCallback(() => {
-    if (!audioRef.current) return;
-    audioRef.current.pause();
-    audioRef.current.currentTime = 0;
-    audioRef.current = null;
+    if (currentSourceRef.current) {
+      audioManager.stop(currentSourceRef.current);
+      currentSourceRef.current = null;
+    }
   }, []);
 
   const playAudio = useCallback(
     (src: string) => {
       stopAudio();
-      const audio = new Audio(src);
-      audioRef.current = audio;
-      audio.play().catch((err) => console.log("Audio play failed:", err));
+      audioManager
+        .load(src)
+        .then(() => {
+          // If the user stopped audio while loading, don't play.
+          // But currentSourceRef might be null if stopped.
+          // However, simpler is just to play, and if stopped immediately, the handle is lost?
+          // No, we need to track if we should still play.
+          // For manual play, we assume we want to play.
+          const source = audioManager.play(src, {
+            onEnded: () => {
+              if (currentSourceRef.current === source) {
+                currentSourceRef.current = null;
+              }
+            },
+          });
+          if (source) {
+            currentSourceRef.current = source;
+          }
+        })
+        .catch(() => {});
     },
     [stopAudio],
   );
 
   const playOneShotAudio = useCallback((src: string) => {
-    const audio = new Audio(src);
-    audio.play().catch((err) => console.log("Audio play failed:", err));
+    audioManager.play(src);
   }, []);
 
   // Auto-play intro audio first, then main lesson audio.
@@ -48,53 +65,68 @@ export function useLessonAudio({
     if (!introAudio && !mainAudio) return;
 
     let isCancelled = false;
-    let primaryAudio: HTMLAudioElement | null = null;
-    let followUpAudio: HTMLAudioElement | null = null;
 
     stopAudio();
 
-    const playAudioSource = (
-      src: string,
-      onEnded?: () => void,
-    ): HTMLAudioElement => {
-      const audio = new Audio(src);
-      audioRef.current = audio;
-      if (onEnded) {
-        audio.addEventListener("ended", onEnded, { once: true });
-        audio.addEventListener("error", onEnded, { once: true });
+    const playMainAudioPart = async () => {
+      if (!mainAudio) return;
+      try {
+        await audioManager.load(mainAudio);
+        if (isCancelled) return;
+        const source = audioManager.play(mainAudio, {
+          onEnded: () => {
+            if (currentSourceRef.current === source) {
+              currentSourceRef.current = null;
+            }
+          },
+        });
+        if (source) {
+          currentSourceRef.current = source;
+        }
+      } catch (err) {
+        console.error("Failed to play main audio", err);
       }
-      audio.play().catch((err) => console.log("Audio play failed:", err));
-      return audio;
     };
 
-    const playMainAudio = () => {
-      if (isCancelled || !mainAudio) {
-        return;
+    const playSequence = async () => {
+      if (introAudio) {
+        try {
+          await audioManager.load(introAudio);
+          if (isCancelled) return;
+
+          const shouldChainMainAudio =
+            Boolean(mainAudio) && introAudio !== mainAudio;
+
+          const source = audioManager.play(introAudio, {
+            onEnded: () => {
+              if (currentSourceRef.current === source) {
+                currentSourceRef.current = null;
+              }
+              if (shouldChainMainAudio && !isCancelled) {
+                playMainAudioPart();
+              }
+            },
+          });
+          if (source) {
+            currentSourceRef.current = source;
+          }
+        } catch (err) {
+          console.error("Failed to play intro audio", err);
+          // If intro fails, try main immediately
+          if (!isCancelled && mainAudio) {
+            playMainAudioPart();
+          }
+        }
+      } else if (mainAudio) {
+        playMainAudioPart();
       }
-      followUpAudio = playAudioSource(mainAudio);
     };
 
-    if (introAudio) {
-      const shouldChainMainAudio =
-        Boolean(mainAudio) && introAudio !== mainAudio;
-      primaryAudio = playAudioSource(
-        introAudio,
-        shouldChainMainAudio ? playMainAudio : undefined,
-      );
-    } else if (mainAudio) {
-      primaryAudio = playAudioSource(mainAudio);
-    }
+    playSequence();
 
     return () => {
       isCancelled = true;
-      if (primaryAudio) {
-        primaryAudio.pause();
-        primaryAudio.currentTime = 0;
-      }
-      if (followUpAudio) {
-        followUpAudio.pause();
-        followUpAudio.currentTime = 0;
-      }
+      stopAudio();
     };
   }, [
     currentStep,
