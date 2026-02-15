@@ -26,6 +26,12 @@ import {
   MiniGameRulesModal,
   MiniGameTopHud,
 } from "@/components/minigame";
+import {
+  playAppAudio,
+  playManagedAppAudio,
+  preloadAppAudioList,
+  type ManagedAudioPlayback,
+} from "@/lib/app-audio";
 
 const LEVEL_ORDER: BubblePopLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
@@ -269,7 +275,7 @@ export function GameBubblePop({
 
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
-  const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const narrationAudioRef = useRef<ManagedAudioPlayback | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
   const lastFrameAtRef = useRef(0);
@@ -301,6 +307,16 @@ export function GameBubblePop({
     const [firstLetter] = targetLetters;
     targetLetterRef.current = firstLetter;
   }, [targetLetters]);
+
+  useEffect(() => {
+    if (!bubbleConfig) return;
+    preloadAppAudioList([
+      TARGET_BUBBLE_HIT_AUDIO,
+      WRONG_BUBBLE_HIT_AUDIO,
+      bubbleConfig.introAudio,
+      ...Object.values(bubbleConfig.targetAudioByLetter ?? {}),
+    ]);
+  }, [bubbleConfig]);
 
   const isLevelUnlocked = useCallback(
     (levelId: BubblePopLevelId) => {
@@ -337,9 +353,7 @@ export function GameBubblePop({
 
   const stopNarration = useCallback(() => {
     narrationSequenceIdRef.current += 1;
-    if (!narrationAudioRef.current) return;
-    narrationAudioRef.current.pause();
-    narrationAudioRef.current.currentTime = 0;
+    narrationAudioRef.current?.stop();
     narrationAudioRef.current = null;
   }, []);
 
@@ -358,9 +372,10 @@ export function GameBubblePop({
       const src = audioSrc?.trim();
       if (!src) return;
       stopNarration();
-      const audio = new Audio(src);
-      narrationAudioRef.current = audio;
-      audio.play().catch(() => undefined);
+      narrationAudioRef.current = playManagedAppAudio(src, {
+        retries: 2,
+        retryDelayMs: 120,
+      });
     },
     [stopNarration],
   );
@@ -368,8 +383,11 @@ export function GameBubblePop({
   const playTapFeedbackAudio = useCallback((kind: "target" | "wrong") => {
     const src =
       kind === "target" ? TARGET_BUBBLE_HIT_AUDIO : WRONG_BUBBLE_HIT_AUDIO;
-    const audio = new Audio(src);
-    audio.play().catch(() => undefined);
+    playAppAudio(src, {
+      allowOverlap: true,
+      retries: 1,
+      retryDelayMs: 80,
+    });
   }, []);
 
   const enqueuePopup = useCallback(

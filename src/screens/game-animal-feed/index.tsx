@@ -27,6 +27,7 @@ import {
   FeedFoodVisual,
   FeedProgressBar,
 } from "./components/index";
+import { playAppAudio, preloadAppAudioList } from "@/lib/app-audio";
 
 const LEVEL_ORDER: AnimalFeedLevelId[] = ["easy", "normal", "hard"];
 const PASS_FLY_EFFECT_AUDIO = "/assets/audio/game/common/pop.mp3";
@@ -305,6 +306,15 @@ export function GameAnimalFeed({
       }),
   );
 
+  useEffect(() => {
+    preloadAppAudioList([
+      PASS_FLY_EFFECT_AUDIO,
+      PASS_PROGRESS_PING_AUDIO,
+      LIFE_LOSS_AUDIO,
+      EATING_GRASS_AUDIO,
+    ]);
+  }, []);
+
   const [tutorialElapsedMs, setTutorialElapsedMs] = useState(0);
   const [tutorialDurationMs, setTutorialDurationMs] = useState(0);
   const [tutorialChoices, setTutorialChoices] = useState<BushChoice[]>([]);
@@ -373,8 +383,11 @@ export function GameAnimalFeed({
   }, []);
 
   const playSfx = useCallback((src: string) => {
-    const audio = new Audio(src);
-    audio.play().catch(() => undefined);
+    playAppAudio(src, {
+      allowOverlap: true,
+      retries: 1,
+      retryDelayMs: 80,
+    });
   }, []);
 
   const updateCowMood = useCallback((nextMood: CowMood, holdMs: number) => {

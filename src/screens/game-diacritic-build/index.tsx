@@ -27,6 +27,7 @@ import {
   MiniGameRulesModal,
   MiniGameTopHud,
 } from "@/components/minigame";
+import { playAppAudio, preloadAppAudioList } from "@/lib/app-audio";
 import {
   CatcherDragFallingEntity,
   CatcherDragFooter,
@@ -265,8 +266,11 @@ function getInitialLevelStars({
 }
 
 function playAudio(src: string): void {
-  const audio = new Audio(src);
-  audio.play().catch(() => undefined);
+  playAppAudio(src, {
+    allowOverlap: true,
+    retries: 1,
+    retryDelayMs: 80,
+  });
 }
 
 export function GameDiacriticBuild({
@@ -341,6 +345,15 @@ export function GameDiacriticBuild({
       lessonId: lesson.id,
     }),
   );
+
+  useEffect(() => {
+    preloadAppAudioList([
+      CORRECT_TAP_AUDIO,
+      WRONG_TAP_AUDIO,
+      PASS_AUDIO,
+      FAIL_AUDIO,
+    ]);
+  }, []);
 
   const selectedLevel = selectedLevelId
     ? (levelMap.get(selectedLevelId) ?? null)

@@ -516,7 +516,7 @@ export default function StrokeBuilderTool() {
           )}
         </pre>
         <p className="mt-2 text-slate-400 italic">
-          Click "Copy JSON" to get the full configuration.
+          Click &quot;Copy JSON&quot; to get the full configuration.
         </p>
       </div>
 
@@ -525,11 +525,11 @@ export default function StrokeBuilderTool() {
         <ul className="list-disc text-left pl-6 mt-2 space-y-1">
           <li>Type a letter above.</li>
           <li>Adjust Grid Layout and Glyph Position to fit your needs.</li>
-          <li>Click on the letter to set "Key Points".</li>
+          <li>Click on the letter to set &quot;Key Points&quot;.</li>
           <li>
-            The tool automatically snaps the path to the font's center line.
+            The tool automatically snaps the path to the font&apos;s center line.
           </li>
-          <li>Click "Finish Stroke" when done with one stroke.</li>
+          <li>Click &quot;Finish Stroke&quot; when done with one stroke.</li>
           <li>Repeat for next strokes.</li>
           <li>Copy JSON and paste into your data file.</li>
         </ul>

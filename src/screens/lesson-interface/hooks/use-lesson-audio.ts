@@ -1,6 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import {
+  playAppAudio,
+  playManagedAppAudio,
+  preloadAppAudioList,
+  type ManagedAudioPlayback,
+} from "@/lib/app-audio";
 
 interface UseLessonAudioParams {
   currentStep: number;
@@ -15,28 +21,32 @@ export function useLessonAudio({
   currentLessonIntroVoice,
   currentLessonMainAudio,
 }: UseLessonAudioParams) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<ManagedAudioPlayback | null>(null);
 
   const stopAudio = useCallback(() => {
     if (!audioRef.current) return;
-    audioRef.current.pause();
-    audioRef.current.currentTime = 0;
+    audioRef.current.stop();
     audioRef.current = null;
   }, []);
 
   const playAudio = useCallback(
     (src: string) => {
       stopAudio();
-      const audio = new Audio(src);
-      audioRef.current = audio;
-      audio.play().catch((err) => console.log("Audio play failed:", err));
+      const playback = playManagedAppAudio(src, {
+        retries: 2,
+        retryDelayMs: 120,
+      });
+      audioRef.current = playback;
     },
     [stopAudio],
   );
 
   const playOneShotAudio = useCallback((src: string) => {
-    const audio = new Audio(src);
-    audio.play().catch((err) => console.log("Audio play failed:", err));
+    playAppAudio(src, {
+      allowOverlap: true,
+      retries: 1,
+      retryDelayMs: 80,
+    });
   }, []);
 
   // Auto-play intro audio first, then main lesson audio.
@@ -47,54 +57,47 @@ export function useLessonAudio({
     const mainAudio = currentLessonMainAudio;
     if (!introAudio && !mainAudio) return;
 
+    preloadAppAudioList([introAudio, mainAudio]);
+
     let isCancelled = false;
-    let primaryAudio: HTMLAudioElement | null = null;
-    let followUpAudio: HTMLAudioElement | null = null;
+    let primaryAudio: ManagedAudioPlayback | null = null;
+    let followUpAudio: ManagedAudioPlayback | null = null;
 
     stopAudio();
-
-    const playAudioSource = (
-      src: string,
-      onEnded?: () => void,
-    ): HTMLAudioElement => {
-      const audio = new Audio(src);
-      audioRef.current = audio;
-      if (onEnded) {
-        audio.addEventListener("ended", onEnded, { once: true });
-        audio.addEventListener("error", onEnded, { once: true });
-      }
-      audio.play().catch((err) => console.log("Audio play failed:", err));
-      return audio;
-    };
 
     const playMainAudio = () => {
       if (isCancelled || !mainAudio) {
         return;
       }
-      followUpAudio = playAudioSource(mainAudio);
+      followUpAudio = playManagedAppAudio(mainAudio, {
+        retries: 2,
+        retryDelayMs: 120,
+      });
+      audioRef.current = followUpAudio;
     };
 
     if (introAudio) {
       const shouldChainMainAudio =
         Boolean(mainAudio) && introAudio !== mainAudio;
-      primaryAudio = playAudioSource(
-        introAudio,
-        shouldChainMainAudio ? playMainAudio : undefined,
-      );
+      primaryAudio = playManagedAppAudio(introAudio, {
+        retries: 2,
+        retryDelayMs: 120,
+        onEnded: shouldChainMainAudio ? playMainAudio : undefined,
+        onError: shouldChainMainAudio ? playMainAudio : undefined,
+      });
+      audioRef.current = primaryAudio;
     } else if (mainAudio) {
-      primaryAudio = playAudioSource(mainAudio);
+      primaryAudio = playManagedAppAudio(mainAudio, {
+        retries: 2,
+        retryDelayMs: 120,
+      });
+      audioRef.current = primaryAudio;
     }
 
     return () => {
       isCancelled = true;
-      if (primaryAudio) {
-        primaryAudio.pause();
-        primaryAudio.currentTime = 0;
-      }
-      if (followUpAudio) {
-        followUpAudio.pause();
-        followUpAudio.currentTime = 0;
-      }
+      primaryAudio?.stop();
+      followUpAudio?.stop();
     };
   }, [
     currentStep,

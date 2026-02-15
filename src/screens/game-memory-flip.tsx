@@ -29,6 +29,7 @@ import {
   MiniGameRulesModal,
   MiniGameTopHud,
 } from "@/components/minigame";
+import { playAppAudio, preloadAppAudioList } from "@/lib/app-audio";
 
 const LEVEL_ORDER: MemoryFlipLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<MemoryFlipLevelId, string> = {
@@ -417,6 +418,15 @@ export function GameMemoryFlip({
     [lesson.id],
   );
 
+  useEffect(() => {
+    if (!memoryConfig?.audio) return;
+    preloadAppAudioList([
+      memoryConfig.audio.flip,
+      memoryConfig.audio.match,
+      memoryConfig.audio.mismatch,
+    ]);
+  }, [memoryConfig]);
+
   const clearScheduledAction = useCallback((actionId: number | null) => {
     if (actionId === null) return;
     scheduledActionsRef.current = scheduledActionsRef.current.filter(
@@ -505,8 +515,11 @@ export function GameMemoryFlip({
   const playSfx = useCallback((audioSrc?: string | null) => {
     const src = audioSrc?.trim();
     if (!src) return;
-    const audio = new Audio(src);
-    audio.play().catch(() => undefined);
+    playAppAudio(src, {
+      allowOverlap: true,
+      retries: 1,
+      retryDelayMs: 80,
+    });
   }, []);
 
   const isLevelUnlocked = useCallback(
