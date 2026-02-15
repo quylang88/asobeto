@@ -18,6 +18,12 @@ export interface PlayManagedAppAudioOptions {
   volume?: number;
 }
 
+export interface PlayCelebrationAudioOptions {
+  retries?: number;
+  retryDelayMs?: number;
+  dedupeWindowMs?: number;
+}
+
 export interface ManagedAudioPlayback {
   stop: () => void;
 }
@@ -31,6 +37,8 @@ const oneShotPoolCache = new Map<string, HTMLAudioElement[]>();
 const decodedBufferCache = new Map<string, AudioBuffer>();
 const decodePromiseCache = new Map<string, Promise<AudioBuffer | null>>();
 const lastPlayedAtCache = new Map<string, number>();
+const activeManagedPlaybacks = new Set<ManagedAudioPlayback>();
+const activeOneShotAudioElements = new Set<HTMLAudioElement>();
 
 let audioContext: AudioContext | null = null;
 let unlockListenersRegistered = false;
@@ -50,6 +58,50 @@ function clampNumber(value: number, min: number, max: number): number {
 
 function nowMs(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
+
+function stopAndResetAudioElement(audio: HTMLAudioElement): void {
+  audio.pause();
+  try {
+    audio.currentTime = 0;
+  } catch {
+    // Ignore when currentTime is not seekable.
+  }
+}
+
+function registerManagedPlayback(stopImpl: () => void): {
+  playback: ManagedAudioPlayback;
+  release: () => void;
+} {
+  let released = false;
+  const playback: ManagedAudioPlayback = {
+    stop: () => {
+      if (released) return;
+      released = true;
+      activeManagedPlaybacks.delete(playback);
+      stopImpl();
+    },
+  };
+
+  const release = () => {
+    if (released) return;
+    released = true;
+    activeManagedPlaybacks.delete(playback);
+  };
+
+  activeManagedPlaybacks.add(playback);
+  return { playback, release };
+}
+
+function trackOneShotAudioElement(audio: HTMLAudioElement): void {
+  activeOneShotAudioElements.add(audio);
+
+  const clearTracking = () => {
+    activeOneShotAudioElements.delete(audio);
+  };
+
+  audio.addEventListener("ended", clearTracking, { once: true });
+  audio.addEventListener("error", clearTracking, { once: true });
 }
 
 function getAudioContext(): AudioContext | null {
@@ -74,7 +126,7 @@ async function resumeAudioContext(): Promise<void> {
   try {
     await context.resume();
   } catch {
-    // Ignore resume failures (for example before user interaction).
+    // Ignore resume failures before user interaction.
   }
 }
 
@@ -246,6 +298,7 @@ function tryPlayDecodedBuffer(
 
   source.onended = () => {
     if (stopped) return;
+    stopped = true;
     cleanup();
     options.onEnded?.();
   };
@@ -331,11 +384,20 @@ export function playAppAudio(
   preloadAppAudio(normalizedSource);
   void resumeAudioContext();
 
+  let releaseDecodedPlayback = () => {};
   const decodedPlayback = tryPlayDecodedBuffer(normalizedSource, {
     playbackRate,
     volume,
+    onEnded: () => {
+      releaseDecodedPlayback();
+    },
+    onError: () => {
+      releaseDecodedPlayback();
+    },
   });
   if (decodedPlayback) {
+    const trackedPlayback = registerManagedPlayback(() => decodedPlayback.stop());
+    releaseDecodedPlayback = trackedPlayback.release;
     return;
   }
 
@@ -350,7 +412,10 @@ export function playAppAudio(
     audio.currentTime = 0;
   }
 
-  attemptHtmlAudioPlay(audio, retries, retryDelayMs);
+  trackOneShotAudioElement(audio);
+  attemptHtmlAudioPlay(audio, retries, retryDelayMs, () => {
+    activeOneShotAudioElements.delete(audio);
+  });
 }
 
 export function playManagedAppAudio(
@@ -369,14 +434,24 @@ export function playManagedAppAudio(
   preloadAppAudio(normalizedSource);
   void resumeAudioContext();
 
+  let releaseDecodedPlayback = () => {};
   const decodedPlayback = tryPlayDecodedBuffer(normalizedSource, {
     playbackRate,
     volume,
-    onEnded: options.onEnded,
-    onError: options.onError,
+    onEnded: () => {
+      releaseDecodedPlayback();
+      options.onEnded?.();
+    },
+    onError: () => {
+      releaseDecodedPlayback();
+      options.onError?.();
+    },
   });
+
   if (decodedPlayback) {
-    return decodedPlayback;
+    const trackedPlayback = registerManagedPlayback(() => decodedPlayback.stop());
+    releaseDecodedPlayback = trackedPlayback.release;
+    return trackedPlayback.playback;
   }
 
   const audio = getBaseAudio(normalizedSource).cloneNode(true) as HTMLAudioElement;
@@ -387,36 +462,81 @@ export function playManagedAppAudio(
   ensureAudioElementPreloaded(audio);
 
   let stopped = false;
-  const cleanup = () => {
+  const trackedPlayback = registerManagedPlayback(() => {
+    if (stopped) return;
+    stopped = true;
     audio.onended = null;
     audio.onerror = null;
-  };
+    stopAndResetAudioElement(audio);
+  });
 
   audio.onended = () => {
     if (stopped) return;
-    cleanup();
+    stopped = true;
+    audio.onended = null;
+    audio.onerror = null;
+    trackedPlayback.release();
     options.onEnded?.();
   };
 
   audio.onerror = () => {
     if (stopped) return;
-    cleanup();
+    stopped = true;
+    audio.onended = null;
+    audio.onerror = null;
+    trackedPlayback.release();
     options.onError?.();
   };
 
   attemptHtmlAudioPlay(audio, retries, retryDelayMs, () => {
     if (stopped) return;
-    cleanup();
+    stopped = true;
+    audio.onended = null;
+    audio.onerror = null;
+    trackedPlayback.release();
     options.onError?.();
   });
 
-  return {
-    stop: () => {
-      if (stopped) return;
-      stopped = true;
-      cleanup();
-      audio.pause();
-      audio.currentTime = 0;
-    },
-  };
+  return trackedPlayback.playback;
+}
+
+export function stopAllAppAudio(): void {
+  const managedPlaybacks = [...activeManagedPlaybacks];
+  managedPlaybacks.forEach((playback) => {
+    playback.stop();
+  });
+
+  const oneShotAudios = [...activeOneShotAudioElements];
+  oneShotAudios.forEach((audio) => {
+    stopAndResetAudioElement(audio);
+  });
+  activeOneShotAudioElements.clear();
+
+  baseAudioCache.forEach((audio) => {
+    stopAndResetAudioElement(audio);
+  });
+
+  oneShotPoolCache.forEach((audioPool) => {
+    audioPool.forEach((audio) => {
+      stopAndResetAudioElement(audio);
+    });
+  });
+
+  lastPlayedAtCache.clear();
+}
+
+export function preloadCelebrationAudio(src: string): void {
+  preloadAppAudio(src);
+}
+
+export function playCelebrationAudio(
+  src: string,
+  options: PlayCelebrationAudioOptions = {},
+): void {
+  playAppAudio(src, {
+    allowOverlap: false,
+    dedupeWindowMs: Math.max(0, options.dedupeWindowMs ?? 900),
+    retries: Math.max(0, options.retries ?? 1),
+    retryDelayMs: Math.max(40, options.retryDelayMs ?? 120),
+  });
 }

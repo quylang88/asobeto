@@ -122,8 +122,8 @@ export function LessonPassivePreviewRenderer({
             <div className="absolute inset-0 overflow-hidden rounded-3xl bg-white">
               {currentLesson.mainImage ? (
                 <div
-                  className={`relative w-full h-full ${
-                    shouldUseLargerVocabImage ? "p-1" : "p-4"
+                  className={`relative h-full w-full ${
+                    shouldUseLargerVocabImage ? "" : "p-4"
                   }`}
                 >
                   <Image
@@ -132,11 +132,7 @@ export function LessonPassivePreviewRenderer({
                     fill
                     quality={70}
                     sizes="(max-width: 768px) 74vw, 272px"
-                    className={`object-contain ${
-                      shouldUseLargerVocabImage
-                        ? "object-bottom scale-[1.1] translate-y-[9%]"
-                        : ""
-                    }`}
+                    className="h-full w-full object-contain"
                   />
                 </div>
               ) : (

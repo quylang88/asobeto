@@ -27,7 +27,11 @@ import {
   MiniGameRulesModal,
   MiniGameTopHud,
 } from "@/components/minigame";
-import { playAppAudio, preloadAppAudioList } from "@/lib/app-audio";
+import {
+  playAppAudio,
+  preloadAppAudioList,
+  stopAllAppAudio,
+} from "@/lib/app-audio";
 import {
   CatcherDragFallingEntity,
   CatcherDragFooter,
@@ -1498,6 +1502,7 @@ export function GameDiacriticBuild({
       activeCatcherPointerIdRef.current = null;
       clearTimeoutRef(morphResetTimeoutRef);
       clearTimeoutRef(unlockAnimationTimeoutRef);
+      stopAllAppAudio();
     };
   }, [
     clearCelebrations,
@@ -1507,6 +1512,12 @@ export function GameDiacriticBuild({
     stopGameLoop,
   ]);
 
+  const handleBack = useCallback(() => {
+    stopGameLoop();
+    stopAllAppAudio();
+    onBack();
+  }, [onBack, stopGameLoop]);
+
   if (!diacriticConfig || levelList.length === 0) {
     return (
       <div className="relative flex h-dvh w-full flex-col items-center justify-center gap-4 bg-background p-6">
@@ -1514,7 +1525,7 @@ export function GameDiacriticBuild({
           Chưa có dữ liệu mini game cho tầng này.
         </p>
         <PrimaryButton
-          onClick={onBack}
+          onClick={handleBack}
           className="rounded-2xl"
           frontClassName="px-5 py-2 text-sm"
         >
@@ -1590,7 +1601,7 @@ export function GameDiacriticBuild({
       <MiniGameTopHud
         mode={phase === "select" ? "simple" : "stats"}
         title={challengeHeaderTitle}
-        onBack={onBack}
+        onBack={handleBack}
         mascotEmotion={
           phase === "playing"
             ? "excited"

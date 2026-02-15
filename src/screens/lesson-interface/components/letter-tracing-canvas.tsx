@@ -56,6 +56,7 @@ const GUIDE_STROKE_COLOR = "rgba(17, 24, 39, 0.16)";
 const TRACE_STROKE_COLOR = "#111827";
 const USER_STROKE_COLOR = "#0f172a";
 const FILLED_STROKE_COLOR = "#0b0f1a";
+const TRACING_PRIMARY_FONT_NAME = "HP001_4_hang_normal";
 const DEFAULT_SINGLE_LETTER_GLYPH: TracingGlyphConfig = {
   x: 30,
   y: 136,
@@ -111,6 +112,18 @@ function getTraceLineWidthLocal(targetText: string): number {
   if (targetLength === 2) return 14;
   if (targetLength <= 4) return 12;
   return Math.max(10, LINE_WIDTH * 0.38);
+}
+
+async function ensureTracingFontReady(fontSize: number): Promise<void> {
+  if (typeof document === "undefined" || !("fonts" in document)) return;
+  try {
+    await Promise.all([
+      document.fonts.load(`400 ${Math.max(12, Math.round(fontSize))}px "${TRACING_PRIMARY_FONT_NAME}"`),
+      document.fonts.ready,
+    ]);
+  } catch {
+    // Ignore font API failures and continue with current available font.
+  }
 }
 
 function buildDemoTimeline(
@@ -410,6 +423,7 @@ export function LetterTracingCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasStroke, setHasStroke] = useState(false);
+  const [fontReadyTick, setFontReadyTick] = useState(0);
   const autoTraceDoneRef = useRef(false);
   const isDemoMode = mode === "demo";
   const isPreviewMode = mode === "preview";
@@ -454,6 +468,19 @@ export function LetterTracingCanvas({
     }
     return letterStrokeAnimation?.glyph;
   }, [isSingleLetterTarget, letterStrokeAnimation]);
+
+  useEffect(() => {
+    let didCancel = false;
+    const syncTracingFont = async () => {
+      await ensureTracingFontReady(guideFontSize);
+      if (didCancel) return;
+      setFontReadyTick((current) => current + 1);
+    };
+    void syncTracingFont();
+    return () => {
+      didCancel = true;
+    };
+  }, [guideFontSize, traceDisplayText]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -508,6 +535,7 @@ export function LetterTracingCanvas({
       true,
     );
   }, [
+    fontReadyTick,
     guideGlyphConfig,
     guideFontSize,
     isPreviewMode,
@@ -545,6 +573,7 @@ export function LetterTracingCanvas({
       true,
     );
   }, [
+    fontReadyTick,
     guideGlyphConfig,
     guideFontSize,
     isPreviewMode,
@@ -732,6 +761,7 @@ export function LetterTracingCanvas({
       window.cancelAnimationFrame(rafId);
     };
   }, [
+    fontReadyTick,
     guideGlyphConfig,
     guideFontSize,
     isSingleLetterTarget,

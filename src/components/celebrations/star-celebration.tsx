@@ -6,7 +6,7 @@ import { Star } from "lucide-react";
 import {
   playCelebrationAudio,
   preloadCelebrationAudio,
-} from "@/lib/celebration-audio";
+} from "@/lib/app-audio";
 
 const DEFAULT_STAR_SOUND = "/assets/audio/feedback/success-answer.mp3";
 

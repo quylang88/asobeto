@@ -29,7 +29,11 @@ import {
   MiniGameRulesModal,
   MiniGameTopHud,
 } from "@/components/minigame";
-import { playAppAudio, preloadAppAudioList } from "@/lib/app-audio";
+import {
+  playAppAudio,
+  preloadAppAudioList,
+  stopAllAppAudio,
+} from "@/lib/app-audio";
 
 const LEVEL_ORDER: MemoryFlipLevelId[] = ["easy", "normal", "hard"];
 const LEVEL_LABEL: Record<MemoryFlipLevelId, string> = {
@@ -1131,8 +1135,13 @@ export function GameMemoryFlip({
       clearScheduledAction(countdownActionIdRef.current);
       setBoardLock(true);
       scheduledActionsRef.current = [];
+      stopAllAppAudio();
     };
   }, [clearRoundActions, clearScheduledAction, setBoardLock]);
+  const handleBack = useCallback(() => {
+    stopAllAppAudio();
+    onBack();
+  }, [onBack]);
 
   if (!memoryConfig || levelList.length === 0) {
     return (
@@ -1141,7 +1150,7 @@ export function GameMemoryFlip({
           Chưa có dữ liệu mini game cho tầng này.
         </p>
         <PrimaryButton
-          onClick={onBack}
+          onClick={handleBack}
           className="rounded-2xl"
           frontClassName="px-5 py-2 text-sm"
         >
@@ -1211,7 +1220,7 @@ export function GameMemoryFlip({
       <MiniGameTopHud
         mode={phase === "select" ? "simple" : "stats"}
         title={challengeHeaderTitle}
-        onBack={onBack}
+        onBack={handleBack}
         mascotEmotion={
           phase === "playing" || phase === "tutorial"
             ? "excited"

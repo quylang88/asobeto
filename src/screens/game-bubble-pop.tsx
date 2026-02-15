@@ -30,6 +30,7 @@ import {
   playAppAudio,
   playManagedAppAudio,
   preloadAppAudioList,
+  stopAllAppAudio,
   type ManagedAudioPlayback,
 } from "@/lib/app-audio";
 
@@ -1026,6 +1027,7 @@ export function GameBubblePop({
     return () => {
       stopGameLoop();
       stopNarration();
+      stopAllAppAudio();
       resetVisualFeedback();
       if (passCelebrationTimeoutRef.current !== null) {
         window.clearTimeout(passCelebrationTimeoutRef.current);
@@ -1037,6 +1039,12 @@ export function GameBubblePop({
       }
     };
   }, [resetVisualFeedback, stopGameLoop, stopNarration]);
+  const handleBack = useCallback(() => {
+    stopGameLoop();
+    stopNarration();
+    stopAllAppAudio();
+    onBack();
+  }, [onBack, stopGameLoop, stopNarration]);
 
   if (!bubbleConfig || levelList.length === 0) {
     return (
@@ -1045,7 +1053,7 @@ export function GameBubblePop({
           Chưa có dữ liệu mini game cho tầng này.
         </p>
         <PrimaryButton
-          onClick={onBack}
+          onClick={handleBack}
           className="rounded-2xl"
           frontClassName="px-5 py-2 text-sm"
         >
@@ -1110,7 +1118,7 @@ export function GameBubblePop({
       <MiniGameTopHud
         mode={phase === "select" ? "simple" : "stats"}
         title={challengeHeaderTitle}
-        onBack={onBack}
+        onBack={handleBack}
         mascotEmotion={
           phase === "playing"
             ? "excited"

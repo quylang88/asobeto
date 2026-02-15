@@ -30,7 +30,3 @@ export function buildVocabSpellingAudio(wordAssetKey: string): string {
 export function buildWordWithImage(wordAssetKey: string): string {
   return `/assets/images/words/${wordAssetKey}-with-word.webp`;
 }
-
-export function buildWordTraceGuideImage(wordAssetKey: string): string {
-  return `/assets/tracing/words/${wordAssetKey}-guide.webp`;
-}

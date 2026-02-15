@@ -5,6 +5,7 @@ import {
   playAppAudio,
   playManagedAppAudio,
   preloadAppAudioList,
+  stopAllAppAudio,
   type ManagedAudioPlayback,
 } from "@/lib/app-audio";
 
@@ -24,9 +25,9 @@ export function useLessonAudio({
   const audioRef = useRef<ManagedAudioPlayback | null>(null);
 
   const stopAudio = useCallback(() => {
-    if (!audioRef.current) return;
-    audioRef.current.stop();
+    audioRef.current?.stop();
     audioRef.current = null;
+    stopAllAppAudio();
   }, []);
 
   const playAudio = useCallback(
@@ -62,40 +63,48 @@ export function useLessonAudio({
     let isCancelled = false;
     let primaryAudio: ManagedAudioPlayback | null = null;
     let followUpAudio: ManagedAudioPlayback | null = null;
+    let autoplayTimeoutId: number | null = null;
 
     stopAudio();
 
-    const playMainAudio = () => {
-      if (isCancelled || !mainAudio) {
-        return;
-      }
-      followUpAudio = playManagedAppAudio(mainAudio, {
-        retries: 2,
-        retryDelayMs: 120,
-      });
-      audioRef.current = followUpAudio;
-    };
+    autoplayTimeoutId = window.setTimeout(() => {
+      if (isCancelled) return;
 
-    if (introAudio) {
-      const shouldChainMainAudio =
-        Boolean(mainAudio) && introAudio !== mainAudio;
-      primaryAudio = playManagedAppAudio(introAudio, {
-        retries: 2,
-        retryDelayMs: 120,
-        onEnded: shouldChainMainAudio ? playMainAudio : undefined,
-        onError: shouldChainMainAudio ? playMainAudio : undefined,
-      });
-      audioRef.current = primaryAudio;
-    } else if (mainAudio) {
-      primaryAudio = playManagedAppAudio(mainAudio, {
-        retries: 2,
-        retryDelayMs: 120,
-      });
-      audioRef.current = primaryAudio;
-    }
+      const playMainAudio = () => {
+        if (isCancelled || !mainAudio) {
+          return;
+        }
+        followUpAudio = playManagedAppAudio(mainAudio, {
+          retries: 2,
+          retryDelayMs: 120,
+        });
+        audioRef.current = followUpAudio;
+      };
+
+      if (introAudio) {
+        const shouldChainMainAudio =
+          Boolean(mainAudio) && introAudio !== mainAudio;
+        primaryAudio = playManagedAppAudio(introAudio, {
+          retries: 2,
+          retryDelayMs: 120,
+          onEnded: shouldChainMainAudio ? playMainAudio : undefined,
+          onError: shouldChainMainAudio ? playMainAudio : undefined,
+        });
+        audioRef.current = primaryAudio;
+      } else if (mainAudio) {
+        primaryAudio = playManagedAppAudio(mainAudio, {
+          retries: 2,
+          retryDelayMs: 120,
+        });
+        audioRef.current = primaryAudio;
+      }
+    }, 0);
 
     return () => {
       isCancelled = true;
+      if (autoplayTimeoutId !== null) {
+        window.clearTimeout(autoplayTimeoutId);
+      }
       primaryAudio?.stop();
       followUpAudio?.stop();
     };

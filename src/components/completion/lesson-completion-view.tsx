@@ -7,7 +7,8 @@ import { Mascot } from "@/components/beto-mascot";
 import {
   playCelebrationAudio,
   preloadCelebrationAudio,
-} from "@/lib/celebration-audio";
+  stopAllAppAudio,
+} from "@/lib/app-audio";
 import { PrimaryButton } from "@/components/common/primary-button";
 
 const COMPLETION_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
@@ -58,6 +59,10 @@ export function LessonCompletionView({
   const completionSummary = noStarsEarned
     ? (failSummary ?? defaultSummary)
     : (successSummary ?? defaultSummary);
+  const handleComplete = () => {
+    stopAllAppAudio();
+    onComplete();
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -138,7 +143,7 @@ export function LessonCompletionView({
           whileTap={{ scale: 0.95 }}
         >
           <PrimaryButton
-            onClick={onComplete}
+            onClick={handleComplete}
             className="rounded-3xl"
             frontClassName="px-12 py-4 text-xl"
           >

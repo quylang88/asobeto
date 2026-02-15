@@ -8,7 +8,7 @@ import {
 
 const lessonPrefix = "t4-f3";
 const word = "bò";
-const wordAssetKey = "bo";
+const wordAssetKey = "bof";
 const wordTokens: WordToken[] = [
   { id: "b", text: "b", kind: "letter" },
   { id: "o", text: "o", kind: "letter" },

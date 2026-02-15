@@ -27,7 +27,11 @@ import {
   FeedFoodVisual,
   FeedProgressBar,
 } from "./components/index";
-import { playAppAudio, preloadAppAudioList } from "@/lib/app-audio";
+import {
+  playAppAudio,
+  preloadAppAudioList,
+  stopAllAppAudio,
+} from "@/lib/app-audio";
 
 const LEVEL_ORDER: AnimalFeedLevelId[] = ["easy", "normal", "hard"];
 const PASS_FLY_EFFECT_AUDIO = "/assets/audio/game/common/pop.mp3";
@@ -1192,6 +1196,7 @@ export function GameAnimalFeed({
 
   const handleBack = useCallback(() => {
     stopGameLoop();
+    stopAllAppAudio();
     onBack();
   }, [onBack, stopGameLoop]);
 
@@ -1303,6 +1308,7 @@ export function GameAnimalFeed({
       timeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
       timeoutIdsRef.current = [];
       clearTimeoutRef(unlockAnimationTimeoutRef);
+      stopAllAppAudio();
     };
   }, [clearTimeoutRef, stopGameLoop]);
 

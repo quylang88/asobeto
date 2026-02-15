@@ -9,7 +9,7 @@ import {
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
 import { LessonCompletionView } from "@/components/completion";
-import { preloadCelebrationAudio } from "@/lib/celebration-audio";
+import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
 import { getStoredLessonStars } from "@/lib/floor-progress";
 import { type LessonAnswer, type LessonContent } from "../../data/game-config";
 import {
@@ -306,6 +306,12 @@ export function LessonInterface({
     resetSpeechSessionRef.current();
   }, []);
 
+  const handleBack = useCallback(() => {
+    stopAudio();
+    stopAllAppAudio();
+    onBack();
+  }, [onBack, stopAudio]);
+
   const {
     clearAdvanceTimeout,
     onScoringResult,
@@ -392,7 +398,7 @@ export function LessonInterface({
       <div className="relative w-full h-dvh flex flex-col items-center justify-center bg-background">
         <p>No lessons available.</p>
         <PrimaryButton
-          onClick={onBack}
+          onClick={handleBack}
           className="mt-4 rounded-2xl"
           frontClassName="px-5 py-2 text-sm"
         >
@@ -435,7 +441,7 @@ export function LessonInterface({
         progress={progress}
         currentStep={currentStep}
         totalSteps={lessons.length}
-        onBack={onBack}
+        onBack={handleBack}
       />
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 app-scroll pb-safe">

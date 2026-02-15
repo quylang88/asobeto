@@ -1,7 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import {
   buildVocabIntroVoice,
-  buildWordTraceGuideImage,
   type VocabLessonBaseConfig,
 } from "./shared";
 
@@ -16,7 +15,6 @@ export function createVocabTracePracticeLesson(
     lessonKind: "vocab_trace_practice",
     title: `Viết từ "${word}"`,
     introVoice: buildVocabIntroVoice(wordAssetKey, 4),
-    mainImage: buildWordTraceGuideImage(wordAssetKey),
     targetText: word,
     relatedLetters: reviewLetters,
     scoring: {

@@ -6,7 +6,7 @@ import { Heart } from "lucide-react";
 import {
   playCelebrationAudio,
   preloadCelebrationAudio,
-} from "@/lib/celebration-audio";
+} from "@/lib/app-audio";
 
 const DEFAULT_BROKEN_HEART_SOUND = "/assets/audio/feedback/wrong-answer.mp3";
 
