@@ -53,7 +53,6 @@ interface LessonActiveRendererProps {
   traceOneStarThreshold: number;
   traceTwoStarThreshold: number;
   handleTraceEvaluate: (result: TraceEvaluation) => void;
-  isVocabTracePracticeLesson: boolean;
   handleNext: () => void;
 }
 
@@ -89,12 +88,72 @@ export function LessonActiveRenderer({
   traceOneStarThreshold,
   traceTwoStarThreshold,
   handleTraceEvaluate,
-  isVocabTracePracticeLesson,
   handleNext,
 }: LessonActiveRendererProps) {
+  const hasImageAnswerOptions = answerOptions.some((answer) =>
+    Boolean(answer.image),
+  );
+
   return (
     <>
-      {currentLesson.type === "active" && hasAnswerOptions && (
+      {currentLesson.type === "active" &&
+        hasAnswerOptions &&
+        hasImageAnswerOptions && (
+          <div className="mx-auto mt-1 grid w-full max-w-105 grid-cols-3 gap-3">
+            {answerOptions.map((answer, index) => {
+              const isSelected = selectedAnswer === answer.id;
+              const isCorrectAnswer = answer.isCorrect;
+              const showResult = selectedAnswer !== null;
+              const shouldHighlightCorrect = showResult && isCorrectAnswer;
+              const shouldHighlightWrongSelected =
+                showResult && isSelected && !isCorrectAnswer;
+              const shouldFadeWrongUnselected =
+                showResult && !isCorrectAnswer && !isSelected;
+
+              return (
+                <motion.button
+                  key={answer.id}
+                  initial={{ y: 30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileTap={!selectedAnswer ? { scale: 0.96 } : {}}
+                  onClick={() => handleAnswer(answer)}
+                  disabled={selectedAnswer !== null}
+                  className={`relative aspect-3/4 w-full overflow-hidden rounded-2xl border-4 bg-white shadow-md transition ${
+                    shouldHighlightCorrect
+                      ? "border-green-bright ring-4 ring-green-bright/30"
+                      : shouldHighlightWrongSelected
+                        ? "border-red-400 ring-4 ring-red-300/30"
+                        : "border-sky-200"
+                  } ${shouldFadeWrongUnselected ? "opacity-75" : ""} ${
+                    selectedAnswer !== null
+                      ? "cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  {answer.image ? (
+                    <Image
+                      src={answer.image}
+                      alt={answer.text || "Answer image"}
+                      fill
+                      quality={75}
+                      sizes="(max-width: 768px) 28vw, 132px"
+                      className="object-contain"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-4xl font-bold text-foreground">
+                      {answer.text}
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        )}
+
+      {currentLesson.type === "active" &&
+        hasAnswerOptions &&
+        !hasImageAnswerOptions && (
         <div className="flex justify-center gap-4 flex-wrap">
           {answerOptions.map((answer, index) => {
             const isSelected = selectedAnswer === answer.id;
@@ -376,17 +435,6 @@ export function LessonActiveRenderer({
             twoStarThreshold={traceTwoStarThreshold}
             onEvaluate={handleTraceEvaluate}
           />
-
-          {traceResult && isVocabTracePracticeLesson && (
-            <div className="rounded-2xl bg-white/80 px-4 py-3 shadow-md">
-              <p className="text-sm font-semibold text-foreground">
-                Điểm tô: {(traceResult.score * 100).toFixed(0)}%
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Sao đạt được: {traceResult.stars}/2
-              </p>
-            </div>
-          )}
         </div>
       )}
 

@@ -9,11 +9,12 @@ const TRACE_PRACTICE_KINDS = new Set<NonNullable<LessonKind>>([
 ]);
 const LARGE_VOCAB_IMAGE_KINDS = new Set<NonNullable<LessonKind>>([
   "vocab_listen_look",
-  "vocab_listen_repeat",
+  "pronunciation_practice",
 ]);
 const LETTER_GRID_PREVIEW_KINDS = new Set<NonNullable<LessonKind>>([
   "letter_listen",
   "letter_quiz",
+  "pronunciation_practice",
 ]);
 
 export function isTracePracticeLessonKind(kind: LessonKind): boolean {
@@ -36,8 +37,8 @@ export function isLetterTraceDemoLessonKind(kind: LessonKind): boolean {
   return kind === "letter_trace_demo";
 }
 
-export function isVocabListenRepeatLessonKind(kind: LessonKind): boolean {
-  return kind === "vocab_listen_repeat";
+export function isPronunciationPracticeLessonKind(kind: LessonKind): boolean {
+  return kind === "pronunciation_practice";
 }
 
 export function isFloor3ListenLookLessonKind(

@@ -27,7 +27,7 @@ interface GameState {
   selectedFloor: number | null;
 }
 
-const BOSS_REVIEW_PASS_THRESHOLD = 5;
+const BOSS_REVIEW_PASS_THRESHOLD = 6;
 
 function resolveBossAutoFloorId(worldId: number, towerId: number): number | null {
   const worldData = getWorldData(worldId);
@@ -305,6 +305,7 @@ export default function AsobetoApp() {
 
       return (
         <LessonInterface
+          key={`${gameState.selectedWorld}-${gameState.selectedTower}-${gameState.selectedFloor}`}
           worldId={gameState.selectedWorld!}
           towerId={gameState.selectedTower!}
           floorId={gameState.selectedFloor!}
@@ -312,6 +313,13 @@ export default function AsobetoApp() {
           floorMaxStars={selectedFloor?.maxStars ?? 3}
           lessons={selectedFloor?.content || []}
           onComplete={handleLessonComplete}
+          onBossFloorSelect={(targetFloorId) => {
+            setGameState((prev) => ({
+              ...prev,
+              currentScreen: "lesson",
+              selectedFloor: targetFloorId,
+            }));
+          }}
           onBack={() => handleBack(lessonBackScreen)}
         />
       );

@@ -1,7 +1,7 @@
 import { LessonContent, WordToken } from "../map-structure";
 import {
   createVocabListenLookLesson,
-  createVocabListenRepeatLesson,
+  createVocabPronunciationPracticeLesson,
   createVocabTracePracticeLesson,
   createVocabWordBuildLesson,
 } from "../../lesson-templates/vocab";
@@ -29,7 +29,7 @@ export const floor3Lessons: LessonContent[] = [
     wordAssetKey,
     reviewLetters,
   }),
-  createVocabListenRepeatLesson({
+  createVocabPronunciationPracticeLesson({
     lessonId: `${lessonPrefix}-l2`,
     word,
     wordAssetKey,

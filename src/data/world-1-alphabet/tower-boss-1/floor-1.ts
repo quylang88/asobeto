@@ -1,86 +1,73 @@
-import { LessonAnswer, LessonContent } from "../map-structure";
+import type { LessonContent } from "../map-structure";
+import {
+  createLetterPronunciationPracticeLesson,
+  createLetterQuizLesson,
+  createLetterTracePracticeLesson,
+} from "../../lesson-templates/letter";
+import {
+  createVocabImageQuizLesson,
+  createVocabPronunciationPracticeLesson,
+  createVocabTracePracticeLesson,
+  type VocabImageQuizChoice,
+} from "../../lesson-templates/vocab";
 
 interface ReviewLetterOption {
   id: string;
   text: string;
-  audio: string;
+  assetKey: string;
 }
 
-interface ReviewWordOption {
-  id: string;
-  text: string;
-  audio: string;
-  image: string;
+interface ReviewWordOption extends VocabImageQuizChoice {
+  assetKey: string;
 }
-
-const FALLBACK_LETTER_AUDIO = "/assets/audio/letters/a.mp3";
-const FALLBACK_WORD_AUDIO = "/assets/audio/words/cas.mp3";
-
-const LETTER_AUDIO_BY_ID: Record<string, string> = {
-  a: "/assets/audio/letters/a.mp3",
-  c: "/assets/audio/letters/c.mp3",
-};
-
-const WORD_AUDIO_BY_ID: Record<string, string> = {
-  cas: "/assets/audio/words/cas.mp3",
-};
 
 const REVIEW_LETTERS: ReviewLetterOption[] = [
-  { id: "a", text: "a", audio: LETTER_AUDIO_BY_ID.a ?? FALLBACK_LETTER_AUDIO },
-  { id: "c", text: "c", audio: LETTER_AUDIO_BY_ID.c ?? FALLBACK_LETTER_AUDIO },
-  {
-    id: "aw",
-    text: "ă",
-    audio: LETTER_AUDIO_BY_ID.aw ?? FALLBACK_LETTER_AUDIO,
-  },
-  { id: "n", text: "n", audio: LETTER_AUDIO_BY_ID.n ?? FALLBACK_LETTER_AUDIO },
-  {
-    id: "oo",
-    text: "ô",
-    audio: LETTER_AUDIO_BY_ID.oo ?? FALLBACK_LETTER_AUDIO,
-  },
-  { id: "b", text: "b", audio: LETTER_AUDIO_BY_ID.b ?? FALLBACK_LETTER_AUDIO },
-  { id: "o", text: "o", audio: LETTER_AUDIO_BY_ID.o ?? FALLBACK_LETTER_AUDIO },
-  { id: "m", text: "m", audio: LETTER_AUDIO_BY_ID.m ?? FALLBACK_LETTER_AUDIO },
-  { id: "e", text: "e", audio: LETTER_AUDIO_BY_ID.e ?? FALLBACK_LETTER_AUDIO },
+  { id: "a", text: "a", assetKey: "a" },
+  { id: "c", text: "c", assetKey: "c" },
+  { id: "n", text: "n", assetKey: "n" },
+  { id: "oo", text: "ô", assetKey: "oo" },
+  { id: "b", text: "b", assetKey: "b" },
+  { id: "o", text: "o", assetKey: "o" },
+  { id: "m", text: "m", assetKey: "m" },
+  { id: "e", text: "e", assetKey: "e" },
 ];
 
 const REVIEW_WORDS: ReviewWordOption[] = [
   {
     id: "cas",
     text: "cá",
-    audio: WORD_AUDIO_BY_ID.cas ?? FALLBACK_WORD_AUDIO,
-    image: "/assets/images/review/cas.svg",
+    assetKey: "cas",
+    image: "/assets/images/words/cas.webp",
   },
   {
     id: "awn",
     text: "ăn",
-    audio: WORD_AUDIO_BY_ID.awn ?? FALLBACK_WORD_AUDIO,
-    image: "/assets/images/review/awn.svg",
+    assetKey: "awn",
+    image: "/assets/images/words/awn.webp",
   },
   {
     id: "boos",
     text: "bố",
-    audio: WORD_AUDIO_BY_ID.boos ?? FALLBACK_WORD_AUDIO,
-    image: "/assets/images/review/boos.svg",
+    assetKey: "boos",
+    image: "/assets/images/words/boos.webp",
   },
   {
     id: "bof",
     text: "bò",
-    audio: WORD_AUDIO_BY_ID.bof ?? FALLBACK_WORD_AUDIO,
-    image: "/assets/images/review/bof.svg",
+    assetKey: "bof",
+    image: "/assets/images/words/bof.webp",
   },
   {
     id: "mej",
     text: "mẹ",
-    audio: WORD_AUDIO_BY_ID.mej ?? FALLBACK_WORD_AUDIO,
-    image: "/assets/images/review/mej.svg",
+    assetKey: "mej",
+    image: "/assets/images/words/mej.webp",
   },
   {
     id: "cor",
     text: "cỏ",
-    audio: WORD_AUDIO_BY_ID.cor ?? FALLBACK_WORD_AUDIO,
-    image: "/assets/images/review/cor.svg",
+    assetKey: "cor",
+    image: "/assets/images/words/cor.webp",
   },
 ];
 
@@ -100,237 +87,178 @@ function pickDistinct<T>(items: T[], count: number): T[] {
   return shuffleArray(items).slice(0, Math.max(0, Math.min(count, items.length)));
 }
 
-function createLetterQuizAnswers(correct: ReviewLetterOption): LessonAnswer[] {
+function getLetterDistractors(correct: ReviewLetterOption): [string, string] {
   const distractors = pickDistinct(
-    REVIEW_LETTERS.filter((letter) => letter.id !== correct.id),
+    REVIEW_LETTERS.filter((letter) => letter.id !== correct.id).map(
+      (letter) => letter.text,
+    ),
     2,
   );
 
-  return shuffleArray([
-    {
-      id: `${correct.id}-correct`,
-      text: correct.text,
-      isCorrect: true,
-    },
-    ...distractors.map((letter) => ({
-      id: `${correct.id}-distractor-${letter.id}`,
-      text: letter.text,
-      isCorrect: false,
-    })),
-  ]);
+  return [distractors[0] ?? "a", distractors[1] ?? "c"];
 }
 
-function createWordImageQuizAnswers(correct: ReviewWordOption): LessonAnswer[] {
+function getWordDistractors(
+  correct: ReviewWordOption,
+): [VocabImageQuizChoice, VocabImageQuizChoice] {
   const distractors = pickDistinct(
     REVIEW_WORDS.filter((word) => word.id !== correct.id),
     2,
   );
 
-  return shuffleArray([
-    {
-      id: `${correct.id}-correct`,
-      text: correct.text,
-      image: correct.image,
-      isCorrect: true,
-    },
-    ...distractors.map((word) => ({
-      id: `${correct.id}-distractor-${word.id}`,
-      text: word.text,
-      image: word.image,
-      isCorrect: false,
-    })),
-  ]);
+  return [
+    distractors[0] ?? REVIEW_WORDS[0],
+    distractors[1] ?? REVIEW_WORDS[1] ?? REVIEW_WORDS[0],
+  ];
 }
 
-const [letterQuizA, letterQuizB] = pickDistinct(REVIEW_LETTERS, 2);
+function createBossLetterQuizLesson(
+  lessonId: string,
+  option: ReviewLetterOption,
+): LessonContent {
+  const lesson = createLetterQuizLesson({
+    lessonId,
+    letter: option.text,
+    letterAssetKey: option.assetKey,
+    distractors: getLetterDistractors(option),
+  });
+
+  return {
+    ...lesson,
+    title: "Nghe và chọn chữ cái đã học",
+    disableIntro: true,
+    fogMode: "locked",
+    scoring: {
+      metric: "correct_answer",
+      passPolicy: "always",
+      maxStars: 1,
+      starThresholds: {
+        oneStar: 1,
+      },
+    },
+  };
+}
+
+function createBossVocabImageQuizLesson(
+  lessonId: string,
+  option: ReviewWordOption,
+): LessonContent {
+  return createVocabImageQuizLesson({
+    lessonId,
+    title: "Nghe và chọn đúng ảnh từ vựng",
+    mainAudio: `/assets/audio/words/${option.assetKey}.mp3`,
+    correct: option,
+    distractors: getWordDistractors(option),
+    disableIntro: true,
+  });
+}
+
+function createBossPronunciationLetterLesson(
+  lessonId: string,
+  option: ReviewLetterOption,
+): LessonContent {
+  return createLetterPronunciationPracticeLesson({
+    lessonId,
+    letter: option.text,
+    letterAssetKey: option.assetKey,
+    title: "Nhìn chữ cái và nói lại",
+    useAudio: false,
+    disableIntro: true,
+    passThreshold: 0.7,
+    oneStarThreshold: 0.7,
+    twoStarsThreshold: 0.9,
+    maxStars: 1,
+  });
+}
+
+function createBossPronunciationWordLesson(
+  lessonId: string,
+  option: ReviewWordOption,
+): LessonContent {
+  return createVocabPronunciationPracticeLesson({
+    lessonId,
+    word: option.text,
+    wordAssetKey: option.assetKey,
+    reviewLetters: [],
+    title: "Nhìn từ và nói lại",
+    useAudio: false,
+    showImage: false,
+    disableIntro: true,
+    passThreshold: 0.7,
+    oneStarThreshold: 0.7,
+    twoStarsThreshold: 0.9,
+    maxStars: 1,
+  });
+}
+
+function createBossLetterTracePracticeLesson(
+  lessonId: string,
+  option: ReviewLetterOption,
+): LessonContent {
+  const lesson = createLetterTracePracticeLesson({
+    lessonId,
+    letter: option.text,
+    letterAssetKey: option.assetKey,
+  });
+
+  return {
+    ...lesson,
+    title: "Viết lại chữ cái",
+    disableIntro: true,
+    scoring: {
+      metric: "trace_accuracy",
+      passPolicy: "threshold",
+      passThreshold: 0.7,
+      starThresholds: {
+        oneStar: 0.7,
+        twoStars: 0.95,
+      },
+      maxStars: 1,
+    },
+  };
+}
+
+function createBossVocabTracePracticeLesson(
+  lessonId: string,
+  option: ReviewWordOption,
+): LessonContent {
+  const lesson = createVocabTracePracticeLesson({
+    lessonId,
+    word: option.text,
+    wordAssetKey: option.assetKey,
+    reviewLetters: [],
+  });
+
+  return {
+    ...lesson,
+    title: "Viết lại từ vựng",
+    disableIntro: true,
+    scoring: {
+      metric: "trace_accuracy",
+      passPolicy: "threshold",
+      passThreshold: 0.7,
+      starThresholds: {
+        oneStar: 0.7,
+        twoStars: 0.95,
+      },
+      maxStars: 1,
+    },
+  };
+}
+
+const [letterQuizA, letterQuizB, speechLetterA, speechLetterB, traceLetterA, traceLetterB] =
+  pickDistinct(REVIEW_LETTERS, 6);
 const [wordQuizA, wordQuizB, speechWord, traceWord] = pickDistinct(REVIEW_WORDS, 4);
-const [speechLetterA, speechLetterB, traceLetterA, traceLetterB] =
-  pickDistinct(REVIEW_LETTERS, 4);
 
 export const floor1Lessons: LessonContent[] = [
-  {
-    id: "boss-f1-l1",
-    type: "active",
-    lessonKind: "letter_quiz",
-    title: "Nghe và chọn chữ cái",
-    instruction: "Nghe âm thanh và chọn đúng chữ cái đã học.",
-    mainAudio: letterQuizA.audio,
-    targetLetter: letterQuizA.text,
-    answers: createLetterQuizAnswers(letterQuizA),
-    scoring: {
-      metric: "correct_answer",
-      passPolicy: "always",
-      starThresholds: {
-        oneStar: 1,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l2",
-    type: "active",
-    lessonKind: "letter_quiz",
-    title: "Nghe và chọn chữ cái",
-    instruction: "Nghe âm thanh và chọn đúng chữ cái đã học.",
-    mainAudio: letterQuizB.audio,
-    targetLetter: letterQuizB.text,
-    answers: createLetterQuizAnswers(letterQuizB),
-    scoring: {
-      metric: "correct_answer",
-      passPolicy: "always",
-      starThresholds: {
-        oneStar: 1,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l3",
-    type: "active",
-    lessonKind: "vocab_listen_look",
-    title: "Nghe và chọn ảnh từ vựng",
-    instruction: "Nghe phát âm và chạm đúng ảnh từ vựng.",
-    mainAudio: wordQuizA.audio,
-    answers: createWordImageQuizAnswers(wordQuizA),
-    scoring: {
-      metric: "correct_answer",
-      passPolicy: "always",
-      starThresholds: {
-        oneStar: 1,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l4",
-    type: "active",
-    lessonKind: "vocab_listen_look",
-    title: "Nghe và chọn ảnh từ vựng",
-    instruction: "Nghe phát âm và chạm đúng ảnh từ vựng.",
-    mainAudio: wordQuizB.audio,
-    answers: createWordImageQuizAnswers(wordQuizB),
-    scoring: {
-      metric: "correct_answer",
-      passPolicy: "always",
-      starThresholds: {
-        oneStar: 1,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l5",
-    type: "active",
-    lessonKind: "vocab_listen_repeat",
-    title: "Nghe và nói lại chữ cái",
-    instruction: "Bấm mic rồi đọc lại chữ cái vừa nghe.",
-    mainAudio: speechLetterA.audio,
-    targetText: speechLetterA.text,
-    scoring: {
-      metric: "speech_similarity",
-      passPolicy: "threshold",
-      passThreshold: 0.6,
-      starThresholds: {
-        oneStar: 0.6,
-        twoStars: 0.85,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l6",
-    type: "active",
-    lessonKind: "vocab_listen_repeat",
-    title: "Nghe và nói lại chữ cái",
-    instruction: "Bấm mic rồi đọc lại chữ cái vừa nghe.",
-    mainAudio: speechLetterB.audio,
-    targetText: speechLetterB.text,
-    scoring: {
-      metric: "speech_similarity",
-      passPolicy: "threshold",
-      passThreshold: 0.6,
-      starThresholds: {
-        oneStar: 0.6,
-        twoStars: 0.85,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l7",
-    type: "active",
-    lessonKind: "vocab_listen_repeat",
-    title: "Nghe và nói lại từ vựng",
-    instruction: "Bấm mic rồi đọc lại từ vừa nghe.",
-    mainAudio: speechWord.audio,
-    targetText: speechWord.text,
-    mainImage: speechWord.image,
-    scoring: {
-      metric: "speech_similarity",
-      passPolicy: "threshold",
-      passThreshold: 0.6,
-      starThresholds: {
-        oneStar: 0.6,
-        twoStars: 0.85,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l8",
-    type: "active",
-    lessonKind: "letter_trace_practice",
-    title: "Viết lại chữ cái",
-    instruction: "Viết lại chữ cái theo mẫu.",
-    targetText: traceLetterA.text,
-    targetLetter: traceLetterA.text,
-    scoring: {
-      metric: "trace_accuracy",
-      passPolicy: "threshold",
-      passThreshold: 0.6,
-      starThresholds: {
-        oneStar: 0.6,
-        twoStars: 0.9,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l9",
-    type: "active",
-    lessonKind: "letter_trace_practice",
-    title: "Viết lại chữ cái",
-    instruction: "Viết lại chữ cái theo mẫu.",
-    targetText: traceLetterB.text,
-    targetLetter: traceLetterB.text,
-    scoring: {
-      metric: "trace_accuracy",
-      passPolicy: "threshold",
-      passThreshold: 0.6,
-      starThresholds: {
-        oneStar: 0.6,
-        twoStars: 0.9,
-      },
-      maxStars: 1,
-    },
-  },
-  {
-    id: "boss-f1-l10",
-    type: "active",
-    lessonKind: "vocab_trace_practice",
-    title: "Viết lại từ vựng",
-    instruction: "Viết lại từ vựng theo mẫu.",
-    targetText: traceWord.text,
-    mainImage: traceWord.image,
-    scoring: {
-      metric: "trace_accuracy",
-      passPolicy: "threshold",
-      passThreshold: 0.6,
-      starThresholds: {
-        oneStar: 0.6,
-        twoStars: 0.9,
-      },
-      maxStars: 1,
-    },
-  },
+  createBossLetterQuizLesson("boss-f1-l1", letterQuizA),
+  createBossLetterQuizLesson("boss-f1-l2", letterQuizB),
+  createBossVocabImageQuizLesson("boss-f1-l3", wordQuizA),
+  createBossVocabImageQuizLesson("boss-f1-l4", wordQuizB),
+  createBossPronunciationLetterLesson("boss-f1-l5", speechLetterA),
+  createBossPronunciationLetterLesson("boss-f1-l6", speechLetterB),
+  createBossPronunciationWordLesson("boss-f1-l7", speechWord),
+  createBossLetterTracePracticeLesson("boss-f1-l8", traceLetterA),
+  createBossLetterTracePracticeLesson("boss-f1-l9", traceLetterB),
+  createBossVocabTracePracticeLesson("boss-f1-l10", traceWord),
 ];

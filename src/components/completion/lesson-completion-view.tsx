@@ -26,6 +26,9 @@ interface LessonCompletionViewProps {
   successSummary?: string;
   failSummary?: string;
   continueLabel?: string;
+  showStars?: boolean;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
 }
 
 export function LessonCompletionView({
@@ -40,6 +43,9 @@ export function LessonCompletionView({
   successSummary,
   failSummary,
   continueLabel = "Tiếp Theo",
+  showStars = true,
+  secondaryActionLabel,
+  onSecondaryAction,
 }: LessonCompletionViewProps) {
   const displayedStarCount = Math.max(1, floorMaxStars);
   const starSizeClass =
@@ -70,11 +76,17 @@ export function LessonCompletionView({
       ? COMPLETION_FAIL_AUDIO
       : COMPLETION_SUCCESS_AUDIO;
     preloadCelebrationAudio(audioSource);
-    playCelebrationAudio(audioSource, {
-      retries: 1,
-      retryDelayMs: 120,
-      dedupeWindowMs: 900,
-    });
+    stopAllAppAudio();
+    const playbackTimer = window.setTimeout(() => {
+      playCelebrationAudio(audioSource, {
+        retries: 2,
+        retryDelayMs: 140,
+        dedupeWindowMs: 0,
+      });
+    }, 80);
+    return () => {
+      window.clearTimeout(playbackTimer);
+    };
   }, [noStarsEarned]);
 
   return (
@@ -102,29 +114,31 @@ export function LessonCompletionView({
           {completionTitle}
         </motion.h1>
 
-        <motion.div
-          className="flex justify-center gap-4 mt-6"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          {[...Array(displayedStarCount)].map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.7 + i * 0.2, type: "spring" }}
-            >
-              <Star
-                className={`${starSizeClass} ${
-                  i < stars
-                    ? "text-yellow-bright fill-yellow-bright"
-                    : "text-gray-300 fill-gray-200"
-                }`}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
+        {showStars && (
+          <motion.div
+            className="mt-6 flex justify-center gap-4"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            {[...Array(displayedStarCount)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.7 + i * 0.2, type: "spring" }}
+              >
+                <Star
+                  className={`${starSizeClass} ${
+                    i < stars
+                      ? "text-yellow-bright fill-yellow-bright"
+                      : "text-gray-300 fill-gray-200"
+                  }`}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
         <motion.p
           className="mt-4 text-xl text-muted-foreground"
@@ -140,15 +154,30 @@ export function LessonCompletionView({
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 1.5 }}
-          whileTap={{ scale: 0.95 }}
         >
-          <PrimaryButton
-            onClick={handleComplete}
-            className="rounded-3xl"
-            frontClassName="px-12 py-4 text-xl"
-          >
-            {continueLabel}
-          </PrimaryButton>
+          <div className="flex flex-col items-center gap-3">
+            {secondaryActionLabel && onSecondaryAction && (
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <PrimaryButton
+                  tone="brand"
+                  onClick={onSecondaryAction}
+                  className="rounded-3xl"
+                  frontClassName="px-10 py-3 text-lg"
+                >
+                  {secondaryActionLabel}
+                </PrimaryButton>
+              </motion.div>
+            )}
+            <motion.div whileTap={{ scale: 0.95 }}>
+              <PrimaryButton
+                onClick={handleComplete}
+                className="rounded-3xl"
+                frontClassName="px-12 py-4 text-xl"
+              >
+                {continueLabel}
+              </PrimaryButton>
+            </motion.div>
+          </div>
         </motion.div>
       </motion.div>
     </div>

@@ -194,7 +194,7 @@ TODO
 - [x] Remove `slow/normal/fast` variant model and UI buttons in passive preview lessons.
 - [x] Switch letter audio path from `*-normal.mp3` to single-file format (`a.mp3`, `c.mp3`, ...).
 - [x] Switch intro path format for floor 1/2/3 lessons to folder-based paths under `intro-letters/*` and `intro-words/*`.
-- [x] Use the new spelling file path for word `cá` (`intro-words/fish/spelling.mp3`) in listen-repeat.
+- [x] Use the new spelling file path for word `cá` (`intro-words/fish/spelling.mp3`) in pronunciation_practice.
 - [x] Remove bubble game `speechSynthesis` usage and replace with mp3 playback from `assets/audio/game/bubble-pop` (`intro`, `rules`, `target-*`).
 
 Notes
@@ -205,7 +205,7 @@ Notes
   - main audio: `/assets/audio/letters/<assetKey>.mp3`
 - Vocabulary templates now use:
   - intro: `/assets/audio/intro-words/<assetKey>/intro-{1..4}.mp3`
-  - spelling (listen-repeat): `/assets/audio/intro-words/<assetKey>/spelling.mp3`
+  - spelling (pronunciation_practice): `/assets/audio/intro-words/<assetKey>/spelling.mp3`
 - Floor-4 bubble config now has mp3 fields (`introAudio`, `rulesAudio`, `targetAudioByLetter`) and the screen plays:
   - first open select: intro -> rules
   - replay button: rules
@@ -1808,7 +1808,7 @@ Update (Global lesson templates by lesson-kind + floor migration)
 TODO
 - [x] Move lesson templates to global scope at `src/data/lesson-templates` for cross-world reuse.
 - [x] Split letter lessons into separate files by lesson-kind (listen, quiz, trace-demo, trace-practice).
-- [x] Split vocab lessons into separate files by lesson-kind (listen-look, listen-repeat, word-build, trace-practice).
+- [x] Split vocab lessons into separate files by lesson-kind (listen-look, pronunciation_practice, word-build, trace-practice).
 - [x] Keep mini-game config logic in existing `src/data/mini-games/*`; challenge lesson templates now call mini-game factories directly.
 - [x] Migrate world-1 floor files to call lesson templates per lesson item (no grouped letter/vocab factory file).
 - [x] Remove legacy monolithic file `src/data/world-1-alphabet/lesson-templates.ts`.
@@ -1828,3 +1828,36 @@ Notes
 Validation
 - `pnpm lint -- src/data/lesson-templates src/data/world-1-alphabet/tower-1 src/data/world-1-alphabet/tower-2 src/data/world-1-alphabet/tower-3 src/data/world-1-alphabet/tower-4 src/data/world-1-alphabet/tower-5 src/data/world-1-alphabet/tower-boss-1` pass.
 - `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Boss tower review refactor + shared intro randomization)
+
+TODO
+- [x] Convert letter/vocab learning intros to shared per-kind intro pools (`3` variants each) and randomize per lesson entry.
+- [x] Add lesson metadata to support boss exceptions: `disableIntro`, `fogMode`, and new lesson kinds for boss review.
+- [x] Rebuild boss floor-1 lesson data to match requested 10-lesson flow (quiz/image-quiz/pronunciation-practice/tracing pass-fail).
+- [x] Replace boss quiz fog erase with locked overlay style (no erase interaction).
+- [x] Change boss pass threshold to `6/10` and update unlock copy.
+- [x] Add boss-specific completion mode: pass-count summary + optional `Game Bí Ẩn` CTA when passed.
+
+Notes
+- Shared intro data is now assigned via `introVoiceOptions` (e.g. `listen-1..3`, `quiz-1..3`) and consumed at runtime by `useLessonAudio`, which randomly picks one option whenever a lesson is entered.
+- Boss floor-1 now uses:
+  - L1-2: `letter_quiz` + `fogMode: "locked"`
+  - L3-4: `vocab_image_quiz` (audio prompt + 3 image answers from `/assets/images/words/*.webp`)
+  - L5-7: `pronunciation_practice` (look-and-repeat, no speaker audio)
+  - L8-10: tracing pass/fail with `>= 70%` pass and `maxStars: 1`
+- Boss completion keeps celebration audio behavior but hides star rows, displays only pass count, and shows `Game Bí Ẩn` button when pass count reaches threshold.
+
+Validation
+- `pnpm lint` ✅
+- `pnpm exec tsc --noEmit` ✅
+- Playwright MCP smoke checks ✅
+  - Boss lesson 1 shows locked fog overlay (`Lớp khóa che chữ cái`), no erase behavior exposed.
+  - Boss lesson 3 renders image-answer quiz with title `Nghe và chọn đúng ảnh từ vựng` and word images.
+  - Boss lesson 5 renders look-repeat letter mode with mic CTA and no speaker button.
+  - Network logs confirm shared intro loading for regular lessons (`/assets/audio/intro-letters/listen-*.mp3`) and no intro playback on boss lesson flow.
+
+Blocked
+- Could not run `$WEB_GAME_CLIENT` script from skill because local `playwright` package is missing and install is blocked by offline registry access (`ENOTFOUND registry.npmjs.org`).

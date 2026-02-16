@@ -1,6 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import {
-  buildVocabIntroVoice,
+  buildVocabIntroVoiceOptions,
   buildVocabSpellingAudio,
   buildWordWithImage,
   type VocabLessonBaseConfig,
@@ -16,7 +16,7 @@ export function createVocabListenLookLesson(
     type: "passive",
     lessonKind: "vocab_listen_look",
     title: "Nghe đánh vần và nhìn",
-    introVoice: buildVocabIntroVoice(wordAssetKey, 1),
+    introVoiceOptions: buildVocabIntroVoiceOptions(1),
     mainAudio: buildVocabSpellingAudio(wordAssetKey),
     mainImage: buildWordWithImage(wordAssetKey),
     targetText: word,

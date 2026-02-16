@@ -1,5 +1,8 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
-import { buildVocabIntroVoice, type VocabWordBuildLessonConfig } from "./shared";
+import {
+  buildVocabIntroVoiceOptions,
+  type VocabWordBuildLessonConfig,
+} from "./shared";
 
 export function createVocabWordBuildLesson(
   config: VocabWordBuildLessonConfig,
@@ -7,7 +10,6 @@ export function createVocabWordBuildLesson(
   const {
     lessonId,
     word,
-    wordAssetKey,
     wordTokens,
     wordTokenPool,
     reviewLetters,
@@ -18,7 +20,7 @@ export function createVocabWordBuildLesson(
     type: "active",
     lessonKind: "vocab_word_build",
     title: `Kéo thả để tạo từ "${word}"`,
-    introVoice: buildVocabIntroVoice(wordAssetKey, 3),
+    introVoiceOptions: buildVocabIntroVoiceOptions(3),
     targetText: word,
     targetTokens: wordTokens,
     tokenPool: wordTokenPool,

@@ -1,6 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import {
-  buildLetterIntroVoice,
+  buildLetterIntroVoiceOptions,
   buildMainLetterAudio,
   createLetterAnswers,
   normalizeLetter,
@@ -18,7 +18,7 @@ export function createLetterQuizLesson(
     type: "active",
     lessonKind: "letter_quiz",
     title: "Nghe và chọn chữ cái",
-    introVoice: buildLetterIntroVoice(letterAssetKey, 2),
+    introVoiceOptions: buildLetterIntroVoiceOptions(2),
     mainAudio: buildMainLetterAudio(letterAssetKey),
     answers: createLetterAnswers(letter, distractors),
     targetLetter: normalizedLetter,

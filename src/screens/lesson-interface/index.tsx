@@ -8,9 +8,10 @@ import {
   StarCelebration,
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
-import { LessonCompletionView } from "@/components/completion";
+import { BossReviewChoiceView, LessonCompletionView } from "@/components/completion";
 import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
 import { getStoredLessonStars } from "@/lib/floor-progress";
+import { getWorldData } from "@/data/game-config";
 import { type LessonAnswer, type LessonContent } from "../../data/game-config";
 import {
   LessonActiveRenderer,
@@ -32,9 +33,8 @@ import {
   isFogRevealLessonKind,
   isLetterGridPreviewLessonKind,
   isLetterTraceDemoLessonKind,
+  isPronunciationPracticeLessonKind,
   isTracePracticeLessonKind,
-  isVocabListenRepeatLessonKind,
-  isVocabTracePracticeLessonKind,
   isWordBuildLessonKind,
   shouldPromoteTitleToInstructionKind,
   shouldUseLargerVocabImageKind,
@@ -50,6 +50,7 @@ import {
 const LESSON_SUCCESS_FEEDBACK_AUDIO =
   "/assets/audio/feedback/success-answer.mp3";
 const LESSON_FAILURE_FEEDBACK_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
+const BOSS_REVIEW_PASS_THRESHOLD = 6;
 
 interface LessonInterfaceProps {
   worldId: number;
@@ -59,6 +60,7 @@ interface LessonInterfaceProps {
   floorMaxStars: number;
   lessons: LessonContent[];
   onComplete: () => void;
+  onBossFloorSelect?: (floorId: number) => void;
   onBack: () => void;
 }
 
@@ -88,6 +90,7 @@ export function LessonInterface({
   floorMaxStars,
   lessons,
   onComplete,
+  onBossFloorSelect,
   onBack,
 }: LessonInterfaceProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -100,6 +103,8 @@ export function LessonInterface({
   const lessonStarsThisAttemptRef = useRef<Record<string, number>>({});
   const [completionStars, setCompletionStars] = useState<number | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [showBossReviewChoiceScreen, setShowBossReviewChoiceScreen] =
+    useState(false);
   const [traceResult, setTraceResult] = useState<TraceEvaluation | null>(null);
   const [traceDemoReplayKey, setTraceDemoReplayKey] = useState(0);
   const [traceDemoFastForwarded, setTraceDemoFastForwarded] = useState(false);
@@ -123,16 +128,29 @@ export function LessonInterface({
   const resetSpeechSessionRef = useRef<() => void>(() => {});
 
   const hasLessons = lessons.length > 0;
+  const currentTower = getWorldData(worldId).towers.find(
+    (tower) => tower.id === towerId,
+  );
+  const isBossReviewFloor = Boolean(
+    currentTower?.isBoss &&
+      floorId === 1 &&
+      lessons.length > 0 &&
+      lessons.every((lesson) => lesson.type === "active"),
+  );
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
   const currentLessonKind = currentLesson?.lessonKind;
   const currentLessonId = currentLesson?.id;
   const currentLessonIntroVoice = currentLesson?.introVoice;
+  const currentLessonIntroVoiceOptions = currentLesson?.introVoiceOptions;
   const currentLessonMainAudio = currentLesson?.mainAudio;
+  const currentLessonDisableIntro = Boolean(currentLesson?.disableIntro);
   const { playAudio, stopAudio } = useLessonAudio({
     currentStep,
     currentLessonId,
     currentLessonIntroVoice,
+    currentLessonIntroVoiceOptions,
     currentLessonMainAudio,
+    currentLessonDisableIntro,
   });
 
   useEffect(() => {
@@ -146,13 +164,12 @@ export function LessonInterface({
 
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
   const isTracePracticeLesson = isTracePracticeLessonKind(currentLessonKind);
-  const isVocabTracePracticeLesson =
-    isVocabTracePracticeLessonKind(currentLessonKind);
   const isWordBuildLesson = isWordBuildLessonKind(currentLessonKind);
   const isLetterTraceDemoLesson =
     isLetterTraceDemoLessonKind(currentLessonKind);
-  const isVocabListenRepeatLesson =
-    isVocabListenRepeatLessonKind(currentLessonKind);
+  const isPronunciationPracticeLesson = isPronunciationPracticeLessonKind(
+    currentLessonKind,
+  );
   const isFloor3ListenLookLesson = isFloor3ListenLookLessonKind(
     currentLessonKind,
     Boolean(currentLesson?.instruction),
@@ -162,7 +179,7 @@ export function LessonInterface({
     shouldUseLargerVocabImageKind(currentLessonKind),
   );
   const isThresholdSpeechLesson = Boolean(
-    isVocabListenRepeatLesson &&
+    isPronunciationPracticeLesson &&
     currentLesson?.scoring?.passPolicy === "threshold",
   );
   // Gom nhóm 4 lesson chữ cái để dùng chung cách hiển thị instruction trên cùng
@@ -273,6 +290,7 @@ export function LessonInterface({
     Boolean(currentLesson.gating?.requireAnimationComplete);
   // Lesson quiz hiển thị chữ cái thật dưới lớp sương, không còn dấu hỏi
   const isFogRevealLesson = isFogRevealLessonKind(currentLessonKind);
+  const isFogRevealLocked = currentLesson?.fogMode === "locked";
   const isLetterGridPreviewLesson =
     isLetterGridPreviewLessonKind(currentLessonKind);
   const displayText =
@@ -392,6 +410,51 @@ export function LessonInterface({
     setTraceDemoReplayKey,
   });
 
+  const resetBossReviewRun = useCallback(() => {
+    clearAdvanceTimeout();
+    stopAudio();
+    stopAllAppAudio();
+    resetSpeechSessionRef.current();
+    setCurrentStep(0);
+    setSelectedAnswer(null);
+    setIsCorrect(null);
+    setScore(0);
+    setLessonStarsThisAttempt({});
+    lessonStarsThisAttemptRef.current = {};
+    setCompletionStars(null);
+    setShowCompletion(false);
+    setShowBossReviewChoiceScreen(false);
+    setTraceResult(null);
+    setTraceDemoReplayKey(0);
+    setTraceDemoFastForwarded(false);
+    setCelebrationStars(null);
+    const firstLesson = lessons[0];
+    setAnswerOptions(getDisplayAnswersForLesson(firstLesson));
+    setPassiveReady(
+      !(
+        firstLesson?.type === "passive" &&
+        firstLesson.gating?.requireAnimationComplete
+      ),
+    );
+    const firstWordBuildState = getWordBuildStateForLesson(firstLesson);
+    setWordBuildTokenOrder(firstWordBuildState.tokenOrder);
+    setWordBuildSlotTokenIds(firstWordBuildState.slotTokenIds);
+  }, [clearAdvanceTimeout, lessons, setWordBuildSlotTokenIds, stopAudio]);
+
+  const handleChooseBossReview = useCallback(() => {
+    resetBossReviewRun();
+  }, [resetBossReviewRun]);
+
+  const handleChooseBossMysteryGame = useCallback(() => {
+    stopAudio();
+    stopAllAppAudio();
+    if (onBossFloorSelect) {
+      onBossFloorSelect(2);
+      return;
+    }
+    onComplete();
+  }, [onBossFloorSelect, onComplete, stopAudio]);
+
   // Phòng ngừa trường hợp không có bài học nào
   if (!hasLessons || !currentLesson) {
     return (
@@ -408,10 +471,48 @@ export function LessonInterface({
     );
   }
 
+  if (showBossReviewChoiceScreen && isBossReviewFloor) {
+    return (
+      <BossReviewChoiceView
+        passCount={score}
+        totalLessons={activeLessonsCount}
+        onChooseReview={handleChooseBossReview}
+        onChooseMysteryGame={handleChooseBossMysteryGame}
+      />
+    );
+  }
+
   if (showCompletion) {
     const stars =
       completionStars ??
       getAttemptFloorStars(lessons, lessonStarsThisAttempt, floorMaxStars);
+
+    if (isBossReviewFloor) {
+      const passCount = score;
+      const hasPassedBossReview = passCount >= BOSS_REVIEW_PASS_THRESHOLD;
+      const bossSummary = `Bé đã vượt qua ${passCount}/${activeLessonsCount} bài.`;
+
+      return (
+        <LessonCompletionView
+          stars={hasPassedBossReview ? 1 : 0}
+          showStars={false}
+          score={passCount}
+          activeLessonsCount={activeLessonsCount}
+          activeLessonsTotalStars={activeLessonsCount}
+          floorMaxStars={1}
+          successTitle="Tuyệt vời!"
+          failTitle="Cố lên nhé!"
+          successSummary={bossSummary}
+          failSummary={bossSummary}
+          onComplete={
+            hasPassedBossReview
+              ? () => setShowBossReviewChoiceScreen(true)
+              : onComplete
+          }
+        />
+      );
+    }
+
     return (
       <LessonCompletionView
         stars={stars}
@@ -468,6 +569,7 @@ export function LessonInterface({
               showPreviewCard={showPreviewCard}
               isLetterGridPreviewLesson={isLetterGridPreviewLesson}
               isFogRevealLesson={isFogRevealLesson}
+              isFogRevealLocked={isFogRevealLocked}
               targetText={targetText}
               displayText={displayText}
               shouldUseLargerVocabImage={shouldUseLargerVocabImage}
@@ -516,7 +618,6 @@ export function LessonInterface({
               traceOneStarThreshold={traceOneStarThreshold}
               traceTwoStarThreshold={traceTwoStarThreshold}
               handleTraceEvaluate={handleTraceEvaluate}
-              isVocabTracePracticeLesson={isVocabTracePracticeLesson}
               handleNext={handleNext}
             />
           </motion.div>

@@ -15,6 +15,7 @@ interface LessonPassivePreviewRendererProps {
   showPreviewCard: boolean;
   isLetterGridPreviewLesson: boolean;
   isFogRevealLesson: boolean;
+  isFogRevealLocked: boolean;
   targetText: string;
   displayText: string;
   shouldUseLargerVocabImage: boolean;
@@ -36,6 +37,7 @@ export function LessonPassivePreviewRenderer({
   showPreviewCard,
   isLetterGridPreviewLesson,
   isFogRevealLesson,
+  isFogRevealLocked,
   targetText,
   displayText,
   shouldUseLargerVocabImage,
@@ -82,6 +84,7 @@ export function LessonPassivePreviewRenderer({
                   revealKey={currentLesson.id}
                   containerRef={tracingPreviewContainerRef}
                   roundedClassName="rounded-md"
+                  locked={isFogRevealLocked}
                 />
               )}
             </div>

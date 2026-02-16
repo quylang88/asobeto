@@ -13,14 +13,18 @@ interface UseLessonAudioParams {
   currentStep: number;
   currentLessonId: string | undefined;
   currentLessonIntroVoice: string | undefined;
+  currentLessonIntroVoiceOptions: string[] | undefined;
   currentLessonMainAudio: string | undefined;
+  currentLessonDisableIntro: boolean;
 }
 
 export function useLessonAudio({
   currentStep,
   currentLessonId,
   currentLessonIntroVoice,
+  currentLessonIntroVoiceOptions,
   currentLessonMainAudio,
+  currentLessonDisableIntro,
 }: UseLessonAudioParams) {
   const audioRef = useRef<ManagedAudioPlayback | null>(null);
 
@@ -54,7 +58,17 @@ export function useLessonAudio({
   useEffect(() => {
     if (!currentLessonId) return;
 
-    const introAudio = currentLessonIntroVoice?.trim();
+    const introOptions =
+      currentLessonDisableIntro || !currentLessonIntroVoiceOptions?.length
+        ? []
+        : currentLessonIntroVoiceOptions.filter(Boolean);
+    const randomIntroAudio =
+      introOptions.length > 0
+        ? introOptions[Math.floor(Math.random() * introOptions.length)]
+        : undefined;
+    const introAudio = currentLessonDisableIntro
+      ? undefined
+      : randomIntroAudio ?? currentLessonIntroVoice?.trim();
     const mainAudio = currentLessonMainAudio;
     if (!introAudio && !mainAudio) return;
 
@@ -112,7 +126,9 @@ export function useLessonAudio({
     currentStep,
     currentLessonId,
     currentLessonIntroVoice,
+    currentLessonIntroVoiceOptions,
     currentLessonMainAudio,
+    currentLessonDisableIntro,
     stopAudio,
   ]);
 

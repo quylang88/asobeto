@@ -12,7 +12,8 @@ export type LessonKind =
   | "letter_trace_demo"
   | "letter_trace_practice"
   | "vocab_listen_look"
-  | "vocab_listen_repeat"
+  | "vocab_image_quiz"
+  | "pronunciation_practice"
   | "vocab_word_build"
   | "vocab_trace_practice"
   | "animal_feed_challenge"
@@ -316,6 +317,9 @@ export interface LessonContent {
   title?: string;
   instruction?: string;
   introVoice?: string;
+  introVoiceOptions?: string[];
+  disableIntro?: boolean;
+  fogMode?: "erasable" | "locked";
 
   // Active Data
   question?: string;

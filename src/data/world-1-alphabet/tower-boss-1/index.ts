@@ -17,7 +17,7 @@ export const towerBossFloors: Floor[] = [
     nameUnlocked: "Game Bí Ẩn",
     nameLocked: "Game Bí Ẩn",
     descriptionUnlocked: "Mini game BOSS (placeholder)",
-    descriptionLocked: "Đạt tối thiểu 5/10 bài ôn tập để mở khóa.",
+    descriptionLocked: "Đạt tối thiểu 6/10 bài ôn tập để mở khóa.",
     letter: "!",
     maxStars: 6,
     unlocked: false,

@@ -1,6 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import {
-  buildLetterIntroVoice,
+  buildLetterIntroVoiceOptions,
   buildMainLetterAudio,
   normalizeLetter,
   type LetterLessonBaseConfig,
@@ -17,7 +17,7 @@ export function createLetterListenLesson(
     type: "passive",
     lessonKind: "letter_listen",
     title: `Làm quen chữ cái "${normalizedLetter}"`,
-    introVoice: buildLetterIntroVoice(letterAssetKey, 1),
+    introVoiceOptions: buildLetterIntroVoiceOptions(1),
     mainAudio: buildMainLetterAudio(letterAssetKey),
     targetLetter: normalizedLetter,
     gating: {

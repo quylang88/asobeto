@@ -12,11 +12,26 @@ export interface VocabWordBuildLessonConfig extends VocabLessonBaseConfig {
   wordTokenPool: WordToken[];
 }
 
-export function buildVocabIntroVoice(
-  wordAssetKey: string,
+export interface VocabImageQuizChoice {
+  id: string;
+  text: string;
+  image: string;
+}
+
+export function buildVocabIntroVoiceOptions(
   lessonOrder: 1 | 2 | 3 | 4,
-): string {
-  return `/assets/audio/intro-words/${wordAssetKey}/intro-${lessonOrder}.mp3`;
+): string[] {
+  const lessonSlugByOrder: Record<1 | 2 | 3 | 4, string> = {
+    1: "listen-look",
+    2: "pronunciation-practice",
+    3: "word-build",
+    4: "trace-practice",
+  };
+
+  const lessonSlug = lessonSlugByOrder[lessonOrder];
+  return [1, 2, 3].map(
+    (variant) => `/assets/audio/intro-words/${lessonSlug}-${variant}.mp3`,
+  );
 }
 
 export function buildVocabWordAudio(wordAssetKey: string): string {

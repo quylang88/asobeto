@@ -1,6 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import {
-  buildLetterIntroVoice,
+  buildLetterIntroVoiceOptions,
   normalizeLetter,
   type LetterLessonBaseConfig,
 } from "./shared";
@@ -8,7 +8,7 @@ import {
 export function createLetterTracePracticeLesson(
   config: LetterLessonBaseConfig,
 ): LessonContent {
-  const { lessonId, letter, letterAssetKey } = config;
+  const { lessonId, letter } = config;
   const normalizedLetter = normalizeLetter(letter);
 
   return {
@@ -16,7 +16,7 @@ export function createLetterTracePracticeLesson(
     type: "active",
     lessonKind: "letter_trace_practice",
     title: `Viết lại chữ cái "${normalizedLetter}"`,
-    introVoice: buildLetterIntroVoice(letterAssetKey, 4),
+    introVoiceOptions: buildLetterIntroVoiceOptions(4),
     targetLetter: normalizedLetter,
     targetText: normalizedLetter,
     scoring: {

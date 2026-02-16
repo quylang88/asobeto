@@ -8,18 +8,21 @@ import {
   useRef,
   useState,
 } from "react";
+import { Lock } from "lucide-react";
 import { FOG_ERASE_RADIUS } from "../constants";
 
 interface FogRevealOverlayProps {
   revealKey: string;
   containerRef?: RefObject<HTMLElement | null>;
   roundedClassName?: string;
+  locked?: boolean;
 }
 
 export function FogRevealOverlay({
   revealKey,
   containerRef,
   roundedClassName = "rounded-md",
+  locked = false,
 }: FogRevealOverlayProps) {
   const fogCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasSizeRef = useRef({ width: 0, height: 0 });
@@ -112,24 +115,41 @@ export function FogRevealOverlay({
   };
 
   return (
-    <canvas
-      ref={fogCanvasRef}
-      className={`absolute inset-0 z-10 touch-none ${roundedClassName}`}
-      onPointerDown={(event) => {
-        event.preventDefault();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        setIsErasingFog(true);
-        eraseFogAtPoint(event);
-      }}
-      onPointerMove={(event) => {
-        if (!isErasingFog) return;
-        event.preventDefault();
-        eraseFogAtPoint(event);
-      }}
-      onPointerUp={() => setIsErasingFog(false)}
-      onPointerCancel={() => setIsErasingFog(false)}
-      onPointerLeave={() => setIsErasingFog(false)}
-      aria-label="Lớp sương mờ để bé chạm và xóa"
-    />
+    <div className={`absolute inset-0 z-10 ${roundedClassName}`}>
+      <canvas
+        ref={fogCanvasRef}
+        className={`absolute inset-0 touch-none ${roundedClassName} ${
+          locked ? "pointer-events-none" : ""
+        }`}
+        onPointerDown={(event) => {
+          if (locked) return;
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setIsErasingFog(true);
+          eraseFogAtPoint(event);
+        }}
+        onPointerMove={(event) => {
+          if (locked || !isErasingFog) return;
+          event.preventDefault();
+          eraseFogAtPoint(event);
+        }}
+        onPointerUp={() => setIsErasingFog(false)}
+        onPointerCancel={() => setIsErasingFog(false)}
+        onPointerLeave={() => setIsErasingFog(false)}
+        aria-label={
+          locked
+            ? "Lớp khóa che chữ cái"
+            : "Lớp sương mờ để bé chạm và xóa"
+        }
+      />
+
+      {locked && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-slate-700/15">
+          <div className="rounded-full bg-white/90 p-3 shadow-lg">
+            <Lock className="h-7 w-7 text-slate-700" strokeWidth={2.5} />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
