@@ -1,11 +1,11 @@
 import type { LessonContent } from "@/data/game-config";
+import { getPhoneticSimilarity } from "@/lib/vietnamese-phonetics";
 
 const DEFAULT_ONE_STAR_THRESHOLD = 0.5;
 const DEFAULT_TWO_STAR_THRESHOLD = 0.8;
 const DEFAULT_MAX_STARS = 2;
 const DEFAULT_PASS_THRESHOLD = 0.7;
 
-const VOWEL_CHARS = new Set(["a", "e", "i", "o", "u", "y"]);
 const TONE_STRICT_SINGLE_LETTER_TARGETS = new Set([
   "a",
   "ă",
@@ -54,21 +54,6 @@ const LETTER_PRONUNCIATION_ALIASES: Record<string, string[]> = {
   y: ["y", "i"],
 };
 
-type VietnameseTone = "level" | "sac" | "huyen" | "hoi" | "nga" | "nang";
-
-interface ToneComparisonStats {
-  averageScore: number;
-  pairCount: number;
-  mismatchCount: number;
-  strongMismatchCount: number;
-}
-
-interface PronunciationTargetVariants {
-  variants: string[];
-  isSingleLetterTarget: boolean;
-  isToneStrictSingleLetterTarget: boolean;
-}
-
 export interface PronunciationScoringThresholds {
   passThreshold: number;
   oneStarThreshold: number;
@@ -106,178 +91,6 @@ function tokenizeNormalizedText(value: string): string[] {
   return value.split(" ").filter(Boolean);
 }
 
-function getLevenshteinDistance(a: string, b: string): number {
-  if (!a) return b.length;
-  if (!b) return a.length;
-
-  const previousRow = new Array(b.length + 1);
-  const currentRow = new Array(b.length + 1);
-
-  for (let j = 0; j <= b.length; j += 1) {
-    previousRow[j] = j;
-  }
-
-  for (let i = 1; i <= a.length; i += 1) {
-    currentRow[0] = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      currentRow[j] = Math.min(
-        currentRow[j - 1] + 1,
-        previousRow[j] + 1,
-        previousRow[j - 1] + cost,
-      );
-    }
-    for (let j = 0; j <= b.length; j += 1) {
-      previousRow[j] = currentRow[j];
-    }
-  }
-
-  return previousRow[b.length];
-}
-
-function getNormalizedSimilarity(a: string, b: string): number {
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  const maxLength = Math.max(a.length, b.length);
-  if (maxLength <= 0) return 1;
-  return Math.max(0, 1 - getLevenshteinDistance(a, b) / maxLength);
-}
-
-function detectVietnameseTone(syllable: string): VietnameseTone {
-  const decomposed = syllable.normalize("NFD");
-  if (decomposed.includes("\u0301")) return "sac";
-  if (decomposed.includes("\u0300")) return "huyen";
-  if (decomposed.includes("\u0309")) return "hoi";
-  if (decomposed.includes("\u0303")) return "nga";
-  if (decomposed.includes("\u0323")) return "nang";
-  return "level";
-}
-
-function splitSyllableShape(syllable: string): {
-  onset: string;
-  nucleus: string;
-  coda: string;
-} {
-  if (!syllable) {
-    return { onset: "", nucleus: "", coda: "" };
-  }
-
-  const characters = [...syllable];
-  const firstVowelIndex = characters.findIndex((char) => VOWEL_CHARS.has(char));
-  if (firstVowelIndex < 0) {
-    return {
-      onset: syllable,
-      nucleus: "",
-      coda: "",
-    };
-  }
-
-  let lastVowelIndex = firstVowelIndex;
-  for (
-    let index = characters.length - 1;
-    index >= firstVowelIndex;
-    index -= 1
-  ) {
-    if (VOWEL_CHARS.has(characters[index])) {
-      lastVowelIndex = index;
-      break;
-    }
-  }
-
-  return {
-    onset: characters.slice(0, firstVowelIndex).join(""),
-    nucleus: characters.slice(firstVowelIndex, lastVowelIndex + 1).join(""),
-    coda: characters.slice(lastVowelIndex + 1).join(""),
-  };
-}
-
-function getSyllableShapeSimilarity(
-  spokenNoDiacriticsSyllable: string,
-  targetNoDiacriticsSyllable: string,
-): number {
-  const spokenShape = splitSyllableShape(spokenNoDiacriticsSyllable);
-  const targetShape = splitSyllableShape(targetNoDiacriticsSyllable);
-  const onsetScore = spokenShape.onset === targetShape.onset ? 1 : 0;
-  const nucleusScore =
-    !spokenShape.nucleus && !targetShape.nucleus
-      ? 1
-      : getNormalizedSimilarity(spokenShape.nucleus, targetShape.nucleus);
-  const codaScore = spokenShape.coda === targetShape.coda ? 1 : 0;
-
-  return clamp01(onsetScore * 0.3 + nucleusScore * 0.55 + codaScore * 0.15);
-}
-
-function getShapeSimilarity(
-  spokenNoDiacritics: string,
-  targetNoDiacritics: string,
-): number {
-  const spokenTokens = tokenizeNormalizedText(spokenNoDiacritics);
-  const targetTokens = tokenizeNormalizedText(targetNoDiacritics);
-  if (!spokenTokens.length || !targetTokens.length) return 0;
-
-  const pairCount = Math.min(spokenTokens.length, targetTokens.length);
-  let sum = 0;
-
-  for (let index = 0; index < pairCount; index += 1) {
-    sum += getSyllableShapeSimilarity(spokenTokens[index], targetTokens[index]);
-  }
-
-  const averageShapeScore = sum / pairCount;
-  const lengthPenalty =
-    pairCount / Math.max(spokenTokens.length, targetTokens.length);
-  return clamp01(averageShapeScore * lengthPenalty);
-}
-
-function getToneComparisonStats(
-  spokenText: string,
-  targetText: string,
-): ToneComparisonStats {
-  const spokenTokens = tokenizeNormalizedText(spokenText);
-  const targetTokens = tokenizeNormalizedText(targetText);
-  if (!spokenTokens.length || !targetTokens.length) {
-    return {
-      averageScore: 0,
-      pairCount: 0,
-      mismatchCount: 0,
-      strongMismatchCount: 0,
-    };
-  }
-
-  const pairCount = Math.min(spokenTokens.length, targetTokens.length);
-  let toneSum = 0;
-  let mismatchCount = 0;
-  let strongMismatchCount = 0;
-
-  for (let index = 0; index < pairCount; index += 1) {
-    const spokenTone = detectVietnameseTone(spokenTokens[index]);
-    const targetTone = detectVietnameseTone(targetTokens[index]);
-
-    if (spokenTone === targetTone) {
-      toneSum += 1;
-      continue;
-    }
-
-    mismatchCount += 1;
-    if (spokenTone === "level" || targetTone === "level") {
-      toneSum += 0.35;
-      continue;
-    }
-
-    strongMismatchCount += 1;
-    toneSum += 0.05;
-  }
-
-  const averageToneScore = toneSum / pairCount;
-  const lengthPenalty =
-    pairCount / Math.max(spokenTokens.length, targetTokens.length);
-  return {
-    averageScore: clamp01(averageToneScore * lengthPenalty),
-    pairCount,
-    mismatchCount,
-    strongMismatchCount,
-  };
-}
-
 function buildCandidatePhrases(
   normalizedSpokenOriginal: string,
   targetTokenCount: number,
@@ -307,6 +120,12 @@ function buildCandidatePhrases(
   // Giữ cả transcript đầy đủ để không bỏ sót trường hợp engine ghép từ bất thường.
   candidates.add(spokenTokens.join(" "));
   return [...candidates];
+}
+
+interface PronunciationTargetVariants {
+  variants: string[];
+  isSingleLetterTarget: boolean;
+  isToneStrictSingleLetterTarget: boolean;
 }
 
 function getTargetPronunciationVariants(
@@ -376,8 +195,6 @@ function hasSingleLetterAliasTokenMatch(
     targetVariants.map((variant) => normalizeSpeechText(variant, true)),
   );
 
-  // Với phụ âm, ASR thường trả thiếu dấu ở tên chữ (vd: mờ -> mo, nờ -> no),
-  // nên cho phép khớp theo bản không dấu để bé không bị fail oan.
   return spokenTokensNoDiacritics.some((token) =>
     targetVariantsNoDiacriticsSet.has(token),
   );
@@ -386,96 +203,27 @@ function hasSingleLetterAliasTokenMatch(
 function scorePronunciationCandidate(
   normalizedSpokenCandidateOriginal: string,
   normalizedTargetVariantOriginal: string,
-  isSingleLetterTarget: boolean,
-  isToneStrictSingleLetterTarget: boolean,
 ): number {
-  const normalizedSpokenCandidateNoDiacritics = normalizeSpeechText(
+  const spokenTokens = tokenizeNormalizedText(
     normalizedSpokenCandidateOriginal,
-    true,
   );
-  const normalizedTargetVariantNoDiacritics = normalizeSpeechText(
-    normalizedTargetVariantOriginal,
-    true,
-  );
+  const targetTokens = tokenizeNormalizedText(normalizedTargetVariantOriginal);
 
-  const directScore = getNormalizedSimilarity(
-    normalizedSpokenCandidateOriginal,
-    normalizedTargetVariantOriginal,
-  );
-  const noDiacriticsScore = getNormalizedSimilarity(
-    normalizedSpokenCandidateNoDiacritics,
-    normalizedTargetVariantNoDiacritics,
-  );
-  const shapeScore = getShapeSimilarity(
-    normalizedSpokenCandidateNoDiacritics,
-    normalizedTargetVariantNoDiacritics,
-  );
+  if (!spokenTokens.length || !targetTokens.length) return 0;
 
-  // Bài đọc chữ cái: ưu tiên nhận diện đúng tên chữ (cờ, xê, bê...)
-  // và không phạt dấu quá nặng như từ vựng.
-  if (isSingleLetterTarget) {
-    if (normalizedSpokenCandidateOriginal === normalizedTargetVariantOriginal) {
-      return 1;
-    }
+  const count = Math.min(spokenTokens.length, targetTokens.length);
+  let totalScore = 0;
 
-    // Cùng base (bỏ dấu giống nhau) nhưng khác dấu/khác chữ:
-    // khóa điểm thấp để không thể pass.
-    if (
-      normalizedSpokenCandidateNoDiacritics ===
-      normalizedTargetVariantNoDiacritics
-    ) {
-      if (isToneStrictSingleLetterTarget) {
-        return Math.min(0.35, directScore * 0.8);
-      }
-      return Math.max(0.88, noDiacriticsScore * 0.98);
-    }
-
-    // Nguyên âm: ưu tiên dạng có dấu trực tiếp.
-    // Phụ âm: tăng trọng số bản không dấu để tolerant hơn với lỗi ASR.
-    if (!isToneStrictSingleLetterTarget) {
-      return clamp01(
-        directScore * 0.45 + noDiacriticsScore * 0.4 + shapeScore * 0.15,
-      );
-    }
-    return clamp01(
-      directScore * 0.75 + shapeScore * 0.2 + noDiacriticsScore * 0.05,
-    );
+  for (let i = 0; i < count; i++) {
+    totalScore += getPhoneticSimilarity(spokenTokens[i], targetTokens[i]);
   }
 
-  // Bài từ vựng: giữ gate thanh điệu chặt để phân biệt có/cò/cọ/cỏ...
-  const toneStats = getToneComparisonStats(
-    normalizedSpokenCandidateOriginal,
-    normalizedTargetVariantOriginal,
-  );
-  const toneScore = toneStats.averageScore;
+  // Hình phạt độ dài nếu số lượng từ khác biệt đáng kể
+  // (ví dụ: mục tiêu "con cá", nói "con")
+  const maxLen = Math.max(spokenTokens.length, targetTokens.length);
+  const lengthPenalty = count / maxLen;
 
-  const baseScore = clamp01(
-    noDiacriticsScore * 0.3 +
-      directScore * 0.3 +
-      shapeScore * 0.25 +
-      toneScore * 0.15,
-  );
-
-  const mismatchRatio =
-    toneStats.pairCount > 0 ? toneStats.mismatchCount / toneStats.pairCount : 0;
-  const strongMismatchRatio =
-    toneStats.pairCount > 0
-      ? toneStats.strongMismatchCount / toneStats.pairCount
-      : 0;
-
-  let toneGate = 1 - mismatchRatio * 0.55 - strongMismatchRatio * 0.3;
-  toneGate = Math.max(0.18, toneGate);
-
-  // Nếu phần âm tiết gần như trùng hoàn toàn mà chỉ lệch thanh, khóa điểm lại để không thể pass cao.
-  if (
-    strongMismatchRatio > 0 &&
-    noDiacriticsScore >= 0.95 &&
-    shapeScore >= 0.95
-  ) {
-    toneGate = Math.min(toneGate, 0.35);
-  }
-
-  return clamp01(baseScore * toneGate);
+  return (totalScore / count) * lengthPenalty;
 }
 
 export function getSpeechSimilarity(
@@ -492,15 +240,28 @@ export function getSpeechSimilarity(
   } = getTargetPronunciationVariants(targetText);
   if (targetVariants.length === 0) return 0;
 
+  // Khớp Alias lạc quan (giữ logic cũ để pass đơn giản)
+  // Nếu tìm thấy một token khớp chính xác với mục tiêu chữ cái đơn, pass ngay lập tức.
   if (
     isSingleLetterTarget &&
     hasSingleLetterAliasTokenMatch(
       normalizedSpokenOriginal,
       targetVariants,
-      !isToneStrictSingleLetterTarget,
+      !isToneStrictSingleLetterTarget, // Chỉ cho phép khớp lỏng nếu không yêu cầu chặt về dấu
     )
   ) {
-    return 1;
+    // Kiểm tra khớp dấu chặt chẽ nếu được yêu cầu
+    if (isToneStrictSingleLetterTarget) {
+      // Kiểm tra xem có token nào khớp chính xác cả dấu không
+      const spokenTokens = tokenizeNormalizedText(normalizedSpokenOriginal);
+      const targetSet = new Set(targetVariants);
+      if (spokenTokens.some((t) => targetSet.has(t))) {
+        return 1;
+      }
+      // Nếu khớp lỏng nhưng không khớp chặt, chuyển sang chấm điểm ngữ âm
+    } else {
+      return 1;
+    }
   }
 
   let bestScore = 0;
@@ -513,12 +274,7 @@ export function getSpeechSimilarity(
     for (const spokenCandidate of spokenCandidates) {
       bestScore = Math.max(
         bestScore,
-        scorePronunciationCandidate(
-          spokenCandidate,
-          targetVariant,
-          isSingleLetterTarget,
-          isToneStrictSingleLetterTarget,
-        ),
+        scorePronunciationCandidate(spokenCandidate, targetVariant),
       );
     }
   }
