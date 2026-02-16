@@ -216,8 +216,8 @@ function scorePronunciationCandidate(
     totalScore += getPhoneticSimilarity(spokenTokens[i], targetTokens[i]);
   }
 
-  // Length penalty if counts differ significantly
-  // (e.g. target "con cá", spoken "con")
+  // Hình phạt độ dài nếu số lượng từ khác biệt đáng kể
+  // (ví dụ: mục tiêu "con cá", nói "con")
   const maxLen = Math.max(spokenTokens.length, targetTokens.length);
   const lengthPenalty = count / maxLen;
 
@@ -238,25 +238,25 @@ export function getSpeechSimilarity(
   } = getTargetPronunciationVariants(targetText);
   if (targetVariants.length === 0) return 0;
 
-  // Optimistic Alias Match (keep existing logic for simple pass)
-  // If we find an exact token match for a single letter target, pass immediately.
+  // Khớp Alias lạc quan (giữ logic cũ để pass đơn giản)
+  // Nếu tìm thấy một token khớp chính xác với mục tiêu chữ cái đơn, pass ngay lập tức.
   if (
     isSingleLetterTarget &&
     hasSingleLetterAliasTokenMatch(
       normalizedSpokenOriginal,
       targetVariants,
-      !isToneStrictSingleLetterTarget, // Only allow loose match if not tone strict
+      !isToneStrictSingleLetterTarget, // Chỉ cho phép khớp lỏng nếu không yêu cầu chặt về dấu
     )
   ) {
-    // Check strict tone match if required
+    // Kiểm tra khớp dấu chặt chẽ nếu được yêu cầu
     if (isToneStrictSingleLetterTarget) {
-      // Check if any token matches exactly with tone
+      // Kiểm tra xem có token nào khớp chính xác cả dấu không
        const spokenTokens = tokenizeNormalizedText(normalizedSpokenOriginal);
        const targetSet = new Set(targetVariants);
        if (spokenTokens.some(t => targetSet.has(t))) {
          return 1;
        }
-       // If matched loosely but not strictly, fall through to phonetic scoring
+       // Nếu khớp lỏng nhưng không khớp chặt, chuyển sang chấm điểm ngữ âm
     } else {
        return 1;
     }
