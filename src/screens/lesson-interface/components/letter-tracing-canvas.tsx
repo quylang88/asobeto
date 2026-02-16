@@ -28,6 +28,9 @@ import {
   evaluateTracingScore,
   getEmptyTraceEvaluation,
   type TraceEvaluation,
+  type TracingScoringThresholds,
+  DEFAULT_TRACING_ONE_STAR_THRESHOLD,
+  DEFAULT_TRACING_TWO_STAR_THRESHOLD,
 } from "../scoring/tracing-scoring";
 
 // Re-export constants for backward compatibility if needed by index.ts
@@ -40,12 +43,18 @@ interface LetterTracingCanvasProps {
   targetText: string;
   mode?: TracingCanvasMode;
   disabled?: boolean;
-  oneStarThreshold?: number;
-  twoStarThreshold?: number;
+  thresholds?: TracingScoringThresholds;
   onEvaluate?: (result: TraceEvaluation) => void;
   onAutoTraceComplete?: () => void;
   onFrameTap?: () => void;
 }
+
+const DEFAULT_THRESHOLDS: TracingScoringThresholds = {
+  passThreshold: DEFAULT_TRACING_ONE_STAR_THRESHOLD,
+  oneStarThreshold: DEFAULT_TRACING_ONE_STAR_THRESHOLD,
+  twoStarThreshold: DEFAULT_TRACING_TWO_STAR_THRESHOLD,
+  maxStars: 2,
+};
 
 const GENERIC_DEMO_DURATION_MS = 4200;
 const DEFAULT_DEMO_PAUSE_MS = 800;
@@ -410,8 +419,7 @@ export function LetterTracingCanvas({
   targetText,
   mode = "practice",
   disabled,
-  oneStarThreshold = 0.5,
-  twoStarThreshold = 0.85,
+  thresholds = DEFAULT_THRESHOLDS,
   onEvaluate,
   onAutoTraceComplete,
   onFrameTap,
@@ -834,8 +842,7 @@ export function LetterTracingCanvas({
         targetText: traceDisplayText,
         metrics: tracingGridMetrics,
         guideFontSize,
-        oneStarThreshold,
-        twoStarThreshold,
+        thresholds,
         guideGlyphConfig,
       }),
     );

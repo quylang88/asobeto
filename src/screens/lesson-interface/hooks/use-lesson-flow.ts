@@ -6,11 +6,15 @@ import {
   type SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
 } from "react";
 import { saveFloorProgress } from "@/lib/floor-progress";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
 import type { TraceEvaluation } from "../components";
+import {
+  getTracingScoringThresholds,
+} from "../scoring/tracing-scoring";
 import {
   FEEDBACK_ADVANCE_DELAY_MS,
   TRACE_STARS_ADVANCE_DELAY_MS,
@@ -35,7 +39,7 @@ interface UseLessonFlowParams {
   isWordBuildLesson: boolean;
   isWordBuildReady: boolean;
   isTracePracticeLesson: boolean;
-  traceOneStarThreshold: number;
+  isBossTower: boolean;
   wordBuildSlotTokenIds: Array<string | null>;
   lessonStarsThisAttemptRef: RefObject<Record<string, number>>;
   stopAudio: () => void;
@@ -72,7 +76,7 @@ export function useLessonFlow({
   isWordBuildLesson,
   isWordBuildReady,
   isTracePracticeLesson,
-  traceOneStarThreshold,
+  isBossTower,
   wordBuildSlotTokenIds,
   lessonStarsThisAttemptRef,
   stopAudio,
@@ -96,6 +100,11 @@ export function useLessonFlow({
 }: UseLessonFlowParams) {
   const advanceTimeoutRef = useRef<number | null>(null);
   const handleNextRef = useRef<() => void>(() => {});
+
+  const traceThresholds = useMemo(
+    () => getTracingScoringThresholds(currentLesson, isBossTower),
+    [currentLesson, isBossTower],
+  );
 
   // Dọn timeout chuyển lesson để tránh timer cũ "nhảy cóc" khi bé vào/ra màn nhiều lần
   const clearAdvanceTimeout = useCallback(() => {
@@ -247,9 +256,8 @@ export function useLessonFlow({
       }
 
       setTraceResult(result);
-      const lessonMaxStars = currentLesson.scoring?.maxStars ?? 2;
-      const earnedStars = Math.min(lessonMaxStars, result.stars);
-      const correct = result.score >= traceOneStarThreshold;
+      const earnedStars = result.stars;
+      const correct = result.isPassed;
       const advanceDelayMs =
         currentLesson.lessonKind === "letter_trace_practice"
           ? TRACE_STARS_ADVANCE_DELAY_MS
@@ -262,7 +270,6 @@ export function useLessonFlow({
       isCorrect,
       isTracePracticeLesson,
       setTraceResult,
-      traceOneStarThreshold,
     ],
   );
 
@@ -366,5 +373,6 @@ export function useLessonFlow({
     handleWordBuildCheck,
     handleTraceEvaluate,
     handleNext,
+    traceThresholds,
   };
 }

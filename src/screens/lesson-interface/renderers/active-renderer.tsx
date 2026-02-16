@@ -4,6 +4,7 @@ import { type PointerEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Mic, Square, Volume2 } from "lucide-react";
 import { LetterTracingCanvas, type TraceEvaluation } from "../components";
+import type { TracingScoringThresholds } from "../scoring/tracing-scoring";
 import { PrimaryButton } from "@/components/common/primary-button";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
 import type {
@@ -49,8 +50,7 @@ interface LessonActiveRendererProps {
   micLevel: number;
   targetText: string;
   traceResult: TraceEvaluation | null;
-  traceOneStarThreshold: number;
-  traceTwoStarThreshold: number;
+  traceThresholds: TracingScoringThresholds;
   handleTraceEvaluate: (result: TraceEvaluation) => void;
   playAudio: (src: string) => void;
   handleNext: () => void;
@@ -89,8 +89,7 @@ export function LessonActiveRenderer({
   micLevel,
   targetText,
   traceResult,
-  traceOneStarThreshold,
-  traceTwoStarThreshold,
+  traceThresholds,
   handleTraceEvaluate,
   playAudio,
   handleNext,
@@ -460,8 +459,7 @@ export function LessonActiveRenderer({
             mode="practice"
             targetText={targetText}
             disabled={traceResult !== null}
-            oneStarThreshold={traceOneStarThreshold}
-            twoStarThreshold={traceTwoStarThreshold}
+            thresholds={traceThresholds}
             onEvaluate={handleTraceEvaluate}
           />
         </div>

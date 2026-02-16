@@ -312,10 +312,6 @@ export function LessonInterface({
   const wordBuildDisplayRowByLogicalRow = new Map(
     wordBuildUsedRows.map((logicalRow, rowIndex) => [logicalRow, rowIndex + 1]),
   );
-  const traceOneStarThreshold =
-    currentLesson?.scoring?.starThresholds?.oneStar ?? 0.5;
-  const traceTwoStarThreshold =
-    currentLesson?.scoring?.starThresholds?.twoStars ?? 0.85;
   const showPreviewCard =
     !isTracePracticeLesson &&
     !isLetterTraceDemoLesson &&
@@ -373,6 +369,7 @@ export function LessonInterface({
     handleWordBuildCheck,
     handleTraceEvaluate,
     handleNext,
+    traceThresholds,
   } = useLessonFlow({
     worldId,
     towerId,
@@ -387,7 +384,7 @@ export function LessonInterface({
     isWordBuildLesson,
     isWordBuildReady,
     isTracePracticeLesson,
-    traceOneStarThreshold,
+    isBossTower: Boolean(currentTower?.isBoss),
     wordBuildSlotTokenIds,
     lessonStarsThisAttemptRef,
     stopAudio,
@@ -654,8 +651,7 @@ export function LessonInterface({
               micLevel={micLevel}
               targetText={targetText}
               traceResult={traceResult}
-              traceOneStarThreshold={traceOneStarThreshold}
-              traceTwoStarThreshold={traceTwoStarThreshold}
+              traceThresholds={traceThresholds}
               handleTraceEvaluate={handleTraceEvaluate}
               playAudio={playAudio}
               handleNext={handleNext}
