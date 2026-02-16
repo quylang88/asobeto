@@ -1,13 +1,14 @@
 import { type TracingGlyphConfig, type TracingGridMetrics } from "@/data/tracing";
 import { clamp01, drawGuideGlyph } from "@/lib/tracing-algo";
 import type { LessonContent } from "@/data/game-config";
+import {
+  TRACING_ONE_STAR_THRESHOLD,
+  TRACING_TWO_STAR_THRESHOLD,
+  TRACING_BOSS_PASS_THRESHOLD,
+} from "@/data/scoring-config";
 
 const DRAWN_ALPHA_THRESHOLD = 24;
 const TARGET_ALPHA_THRESHOLD = 32;
-
-const DEFAULT_TRACING_ONE_STAR_THRESHOLD = 0.5;
-const DEFAULT_TRACING_TWO_STAR_THRESHOLD = 0.85;
-const BOSS_TRACING_PASS_THRESHOLD = 0.7;
 
 export interface TracingScoringThresholds {
   passThreshold: number;
@@ -39,7 +40,7 @@ export function getTracingScoringThresholds(
 ): TracingScoringThresholds {
   if (isBossTower) {
     return {
-      passThreshold: BOSS_TRACING_PASS_THRESHOLD,
+      passThreshold: TRACING_BOSS_PASS_THRESHOLD,
       // Boss floors don't award stars, effectively making star thresholds unreachable
       oneStarThreshold: 2.0,
       twoStarThreshold: 2.0,
@@ -49,10 +50,10 @@ export function getTracingScoringThresholds(
 
   // Default to standard values if not specified in lesson config
   const oneStarThreshold = clamp01(
-    lesson?.scoring?.starThresholds?.oneStar ?? DEFAULT_TRACING_ONE_STAR_THRESHOLD,
+    lesson?.scoring?.starThresholds?.oneStar ?? TRACING_ONE_STAR_THRESHOLD,
   );
   const twoStarThreshold = clamp01(
-    lesson?.scoring?.starThresholds?.twoStars ?? DEFAULT_TRACING_TWO_STAR_THRESHOLD,
+    lesson?.scoring?.starThresholds?.twoStars ?? TRACING_TWO_STAR_THRESHOLD,
   );
   const maxStars = Math.max(0, lesson?.scoring?.maxStars ?? 2);
 

@@ -30,6 +30,10 @@ import {
   type TraceEvaluation,
   type TracingScoringThresholds,
 } from "../scoring/tracing-scoring";
+import {
+  TRACING_ONE_STAR_THRESHOLD,
+  TRACING_TWO_STAR_THRESHOLD,
+} from "@/data/scoring-config";
 
 // Re-export constants for backward compatibility if needed by index.ts
 export { LETTER_TRACING_CANVAS_WIDTH, LETTER_TRACING_CANVAS_HEIGHT };
@@ -47,14 +51,10 @@ interface LetterTracingCanvasProps {
   onFrameTap?: () => void;
 }
 
-// Local defaults matching tracing-scoring.ts standard values
-const FALLBACK_ONE_STAR_THRESHOLD = 0.5;
-const FALLBACK_TWO_STAR_THRESHOLD = 0.85;
-
 const DEFAULT_THRESHOLDS: TracingScoringThresholds = {
-  passThreshold: FALLBACK_ONE_STAR_THRESHOLD,
-  oneStarThreshold: FALLBACK_ONE_STAR_THRESHOLD,
-  twoStarThreshold: FALLBACK_TWO_STAR_THRESHOLD,
+  passThreshold: TRACING_ONE_STAR_THRESHOLD,
+  oneStarThreshold: TRACING_ONE_STAR_THRESHOLD,
+  twoStarThreshold: TRACING_TWO_STAR_THRESHOLD,
   maxStars: 2,
 };
 
