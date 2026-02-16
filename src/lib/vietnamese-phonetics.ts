@@ -78,7 +78,7 @@ const CONSONANT_EQUIVALENTS: Record<string, string[]> = {
 // Tương đồng nguyên âm
 // Cao (0.8-0.9): a/ă (ngắn/dài), i/y
 // Trung bình (0.5): a/â, o/ô, u/ư (khác chất lượng âm nhưng cùng gốc chữ)
-const VOWEL_SIMILARITY: Record<string, Record<string, number>> = {
+const VOWEL_SIMILARITY: Record<string, Partial<Record<string, number>>> = {
   "a": { "ă": 0.9, "â": 0.4 },
   "ă": { "a": 0.9, "â": 0.4 },
   "â": { "a": 0.4, "ă": 0.4 },
@@ -91,7 +91,7 @@ const VOWEL_SIMILARITY: Record<string, Record<string, number>> = {
 };
 
 // Tương đồng thanh điệu
-const TONE_SIMILARITY: Record<VietnameseTone, Record<VietnameseTone, number>> = {
+const TONE_SIMILARITY: Partial<Record<VietnameseTone, Partial<Record<VietnameseTone, number>>>> = {
   "level": {},
   "huyen": {},
   "sac": {},
@@ -186,16 +186,16 @@ function getNucleusSimilarity(n1: string, n2: string): number {
   if (!n1 || !n2) return 0.0;
 
   // Kiểm tra bảng tương đồng rõ ràng
-  if (VOWEL_SIMILARITY[n1]?.[n2]) return VOWEL_SIMILARITY[n1][n2];
-  if (VOWEL_SIMILARITY[n2]?.[n1]) return VOWEL_SIMILARITY[n2][n1];
+  if (VOWEL_SIMILARITY[n1]?.[n2]) return VOWEL_SIMILARITY[n1][n2]!;
+  if (VOWEL_SIMILARITY[n2]?.[n1]) return VOWEL_SIMILARITY[n2][n1]!;
 
   return 0.0;
 }
 
 function getToneSimilarity(t1: VietnameseTone, t2: VietnameseTone): number {
   if (t1 === t2) return 1.0;
-  if (TONE_SIMILARITY[t1]?.[t2]) return TONE_SIMILARITY[t1][t2];
-  if (TONE_SIMILARITY[t2]?.[t1]) return TONE_SIMILARITY[t2][t1];
+  if (TONE_SIMILARITY[t1]?.[t2]) return TONE_SIMILARITY[t1][t2]!;
+  if (TONE_SIMILARITY[t2]?.[t1]) return TONE_SIMILARITY[t2][t1]!;
   return 0.0;
 }
 
