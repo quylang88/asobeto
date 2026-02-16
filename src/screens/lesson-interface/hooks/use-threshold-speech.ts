@@ -19,6 +19,7 @@ interface UseThresholdSpeechParams {
   isThresholdSpeechLesson: boolean;
   isCorrect: boolean | null;
   targetText: string;
+  isBossTower?: boolean;
   clearAdvanceTimeout: () => void;
   onScoringResult: (
     correct: boolean,
@@ -33,6 +34,7 @@ export function useThresholdSpeech({
   isThresholdSpeechLesson,
   isCorrect,
   targetText,
+  isBossTower = false,
   clearAdvanceTimeout,
   onScoringResult,
   stopAudio,
@@ -113,7 +115,10 @@ export function useThresholdSpeech({
       stopSpeechRecognition(true);
       stopMicLevelCapture();
 
-      const thresholds = getPronunciationScoringThresholds(currentLesson);
+      const thresholds = getPronunciationScoringThresholds(
+        currentLesson,
+        isBossTower,
+      );
       const result = evaluatePronunciationAttempt(
         transcript,
         targetText,
@@ -129,6 +134,7 @@ export function useThresholdSpeech({
     [
       currentLesson,
       isThresholdSpeechLesson,
+      isBossTower,
       onScoringResult,
       stopMicLevelCapture,
       stopSpeechRecognition,

@@ -29,6 +29,11 @@ import {
   getEmptyTraceEvaluation,
   type TraceEvaluation,
 } from "../scoring/tracing-scoring";
+import {
+  DEFAULT_MAX_STARS,
+  DEFAULT_ONE_STAR_THRESHOLD,
+  DEFAULT_TWO_STAR_THRESHOLD,
+} from "@/data/scoring-utils";
 
 // Re-export constants for backward compatibility if needed by index.ts
 export { LETTER_TRACING_CANVAS_WIDTH, LETTER_TRACING_CANVAS_HEIGHT };
@@ -42,6 +47,8 @@ interface LetterTracingCanvasProps {
   disabled?: boolean;
   oneStarThreshold?: number;
   twoStarThreshold?: number;
+  passThreshold?: number;
+  maxStars?: number;
   onEvaluate?: (result: TraceEvaluation) => void;
   onAutoTraceComplete?: () => void;
   onFrameTap?: () => void;
@@ -410,8 +417,10 @@ export function LetterTracingCanvas({
   targetText,
   mode = "practice",
   disabled,
-  oneStarThreshold = 0.5,
-  twoStarThreshold = 0.85,
+  oneStarThreshold = DEFAULT_ONE_STAR_THRESHOLD,
+  twoStarThreshold = DEFAULT_TWO_STAR_THRESHOLD,
+  passThreshold,
+  maxStars = DEFAULT_MAX_STARS,
   onEvaluate,
   onAutoTraceComplete,
   onFrameTap,
@@ -836,6 +845,8 @@ export function LetterTracingCanvas({
         guideFontSize,
         oneStarThreshold,
         twoStarThreshold,
+        passThreshold,
+        maxStars,
         guideGlyphConfig,
       }),
     );

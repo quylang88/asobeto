@@ -1,10 +1,6 @@
 import type { LessonContent } from "@/data/game-config";
 import { getPhoneticSimilarity } from "@/lib/vietnamese-phonetics";
-
-const DEFAULT_ONE_STAR_THRESHOLD = 0.5;
-const DEFAULT_TWO_STAR_THRESHOLD = 0.8;
-const DEFAULT_MAX_STARS = 2;
-const DEFAULT_PASS_THRESHOLD = 0.7;
+import { getScoringConfig } from "@/data/scoring-utils";
 
 const TONE_STRICT_SINGLE_LETTER_TARGETS = new Set([
   "a",
@@ -284,33 +280,10 @@ export function getSpeechSimilarity(
 
 export function getPronunciationScoringThresholds(
   lesson: LessonContent | undefined,
+  isBossTower: boolean = false, // Mặc định false để tương thích ngược nếu chưa update chỗ gọi
 ): PronunciationScoringThresholds {
-  if (!lesson || lesson.type !== "active") {
-    return {
-      passThreshold: DEFAULT_PASS_THRESHOLD,
-      oneStarThreshold: DEFAULT_ONE_STAR_THRESHOLD,
-      twoStarThreshold: DEFAULT_TWO_STAR_THRESHOLD,
-      maxStars: DEFAULT_MAX_STARS,
-    };
-  }
-
-  const oneStarThreshold = clamp01(
-    lesson.scoring?.starThresholds?.oneStar ?? DEFAULT_ONE_STAR_THRESHOLD,
-  );
-  const twoStarThreshold = clamp01(
-    lesson.scoring?.starThresholds?.twoStars ?? DEFAULT_TWO_STAR_THRESHOLD,
-  );
-  const passThreshold = clamp01(
-    lesson.scoring?.passThreshold ?? oneStarThreshold,
-  );
-  const maxStars = Math.max(0, lesson.scoring?.maxStars ?? DEFAULT_MAX_STARS);
-
-  return {
-    passThreshold,
-    oneStarThreshold,
-    twoStarThreshold,
-    maxStars,
-  };
+  // Sử dụng logic tập trung từ scoring-utils
+  return getScoringConfig(lesson, isBossTower);
 }
 
 export function evaluatePronunciationAttempt(

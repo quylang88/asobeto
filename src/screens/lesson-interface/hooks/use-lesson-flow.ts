@@ -9,6 +9,7 @@ import {
   useRef,
 } from "react";
 import { saveFloorProgress } from "@/lib/floor-progress";
+import { getScoringConfig } from "@/data/scoring-utils";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
 import type { TraceEvaluation } from "../components";
 import {
@@ -35,7 +36,7 @@ interface UseLessonFlowParams {
   isWordBuildLesson: boolean;
   isWordBuildReady: boolean;
   isTracePracticeLesson: boolean;
-  traceOneStarThreshold: number;
+  isBossTower?: boolean;
   wordBuildSlotTokenIds: Array<string | null>;
   lessonStarsThisAttemptRef: RefObject<Record<string, number>>;
   stopAudio: () => void;
@@ -72,7 +73,7 @@ export function useLessonFlow({
   isWordBuildLesson,
   isWordBuildReady,
   isTracePracticeLesson,
-  traceOneStarThreshold,
+  isBossTower = false,
   wordBuildSlotTokenIds,
   lessonStarsThisAttemptRef,
   stopAudio,
@@ -111,10 +112,13 @@ export function useLessonFlow({
       earnedStars: number = 0,
     ) => {
       if (currentLesson?.type === "active") {
+        // Đảm bảo không bao giờ vượt quá maxStars của lesson (hoặc 0 nếu là Boss)
+        const scoringConfig = getScoringConfig(currentLesson, isBossTower);
         const normalizedStars = Math.max(
           0,
-          Math.min(getLessonMaxStars(currentLesson), Math.round(earnedStars)),
+          Math.min(scoringConfig.maxStars, Math.round(earnedStars)),
         );
+
         setLessonStarsThisAttempt((prev) => {
           const next = {
             ...prev,
@@ -149,6 +153,7 @@ export function useLessonFlow({
     [
       clearAdvanceTimeout,
       currentLesson,
+      isBossTower,
       lessonStarsThisAttemptRef,
       setCelebrationStars,
       setIsCorrect,
@@ -178,10 +183,13 @@ export function useLessonFlow({
       }
 
       setSelectedAnswer(answer.id);
+
+      const scoringConfig = getScoringConfig(currentLesson, isBossTower);
       const earnedStars =
-        answer.isCorrect && currentLesson.scoring?.maxStars
-          ? currentLesson.scoring.maxStars
+        answer.isCorrect && scoringConfig.maxStars > 0
+          ? scoringConfig.maxStars
           : 0;
+
       handleScoringResult(
         answer.isCorrect,
         FEEDBACK_ADVANCE_DELAY_MS,
@@ -190,6 +198,7 @@ export function useLessonFlow({
     },
     [
       currentLesson,
+      isBossTower,
       handleScoringResult,
       selectedAnswer,
       setSelectedAnswer,
@@ -217,8 +226,10 @@ export function useLessonFlow({
         (targetTokenId, tokenIndex) =>
           wordBuildSlotTokenIds[tokenIndex] === targetTokenId,
       );
+
+    const scoringConfig = getScoringConfig(currentLesson, isBossTower);
     const earnedStars = isAssembledCorrectly
-      ? currentLesson.scoring?.maxStars ?? 1
+      ? scoringConfig.maxStars
       : 0;
 
     handleScoringResult(
@@ -228,6 +239,7 @@ export function useLessonFlow({
     );
   }, [
     currentLesson,
+    isBossTower,
     handleScoringResult,
     isCorrect,
     isWordBuildLesson,
@@ -247,9 +259,8 @@ export function useLessonFlow({
       }
 
       setTraceResult(result);
-      const lessonMaxStars = currentLesson.scoring?.maxStars ?? 2;
-      const earnedStars = Math.min(lessonMaxStars, result.stars);
-      const correct = result.score >= traceOneStarThreshold;
+      const earnedStars = result.stars; // Đã được tính và clamp trong TraceEvaluation
+      const correct = result.isPassed;
       const advanceDelayMs =
         currentLesson.lessonKind === "letter_trace_practice"
           ? TRACE_STARS_ADVANCE_DELAY_MS
@@ -262,7 +273,6 @@ export function useLessonFlow({
       isCorrect,
       isTracePracticeLesson,
       setTraceResult,
-      traceOneStarThreshold,
     ],
   );
 

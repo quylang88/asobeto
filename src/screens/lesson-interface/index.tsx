@@ -12,6 +12,7 @@ import { BossReviewChoiceView, LessonCompletionView } from "@/components/complet
 import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
 import { getStoredFloorProgress, getStoredLessonStars } from "@/lib/floor-progress";
 import { getWorldData } from "@/data/game-config";
+import { getScoringConfig } from "@/data/scoring-utils";
 import { type LessonAnswer, type LessonContent } from "../../data/game-config";
 import {
   LessonActiveRenderer,
@@ -137,6 +138,8 @@ export function LessonInterface({
       lessons.length > 0 &&
       lessons.every((lesson) => lesson.type === "active"),
   );
+  const isBossTower = Boolean(currentTower?.isBoss);
+
   const [bossEntryResolved, setBossEntryResolved] = useState(
     () => !isBossReviewFloor,
   );
@@ -312,10 +315,10 @@ export function LessonInterface({
   const wordBuildDisplayRowByLogicalRow = new Map(
     wordBuildUsedRows.map((logicalRow, rowIndex) => [logicalRow, rowIndex + 1]),
   );
-  const traceOneStarThreshold =
-    currentLesson?.scoring?.starThresholds?.oneStar ?? 0.5;
-  const traceTwoStarThreshold =
-    currentLesson?.scoring?.starThresholds?.twoStars ?? 0.85;
+
+  // Tính toán scoring config tập trung
+  const scoringConfig = getScoringConfig(currentLesson, isBossTower);
+
   const showPreviewCard =
     !isTracePracticeLesson &&
     !isLetterTraceDemoLesson &&
@@ -387,7 +390,7 @@ export function LessonInterface({
     isWordBuildLesson,
     isWordBuildReady,
     isTracePracticeLesson,
-    traceOneStarThreshold,
+    isBossTower,
     wordBuildSlotTokenIds,
     lessonStarsThisAttemptRef,
     stopAudio,
@@ -421,6 +424,7 @@ export function LessonInterface({
     isThresholdSpeechLesson,
     isCorrect,
     targetText,
+    isBossTower,
     clearAdvanceTimeout,
     onScoringResult,
     stopAudio,
@@ -654,8 +658,7 @@ export function LessonInterface({
               micLevel={micLevel}
               targetText={targetText}
               traceResult={traceResult}
-              traceOneStarThreshold={traceOneStarThreshold}
-              traceTwoStarThreshold={traceTwoStarThreshold}
+              traceScoringConfig={scoringConfig}
               handleTraceEvaluate={handleTraceEvaluate}
               playAudio={playAudio}
               handleNext={handleNext}
