@@ -292,6 +292,7 @@ export interface LessonAnswer {
   id: string;
   text?: string;
   image?: string;
+  wordAssetKey?: string;
   audio?: string;
   isCorrect: boolean;
 }

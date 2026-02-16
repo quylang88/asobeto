@@ -2,7 +2,10 @@ import type {
   LessonAnswer,
   LessonContent,
 } from "../../world-1-alphabet/map-structure";
-import type { VocabImageQuizChoice } from "./shared";
+import {
+  buildWordImagePath,
+  type VocabImageQuizChoice,
+} from "./shared";
 
 export interface VocabImageQuizLessonConfig {
   lessonId: string;
@@ -25,6 +28,12 @@ function shuffleAnswers(answers: LessonAnswer[]): LessonAnswer[] {
   return shuffled;
 }
 
+function resolveChoiceImage(choice: VocabImageQuizChoice): string {
+  const image = choice.image?.trim();
+  if (image) return image;
+  return buildWordImagePath(choice.assetKey);
+}
+
 export function createVocabImageQuizLesson(
   config: VocabImageQuizLessonConfig,
 ): LessonContent {
@@ -43,13 +52,15 @@ export function createVocabImageQuizLesson(
       {
         id: `${correct.id}-correct`,
         text: correct.text,
-        image: correct.image,
+        wordAssetKey: correct.assetKey,
+        image: resolveChoiceImage(correct),
         isCorrect: true,
       },
       ...distractors.map((word) => ({
         id: `${correct.id}-distractor-${word.id}`,
         text: word.text,
-        image: word.image,
+        wordAssetKey: word.assetKey,
+        image: resolveChoiceImage(word),
         isCorrect: false,
       })),
     ]),

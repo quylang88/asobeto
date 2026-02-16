@@ -1861,3 +1861,159 @@ Validation
 
 Blocked
 - Could not run `$WEB_GAME_CLIENT` script from skill because local `playwright` package is missing and install is blocked by offline registry access (`ENOTFOUND registry.npmjs.org`).
+
+---
+
+Update (Boss tower re-entry shows choice screen after pass)
+
+TODO
+- [x] Fix boss tower entry flow so re-entering boss does not auto-jump into mystery game.
+- [x] Show `boss-review-choice` immediately when boss review floor was already passed before.
+- [x] Keep normal behavior for users who have not passed review yet (enter review lesson directly).
+- [x] Validate with typecheck and interactive smoke checks.
+
+Notes
+- `src/app/page.tsx`
+  - Replaced boss auto-entry resolver with `resolveBossEntryFloorId` that always routes boss entry to floor review (`floorId=1`) instead of auto-selecting mystery game floor.
+  - Simplified boss `handleLessonComplete` behavior to return to tower selection instead of auto-switching floor based on stored stars.
+- `src/screens/lesson-interface/index.tsx`
+  - Added initial boss-review gate: when opening boss review floor, if stored floor stars already meet pass threshold (`>=6`), show `BossReviewChoiceView` immediately.
+  - Fixed stored-star read for boss floor by passing `floorMaxStars` into `getStoredFloorProgress(...)` (default cap is 3 otherwise, which incorrectly truncates boss stars).
+  - Pre-fill `score` with stored pass count so choice header shows meaningful progress.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- Skill Playwright client attempt:
+  - `node "$WEB_GAME_CLIENT" ...` failed in this env due missing `playwright` package import for the skill script.
+- Playwright MCP smoke:
+  - With mocked progress `1:6:1.stars=6`: entering boss shows `Chọn Hành Trình Tiếp Theo`; review lesson title is not shown.
+  - With empty progress: entering boss shows review lesson (`Nghe và chọn chữ cái đã học`), choice screen not shown.
+
+---
+
+Update (Boss lesson image answers + boss choice redesign)
+
+TODO
+- [x] Fix boss floor review lesson 3-4 so 3 image choices are always visible on mobile.
+- [x] Keep answer image source mapped from `images/words/*.webp` using word asset keys (`awn`, `cas`, etc.) and random selection logic.
+- [x] Redesign `boss-review-choice-view` to feel more mysterious and balanced on mobile.
+- [x] Revalidate by typecheck/lint + Playwright smoke snapshots.
+
+Notes
+- `src/screens/lesson-interface/renderers/active-renderer.tsx`
+  - Fixed image-answer card ratio from invalid `aspect-3/4` to `aspect-[3/4]` so image cards no longer collapse.
+  - Tuned image quiz grid width/gap for mobile (`max-w-md`, tighter spacing).
+  - Added image card background + inner padding for clearer full-image visibility.
+  - Added bottom text badge on each image card to help readability/selection.
+- `src/data/world-1-alphabet/tower-boss-1/floor-1.ts`
+  - Normalized boss word image path generation with helper `buildWordImagePath(assetKey)`.
+  - Kept random selection behavior while guaranteeing source comes from `/assets/images/words/<assetKey>.webp`.
+- `src/components/completion/boss-review-choice-view.tsx`
+  - Reworked visual direction to a mysterious/cosmic theme with layered gradients, star pattern, glowing accents, and mobile-first spacing.
+  - Upgraded both action cards (`Ôn tập`, `Game Bí Ẩn`) with clearer hierarchy and stronger contrast.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Playwright snapshots:
+  - Boss review step `3/10` shows image quiz with 3 visible image options (`bố`, `cỏ`, `cá`).
+  - Boss re-entry choice screen displays redesigned header + both action cards correctly on mobile viewport (`390x844`).
+
+---
+
+Update (Boss image visibility + colorful choice header + audio gate)
+
+TODO
+- [x] Force boss lesson 3-4 image options to remain visible on mobile.
+- [x] Redesign `boss-review-choice-view` to be colorful, keep mysterious feel, and add a back button/header pattern like tower screens.
+- [x] Prevent lesson-1 audio from auto-playing while on `boss-review-choice`; only play after choosing `Ôn tập`.
+- [x] Revalidate with typecheck, lint, and Playwright smoke snapshots.
+
+Notes
+- `src/screens/lesson-interface/renderers/active-renderer.tsx`
+  - Switched image-answer card layout from ratio-only sizing to fixed mobile-safe heights (`h-40`, `md:h-52`) to avoid collapsed cards.
+  - Switched answer image rendering to direct `<img>` in this renderer for immediate paint reliability in boss image quiz cards.
+- `src/components/completion/boss-review-choice-view.tsx`
+  - Added `onBack` prop and implemented top sticky header pattern aligned with tower screens (back button + title + mascot).
+  - Updated visual design to colorful gradients (green/orange/blue/pink accents) while keeping starry mystery styling.
+- `src/screens/lesson-interface/hooks/use-lesson-audio.ts`
+  - Added `autoPlayEnabled` option to gate auto-intro/main playback and hard-stop audio when disabled.
+- `src/screens/lesson-interface/index.tsx`
+  - Added boss-entry resolution state so boss review choice can render without triggering lesson audio first.
+  - Passed `autoPlayEnabled` to `useLessonAudio`: disabled while boss choice screen is shown.
+  - Passed `onBack={handleBack}` to `BossReviewChoiceView`.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass (2 warnings from `@next/next/no-img-element` in active-renderer due intentional `<img>` reliability switch).
+- Playwright smoke:
+  - Boss step `3/10` snapshot shows 3 visible image choices (`cá`, `mẹ`, `cỏ`) with images rendered.
+  - Boss choice snapshot on passed progress shows tower-style header with back button and colorful two-card layout.
+  - Resource check before choosing `Ôn tập` reports no `/assets/audio/*` loads from lesson autoplay; after choosing `Ôn tập`, lesson audio loads normally.
+
+Addendum
+- Added inline eslint waivers for two intentional `<img>` usages in boss image answer cards, so `pnpm lint` now passes cleanly without warnings.
+
+---
+
+Update (Follow-up hardening for boss image strip + guaranteed active celebration audio)
+
+TODO
+- [x] Harden boss image quiz rendering so lesson 3-4 never falls back to tiny/incorrect strip layout.
+- [x] Guarantee celebration audio trigger for every active lesson scoring event (success/fail), independent from overlay mount timing.
+- [x] Re-run lint/typecheck and re-verify boss 3/10 image cards via Playwright.
+
+Notes
+- `src/screens/lesson-interface/renderers/active-renderer.tsx`
+  - Added deterministic vocab image mode: if `lessonKind === "vocab_image_quiz"`, always render image-card grid.
+  - Added fallback text->image resolver for boss words:
+    - `cá->cas.webp`, `ăn->awn.webp`, `bố->boos.webp`, `bò->bof.webp`, `mẹ->mej.webp`, `cỏ->cor.webp`.
+  - Kept fixed card heights (`h-40`, `md:h-52`) to avoid card collapse on mobile.
+- `src/screens/lesson-interface/hooks/use-lesson-flow.ts`
+  - Injected `playCelebrationFeedback(correct)` into scoring flow and call it right after stopping lesson audio, before advance timer.
+- `src/screens/lesson-interface/index.tsx`
+  - Use `playOneShotAudio(...)` for celebration feedback in scoring path (success/fail).
+  - Set `muteSound` on visual celebration overlays to prevent race/double-trigger with scoring-path audio.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Playwright (mobile viewport 390x844) on fresh boss run:
+  - Step `3/10` shows 3 image answer cards with labels and images (`cỏ`, `bố`, `cá`).
+
+---
+
+Update (User-requested cleanup: no UI hardcode, full-bleed image cards, replay button, boss audio delay)
+
+TODO
+- [x] Remove UI-level hardcoded word->image map and move image derivation to data via `wordAssetKey`.
+- [x] Make lesson 3-4 image cards full-bleed (no vocab text label under cards).
+- [x] Add replay speaker button for vocab image quiz lessons (boss lesson 3-4).
+- [x] Delay boss lesson autoplay audio by 1000ms.
+
+Notes
+- Added central data helper: `src/data/word-assets.ts` with `buildWordImagePath(wordAssetKey)`.
+- Extended data contracts:
+  - `LessonAnswer.wordAssetKey?: string`
+  - `VocabImageQuizChoice.assetKey: string`
+- `createVocabImageQuizLesson(...)` now writes `wordAssetKey` into each answer, so UI can resolve image source from data (`answer.image` or `buildWordImagePath(answer.wordAssetKey)`) without hardcoded text mapping.
+- Updated boss review word data to use shared helper from data module.
+- `LessonActiveRenderer` updates:
+  - image card uses `object-cover` full-bleed
+  - removed vocab text overlay under images
+  - added `Nghe lại từ vựng` button in image-quiz mode (`lessonKind === vocab_image_quiz`) using existing `playAudio(...)` callback.
+- `useLessonAudio` now supports `autoPlayDelayMs`; `LessonInterface` passes `1000ms` for boss tower lessons.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Playwright snapshot at boss step `3/10`: shows 3 full image buttons (`cỏ`, `cá`, `bố`) and visible replay speaker button.
+
+Addendum
+- Replaced deprecated `MutableRefObject` usage in lesson flow hook with `RefObject`.
+- Consolidated `buildWordImagePath(wordAssetKey)` usage into `src/data/lesson-templates/vocab/shared.ts`; removed any usage/import from standalone word-assets module.
+- Re-exported `buildWordImagePath` from vocab index for consistent data-layer imports.
+
+Addendum
+- Enforced rule: `buildWordImagePath` is now called only inside `src/data/lesson-templates/vocab/create-vocab-image-quiz-lesson.ts`.
+- Removed UI/data direct calls elsewhere; boss floor data now passes only `assetKey`, and image path resolution happens in the vocab image quiz template.

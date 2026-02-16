@@ -16,6 +16,8 @@ interface UseLessonAudioParams {
   currentLessonIntroVoiceOptions: string[] | undefined;
   currentLessonMainAudio: string | undefined;
   currentLessonDisableIntro: boolean;
+  autoPlayEnabled?: boolean;
+  autoPlayDelayMs?: number;
 }
 
 export function useLessonAudio({
@@ -25,6 +27,8 @@ export function useLessonAudio({
   currentLessonIntroVoiceOptions,
   currentLessonMainAudio,
   currentLessonDisableIntro,
+  autoPlayEnabled = true,
+  autoPlayDelayMs = 0,
 }: UseLessonAudioParams) {
   const audioRef = useRef<ManagedAudioPlayback | null>(null);
 
@@ -54,8 +58,14 @@ export function useLessonAudio({
     });
   }, []);
 
+  useEffect(() => {
+    if (autoPlayEnabled) return;
+    stopAudio();
+  }, [autoPlayEnabled, stopAudio]);
+
   // Auto-play intro audio first, then main lesson audio.
   useEffect(() => {
+    if (!autoPlayEnabled) return;
     if (!currentLessonId) return;
 
     const introOptions =
@@ -112,7 +122,7 @@ export function useLessonAudio({
         });
         audioRef.current = primaryAudio;
       }
-    }, 0);
+    }, Math.max(0, autoPlayDelayMs));
 
     return () => {
       isCancelled = true;
@@ -123,6 +133,8 @@ export function useLessonAudio({
       followUpAudio?.stop();
     };
   }, [
+    autoPlayEnabled,
+    autoPlayDelayMs,
     currentStep,
     currentLessonId,
     currentLessonIntroVoice,

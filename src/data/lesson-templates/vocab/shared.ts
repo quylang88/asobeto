@@ -15,7 +15,8 @@ export interface VocabWordBuildLessonConfig extends VocabLessonBaseConfig {
 export interface VocabImageQuizChoice {
   id: string;
   text: string;
-  image: string;
+  assetKey: string;
+  image?: string;
 }
 
 export function buildVocabIntroVoiceOptions(
@@ -44,4 +45,8 @@ export function buildVocabSpellingAudio(wordAssetKey: string): string {
 
 export function buildWordWithImage(wordAssetKey: string): string {
   return `/assets/images/words/${wordAssetKey}-with-word.webp`;
+}
+
+export function buildWordImagePath(wordAssetKey: string): string {
+  return `/assets/images/words/${wordAssetKey}.webp`;
 }

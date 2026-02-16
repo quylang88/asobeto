@@ -10,7 +10,7 @@ import {
 } from "@/components/celebrations";
 import { BossReviewChoiceView, LessonCompletionView } from "@/components/completion";
 import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
-import { getStoredLessonStars } from "@/lib/floor-progress";
+import { getStoredFloorProgress, getStoredLessonStars } from "@/lib/floor-progress";
 import { getWorldData } from "@/data/game-config";
 import { type LessonAnswer, type LessonContent } from "../../data/game-config";
 import {
@@ -137,6 +137,9 @@ export function LessonInterface({
       lessons.length > 0 &&
       lessons.every((lesson) => lesson.type === "active"),
   );
+  const [bossEntryResolved, setBossEntryResolved] = useState(
+    () => !isBossReviewFloor,
+  );
   const currentLesson = hasLessons ? lessons[currentStep] : undefined;
   const currentLessonKind = currentLesson?.lessonKind;
   const currentLessonId = currentLesson?.id;
@@ -144,14 +147,27 @@ export function LessonInterface({
   const currentLessonIntroVoiceOptions = currentLesson?.introVoiceOptions;
   const currentLessonMainAudio = currentLesson?.mainAudio;
   const currentLessonDisableIntro = Boolean(currentLesson?.disableIntro);
-  const { playAudio, stopAudio } = useLessonAudio({
+  const lessonAutoplayDelayMs = currentTower?.isBoss ? 1000 : 0;
+  const { playAudio, playOneShotAudio, stopAudio } = useLessonAudio({
     currentStep,
     currentLessonId,
     currentLessonIntroVoice,
     currentLessonIntroVoiceOptions,
     currentLessonMainAudio,
     currentLessonDisableIntro,
+    autoPlayEnabled:
+      bossEntryResolved &&
+      !(showBossReviewChoiceScreen && isBossReviewFloor),
+    autoPlayDelayMs: lessonAutoplayDelayMs,
   });
+  const playCelebrationFeedback = useCallback(
+    (correct: boolean) => {
+      playOneShotAudio(
+        correct ? LESSON_SUCCESS_FEEDBACK_AUDIO : LESSON_FAILURE_FEEDBACK_AUDIO,
+      );
+    },
+    [playOneShotAudio],
+  );
 
   useEffect(() => {
     setAnswerOptions(getDisplayAnswersForLesson(currentLesson));
@@ -161,6 +177,26 @@ export function LessonInterface({
     preloadCelebrationAudio(LESSON_SUCCESS_FEEDBACK_AUDIO);
     preloadCelebrationAudio(LESSON_FAILURE_FEEDBACK_AUDIO);
   }, []);
+
+  useEffect(() => {
+    if (!isBossReviewFloor) {
+      setBossEntryResolved(true);
+      return;
+    }
+    const storedBossReviewProgress = getStoredFloorProgress({
+      worldId,
+      towerId,
+      floorId,
+    }, floorMaxStars);
+    const storedPassCount = storedBossReviewProgress?.stars ?? 0;
+    if (storedPassCount >= BOSS_REVIEW_PASS_THRESHOLD) {
+      setScore(storedPassCount);
+      setShowBossReviewChoiceScreen(true);
+    } else {
+      setShowBossReviewChoiceScreen(false);
+    }
+    setBossEntryResolved(true);
+  }, [floorId, floorMaxStars, isBossReviewFloor, towerId, worldId]);
 
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
   const isTracePracticeLesson = isTracePracticeLessonKind(currentLessonKind);
@@ -355,6 +391,7 @@ export function LessonInterface({
     wordBuildSlotTokenIds,
     lessonStarsThisAttemptRef,
     stopAudio,
+    playCelebrationFeedback,
     resetSpeechSession: callResetSpeechSession,
     resetWordBuildDragState,
     setCurrentStep,
@@ -428,6 +465,7 @@ export function LessonInterface({
     setTraceDemoReplayKey(0);
     setTraceDemoFastForwarded(false);
     setCelebrationStars(null);
+    setBossEntryResolved(true);
     const firstLesson = lessons[0];
     setAnswerOptions(getDisplayAnswersForLesson(firstLesson));
     setPassiveReady(
@@ -476,6 +514,7 @@ export function LessonInterface({
       <BossReviewChoiceView
         passCount={score}
         totalLessons={activeLessonsCount}
+        onBack={handleBack}
         onChooseReview={handleChooseBossReview}
         onChooseMysteryGame={handleChooseBossMysteryGame}
       />
@@ -531,10 +570,10 @@ export function LessonInterface({
         {isCorrect === true && <SuccessCelebrationOverlay />}
       </AnimatePresence>
       <AnimatePresence>
-        {isCorrect === false && <BrokenHeartCelebration />}
+        {isCorrect === false && <BrokenHeartCelebration muteSound />}
       </AnimatePresence>
       <AnimatePresence>
-        {celebrationStars && <StarCelebration stars={celebrationStars} />}
+        {celebrationStars && <StarCelebration stars={celebrationStars} muteSound />}
       </AnimatePresence>
 
       {/* Top bar tách riêng để dễ tái sử dụng khi thêm lesson/floor mới. */}
@@ -618,6 +657,7 @@ export function LessonInterface({
               traceOneStarThreshold={traceOneStarThreshold}
               traceTwoStarThreshold={traceTwoStarThreshold}
               handleTraceEvaluate={handleTraceEvaluate}
+              playAudio={playAudio}
               handleNext={handleNext}
             />
           </motion.div>

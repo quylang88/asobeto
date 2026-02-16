@@ -1,9 +1,8 @@
 "use client";
 
 import { type PointerEvent } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Mic, Square } from "lucide-react";
+import { ArrowRight, Mic, Square, Volume2 } from "lucide-react";
 import { LetterTracingCanvas, type TraceEvaluation } from "../components";
 import { PrimaryButton } from "@/components/common/primary-button";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
@@ -53,7 +52,12 @@ interface LessonActiveRendererProps {
   traceOneStarThreshold: number;
   traceTwoStarThreshold: number;
   handleTraceEvaluate: (result: TraceEvaluation) => void;
+  playAudio: (src: string) => void;
   handleNext: () => void;
+}
+
+function resolveAnswerImageSource(answer: LessonAnswer): string | null {
+  return answer.image ?? null;
 }
 
 export function LessonActiveRenderer({
@@ -88,72 +92,98 @@ export function LessonActiveRenderer({
   traceOneStarThreshold,
   traceTwoStarThreshold,
   handleTraceEvaluate,
+  playAudio,
   handleNext,
 }: LessonActiveRendererProps) {
   const hasImageAnswerOptions = answerOptions.some((answer) =>
     Boolean(answer.image),
   );
+  const isVocabImageQuizLesson = currentLesson.lessonKind === "vocab_image_quiz";
+  const shouldRenderImageAnswers =
+    isVocabImageQuizLesson || hasImageAnswerOptions;
 
   return (
     <>
       {currentLesson.type === "active" &&
         hasAnswerOptions &&
-        hasImageAnswerOptions && (
-          <div className="mx-auto mt-1 grid w-full max-w-105 grid-cols-3 gap-3">
-            {answerOptions.map((answer, index) => {
-              const isSelected = selectedAnswer === answer.id;
-              const isCorrectAnswer = answer.isCorrect;
-              const showResult = selectedAnswer !== null;
-              const shouldHighlightCorrect = showResult && isCorrectAnswer;
-              const shouldHighlightWrongSelected =
-                showResult && isSelected && !isCorrectAnswer;
-              const shouldFadeWrongUnselected =
-                showResult && !isCorrectAnswer && !isSelected;
+        shouldRenderImageAnswers && (
+          <div className="mx-auto mt-2 w-full max-w-md">
+            <div className="grid grid-cols-3 gap-2 md:gap-3">
+              {answerOptions.map((answer, index) => {
+                const answerImageSource = resolveAnswerImageSource(answer);
+                const isSelected = selectedAnswer === answer.id;
+                const isCorrectAnswer = answer.isCorrect;
+                const showResult = selectedAnswer !== null;
+                const shouldHighlightCorrect = showResult && isCorrectAnswer;
+                const shouldHighlightWrongSelected =
+                  showResult && isSelected && !isCorrectAnswer;
+                const shouldFadeWrongUnselected =
+                  showResult && !isCorrectAnswer && !isSelected;
 
-              return (
-                <motion.button
-                  key={answer.id}
-                  initial={{ y: 30, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileTap={!selectedAnswer ? { scale: 0.96 } : {}}
-                  onClick={() => handleAnswer(answer)}
-                  disabled={selectedAnswer !== null}
-                  className={`relative aspect-3/4 w-full overflow-hidden rounded-2xl border-4 bg-white shadow-md transition ${
-                    shouldHighlightCorrect
-                      ? "border-green-bright ring-4 ring-green-bright/30"
-                      : shouldHighlightWrongSelected
-                        ? "border-red-400 ring-4 ring-red-300/30"
-                        : "border-sky-200"
-                  } ${shouldFadeWrongUnselected ? "opacity-75" : ""} ${
-                    selectedAnswer !== null
-                      ? "cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
+                return (
+                  <motion.button
+                    key={answer.id}
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileTap={!selectedAnswer ? { scale: 0.96 } : {}}
+                    onClick={() => handleAnswer(answer)}
+                    disabled={selectedAnswer !== null}
+                    className={`relative h-40 w-full overflow-hidden rounded-2xl border-4 bg-white shadow-md transition md:h-52 ${
+                      shouldHighlightCorrect
+                        ? "border-green-bright ring-4 ring-green-bright/30"
+                        : shouldHighlightWrongSelected
+                          ? "border-red-400 ring-4 ring-red-300/30"
+                          : "border-sky-200"
+                    } ${shouldFadeWrongUnselected ? "opacity-75" : ""} ${
+                      selectedAnswer !== null
+                        ? "cursor-not-allowed"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    {answerImageSource ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={answerImageSource}
+                          alt={answer.text || "Answer image"}
+                          loading="eager"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-slate-900/10 to-transparent" />
+                      </>
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-4xl font-bold text-foreground">
+                        {answer.text}
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {isVocabImageQuizLesson && currentLesson.mainAudio && (
+              <motion.div
+                className="mt-4 flex justify-center"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <PrimaryButton
+                  className="rounded-full shadow-lg"
+                  frontClassName="h-12 w-12"
+                  aria-label="Nghe lại từ vựng"
+                  onClick={() => playAudio(currentLesson.mainAudio!)}
                 >
-                  {answer.image ? (
-                    <Image
-                      src={answer.image}
-                      alt={answer.text || "Answer image"}
-                      fill
-                      quality={75}
-                      sizes="(max-width: 768px) 28vw, 132px"
-                      className="object-contain"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-4xl font-bold text-foreground">
-                      {answer.text}
-                    </span>
-                  )}
-                </motion.button>
-              );
-            })}
+                  <Volume2 className="h-6 w-6" />
+                </PrimaryButton>
+              </motion.div>
+            )}
           </div>
         )}
 
       {currentLesson.type === "active" &&
         hasAnswerOptions &&
-        !hasImageAnswerOptions && (
+        !shouldRenderImageAnswers && (
         <div className="flex justify-center gap-4 flex-wrap">
           {answerOptions.map((answer, index) => {
             const isSelected = selectedAnswer === answer.id;
@@ -187,13 +217,12 @@ export function LessonActiveRenderer({
                 >
                   {answer.image ? (
                     <div className="w-12 h-12 relative">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={answer.image}
                         alt={answer.text || "Answer"}
-                        fill
-                        quality={70}
-                        sizes="48px"
-                        className="object-contain"
+                        loading="eager"
+                        className="h-full w-full object-contain"
                       />
                     </div>
                   ) : (

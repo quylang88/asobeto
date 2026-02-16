@@ -17,7 +17,11 @@ interface ReviewLetterOption {
   assetKey: string;
 }
 
-interface ReviewWordOption extends VocabImageQuizChoice {
+type ReviewWordOption = VocabImageQuizChoice;
+
+interface ReviewWordSeed {
+  id: string;
+  text: string;
   assetKey: string;
 }
 
@@ -32,44 +36,42 @@ const REVIEW_LETTERS: ReviewLetterOption[] = [
   { id: "e", text: "e", assetKey: "e" },
 ];
 
-const REVIEW_WORDS: ReviewWordOption[] = [
+const REVIEW_WORD_SEEDS: ReviewWordSeed[] = [
   {
     id: "cas",
     text: "cá",
     assetKey: "cas",
-    image: "/assets/images/words/cas.webp",
   },
   {
     id: "awn",
     text: "ăn",
     assetKey: "awn",
-    image: "/assets/images/words/awn.webp",
   },
   {
     id: "boos",
     text: "bố",
     assetKey: "boos",
-    image: "/assets/images/words/boos.webp",
   },
   {
     id: "bof",
     text: "bò",
     assetKey: "bof",
-    image: "/assets/images/words/bof.webp",
   },
   {
     id: "mej",
     text: "mẹ",
     assetKey: "mej",
-    image: "/assets/images/words/mej.webp",
   },
   {
     id: "cor",
     text: "cỏ",
     assetKey: "cor",
-    image: "/assets/images/words/cor.webp",
   },
 ];
+
+const REVIEW_WORDS: ReviewWordOption[] = REVIEW_WORD_SEEDS.map((word) => ({
+  ...word,
+}));
 
 function shuffleArray<T>(items: T[]): T[] {
   const shuffled = [...items];

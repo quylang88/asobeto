@@ -2,7 +2,7 @@
 
 import {
   type Dispatch,
-  type MutableRefObject,
+  type RefObject,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -37,8 +37,9 @@ interface UseLessonFlowParams {
   isTracePracticeLesson: boolean;
   traceOneStarThreshold: number;
   wordBuildSlotTokenIds: Array<string | null>;
-  lessonStarsThisAttemptRef: MutableRefObject<Record<string, number>>;
+  lessonStarsThisAttemptRef: RefObject<Record<string, number>>;
   stopAudio: () => void;
+  playCelebrationFeedback: (correct: boolean) => void;
   resetSpeechSession: () => void;
   resetWordBuildDragState: () => void;
   setCurrentStep: Dispatch<SetStateAction<number>>;
@@ -75,6 +76,7 @@ export function useLessonFlow({
   wordBuildSlotTokenIds,
   lessonStarsThisAttemptRef,
   stopAudio,
+  playCelebrationFeedback,
   resetSpeechSession,
   resetWordBuildDragState,
   setCurrentStep,
@@ -135,6 +137,7 @@ export function useLessonFlow({
       }
 
       stopAudio();
+      playCelebrationFeedback(correct);
 
       // Luôn reset timer cũ rồi mới tạo timer mới để đảm bảo thời gian chờ đúng theo lesson hiện tại
       clearAdvanceTimeout();
@@ -152,6 +155,7 @@ export function useLessonFlow({
       setLessonStarsThisAttempt,
       setScore,
       stopAudio,
+      playCelebrationFeedback,
     ],
   );
 

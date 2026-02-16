@@ -27,9 +27,7 @@ interface GameState {
   selectedFloor: number | null;
 }
 
-const BOSS_REVIEW_PASS_THRESHOLD = 6;
-
-function resolveBossAutoFloorId(worldId: number, towerId: number): number | null {
+function resolveBossEntryFloorId(worldId: number, towerId: number): number | null {
   const worldData = getWorldData(worldId);
   const bossTower = worldData.towers.find((tower) => tower.id === towerId);
   if (!bossTower?.isBoss || !bossTower.floors?.length) {
@@ -42,21 +40,7 @@ function resolveBossAutoFloorId(worldId: number, towerId: number): number | null
     floors: bossTower.floors,
   });
   const reviewFloor = hydratedFloors.find((floor) => floor.id === 1) ?? hydratedFloors[0];
-  const mysteryFloor =
-    hydratedFloors.find((floor) =>
-      floor.content?.some((lesson) => lesson.lessonKind === "memory_flip_challenge"),
-    ) ?? hydratedFloors[hydratedFloors.length - 1];
-
-  if (!reviewFloor) {
-    return mysteryFloor?.id ?? null;
-  }
-
-  const hasPassedReview = (reviewFloor.stars ?? 0) >= BOSS_REVIEW_PASS_THRESHOLD;
-  if (hasPassedReview && mysteryFloor) {
-    return mysteryFloor.id;
-  }
-
-  return reviewFloor.id;
+  return reviewFloor?.id ?? null;
 }
 
 export default function AsobetoApp() {
@@ -87,7 +71,7 @@ export default function AsobetoApp() {
     const selectedTower = worldData.towers.find((tower) => tower.id === towerId);
 
     if (selectedTower?.isBoss) {
-      const autoFloorId = resolveBossAutoFloorId(selectedWorldId, towerId);
+      const autoFloorId = resolveBossEntryFloorId(selectedWorldId, towerId);
       if (autoFloorId !== null) {
         setGameState({
           ...gameState,
@@ -143,23 +127,6 @@ export default function AsobetoApp() {
       );
 
       if (selectedTower?.isBoss) {
-        const nextBossFloorId = resolveBossAutoFloorId(
-          selectedWorldId,
-          selectedTowerId,
-        );
-
-        if (
-          nextBossFloorId !== null &&
-          nextBossFloorId !== gameState.selectedFloor
-        ) {
-          setGameState({
-            ...gameState,
-            currentScreen: "lesson",
-            selectedFloor: nextBossFloorId,
-          });
-          return;
-        }
-
         setGameState({
           ...gameState,
           currentScreen: "towerSelection",

@@ -3,6 +3,7 @@ export type {
   VocabImageQuizChoice,
   VocabWordBuildLessonConfig,
 } from "./shared";
+export { buildWordImagePath } from "./shared";
 export type { VocabPronunciationPracticeLessonConfig } from "./create-vocab-pronunciation-practice-lesson";
 export { createVocabListenLookLesson } from "./create-vocab-listen-look-lesson";
 export { createVocabPronunciationPracticeLesson } from "./create-vocab-pronunciation-practice-lesson";
