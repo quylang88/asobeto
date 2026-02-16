@@ -42,6 +42,7 @@ export {
   getMaxStars,
   canUnlockBoss,
   shouldTowerBeUnlocked,
+  createBossFloor1Lessons,
 } from "./world-1-alphabet";
 
 export interface World {

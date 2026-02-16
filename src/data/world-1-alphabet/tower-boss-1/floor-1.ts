@@ -248,19 +248,36 @@ function createBossVocabTracePracticeLesson(
   };
 }
 
-const [letterQuizA, letterQuizB, speechLetterA, speechLetterB, traceLetterA, traceLetterB] =
-  pickDistinct(REVIEW_LETTERS, 6);
-const [wordQuizA, wordQuizB, speechWord, traceWord] = pickDistinct(REVIEW_WORDS, 4);
+// Sinh bộ lesson boss mới mỗi lần gọi để đảm bảo:
+// - Bé thoát giữa chừng rồi vào lại: đề sẽ đổi.
+// - Bé học lại tháp boss: đề tiếp tục random mới.
+export function createBossFloor1Lessons(): LessonContent[] {
+  const [
+    letterQuizA,
+    letterQuizB,
+    speechLetterA,
+    speechLetterB,
+    traceLetterA,
+    traceLetterB,
+  ] = pickDistinct(REVIEW_LETTERS, 6);
+  const [wordQuizA, wordQuizB, speechWord, traceWord] = pickDistinct(
+    REVIEW_WORDS,
+    4,
+  );
 
-export const floor1Lessons: LessonContent[] = [
-  createBossLetterQuizLesson("boss-f1-l1", letterQuizA),
-  createBossLetterQuizLesson("boss-f1-l2", letterQuizB),
-  createBossVocabImageQuizLesson("boss-f1-l3", wordQuizA),
-  createBossVocabImageQuizLesson("boss-f1-l4", wordQuizB),
-  createBossPronunciationLetterLesson("boss-f1-l5", speechLetterA),
-  createBossPronunciationLetterLesson("boss-f1-l6", speechLetterB),
-  createBossPronunciationWordLesson("boss-f1-l7", speechWord),
-  createBossLetterTracePracticeLesson("boss-f1-l8", traceLetterA),
-  createBossLetterTracePracticeLesson("boss-f1-l9", traceLetterB),
-  createBossVocabTracePracticeLesson("boss-f1-l10", traceWord),
-];
+  return [
+    createBossLetterQuizLesson("boss-f1-l1", letterQuizA),
+    createBossLetterQuizLesson("boss-f1-l2", letterQuizB),
+    createBossVocabImageQuizLesson("boss-f1-l3", wordQuizA),
+    createBossVocabImageQuizLesson("boss-f1-l4", wordQuizB),
+    createBossPronunciationLetterLesson("boss-f1-l5", speechLetterA),
+    createBossPronunciationLetterLesson("boss-f1-l6", speechLetterB),
+    createBossPronunciationWordLesson("boss-f1-l7", speechWord),
+    createBossLetterTracePracticeLesson("boss-f1-l8", traceLetterA),
+    createBossLetterTracePracticeLesson("boss-f1-l9", traceLetterB),
+    createBossVocabTracePracticeLesson("boss-f1-l10", traceWord),
+  ];
+}
+
+// Giữ export cũ để không phá các chỗ đang dùng dạng hằng.
+export const floor1Lessons: LessonContent[] = createBossFloor1Lessons();

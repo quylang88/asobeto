@@ -6,18 +6,33 @@ const DEFAULT_MAX_STARS = 2;
 const DEFAULT_PASS_THRESHOLD = 0.7;
 
 const VOWEL_CHARS = new Set(["a", "e", "i", "o", "u", "y"]);
+const TONE_STRICT_SINGLE_LETTER_TARGETS = new Set([
+  "a",
+  "ă",
+  "â",
+  "e",
+  "ê",
+  "i",
+  "y",
+  "o",
+  "ô",
+  "ơ",
+  "u",
+  "ư",
+]);
 
 const LETTER_PRONUNCIATION_ALIASES: Record<string, string[]> = {
   a: ["a"],
-  ă: ["ă", "á"],
-  â: ["â", "ớ"],
+  // Giữ chặt dấu: ă và â là 2 chữ cái khác hẳn a.
+  ă: ["ă"],
+  â: ["â"],
   b: ["bê", "bờ"],
   c: ["cờ", "xê"],
   d: ["dê", "dờ"],
   đ: ["đê", "đờ"],
   e: ["e"],
   ê: ["ê"],
-  g: ["giờ", "giê"],
+  g: ["gờ"],
   h: ["hờ", "hát"],
   i: ["i", "y"],
   k: ["ca", "kờ"],
@@ -46,6 +61,12 @@ interface ToneComparisonStats {
   pairCount: number;
   mismatchCount: number;
   strongMismatchCount: number;
+}
+
+interface PronunciationTargetVariants {
+  variants: string[];
+  isSingleLetterTarget: boolean;
+  isToneStrictSingleLetterTarget: boolean;
 }
 
 export interface PronunciationScoringThresholds {
@@ -288,25 +309,35 @@ function buildCandidatePhrases(
   return [...candidates];
 }
 
-function getTargetPronunciationVariants(targetText: string): string[] {
+function getTargetPronunciationVariants(
+  targetText: string,
+): PronunciationTargetVariants {
   const normalizedTarget = normalizeSpeechText(targetText, false);
-  if (!normalizedTarget) return [];
+  if (!normalizedTarget) {
+    return {
+      variants: [],
+      isSingleLetterTarget: false,
+      isToneStrictSingleLetterTarget: false,
+    };
+  }
 
   const variants = new Set<string>([normalizedTarget]);
   const targetTokens = tokenizeNormalizedText(normalizedTarget);
-  if (targetTokens.length !== 1) {
-    return [...variants];
+  const isSingleLetterTarget =
+    targetTokens.length === 1 && [...targetTokens[0]].length === 1;
+
+  if (!isSingleLetterTarget) {
+    return {
+      variants: [...variants],
+      isSingleLetterTarget: false,
+      isToneStrictSingleLetterTarget: false,
+    };
   }
 
   const targetToken = targetTokens[0];
-  if ([...targetToken].length !== 1) {
-    return [...variants];
-  }
-
+  const isToneStrictSingleLetterTarget =
+    TONE_STRICT_SINGLE_LETTER_TARGETS.has(targetToken);
   const aliases = LETTER_PRONUNCIATION_ALIASES[targetToken] ?? [];
-  if (aliases.length > 0) {
-    variants.clear();
-  }
   for (const alias of aliases) {
     const normalizedAlias = normalizeSpeechText(alias, false);
     if (normalizedAlias) {
@@ -314,12 +345,49 @@ function getTargetPronunciationVariants(targetText: string): string[] {
     }
   }
 
-  return [...variants];
+  return {
+    variants: [...variants],
+    isSingleLetterTarget: true,
+    isToneStrictSingleLetterTarget,
+  };
+}
+
+function hasSingleLetterAliasTokenMatch(
+  normalizedSpokenOriginal: string,
+  targetVariants: string[],
+  allowNoDiacriticsFallback: boolean,
+): boolean {
+  const spokenTokens = tokenizeNormalizedText(normalizedSpokenOriginal);
+  if (spokenTokens.length === 0) return false;
+
+  const targetVariantsSet = new Set(targetVariants);
+
+  if (spokenTokens.some((token) => targetVariantsSet.has(token))) {
+    return true;
+  }
+  if (!allowNoDiacriticsFallback) {
+    return false;
+  }
+
+  const spokenTokensNoDiacritics = spokenTokens.map((token) =>
+    normalizeSpeechText(token, true),
+  );
+  const targetVariantsNoDiacriticsSet = new Set(
+    targetVariants.map((variant) => normalizeSpeechText(variant, true)),
+  );
+
+  // Với phụ âm, ASR thường trả thiếu dấu ở tên chữ (vd: mờ -> mo, nờ -> no),
+  // nên cho phép khớp theo bản không dấu để bé không bị fail oan.
+  return spokenTokensNoDiacritics.some((token) =>
+    targetVariantsNoDiacriticsSet.has(token),
+  );
 }
 
 function scorePronunciationCandidate(
   normalizedSpokenCandidateOriginal: string,
   normalizedTargetVariantOriginal: string,
+  isSingleLetterTarget: boolean,
+  isToneStrictSingleLetterTarget: boolean,
 ): number {
   const normalizedSpokenCandidateNoDiacritics = normalizeSpeechText(
     normalizedSpokenCandidateOriginal,
@@ -342,6 +410,39 @@ function scorePronunciationCandidate(
     normalizedSpokenCandidateNoDiacritics,
     normalizedTargetVariantNoDiacritics,
   );
+
+  // Bài đọc chữ cái: ưu tiên nhận diện đúng tên chữ (cờ, xê, bê...)
+  // và không phạt dấu quá nặng như từ vựng.
+  if (isSingleLetterTarget) {
+    if (normalizedSpokenCandidateOriginal === normalizedTargetVariantOriginal) {
+      return 1;
+    }
+
+    // Cùng base (bỏ dấu giống nhau) nhưng khác dấu/khác chữ:
+    // khóa điểm thấp để không thể pass.
+    if (
+      normalizedSpokenCandidateNoDiacritics ===
+      normalizedTargetVariantNoDiacritics
+    ) {
+      if (isToneStrictSingleLetterTarget) {
+        return Math.min(0.35, directScore * 0.8);
+      }
+      return Math.max(0.88, noDiacriticsScore * 0.98);
+    }
+
+    // Nguyên âm: ưu tiên dạng có dấu trực tiếp.
+    // Phụ âm: tăng trọng số bản không dấu để tolerant hơn với lỗi ASR.
+    if (!isToneStrictSingleLetterTarget) {
+      return clamp01(
+        directScore * 0.45 + noDiacriticsScore * 0.4 + shapeScore * 0.15,
+      );
+    }
+    return clamp01(
+      directScore * 0.75 + shapeScore * 0.2 + noDiacriticsScore * 0.05,
+    );
+  }
+
+  // Bài từ vựng: giữ gate thanh điệu chặt để phân biệt có/cò/cọ/cỏ...
   const toneStats = getToneComparisonStats(
     normalizedSpokenCandidateOriginal,
     normalizedTargetVariantOriginal,
@@ -384,8 +485,23 @@ export function getSpeechSimilarity(
   const normalizedSpokenOriginal = normalizeSpeechText(spokenText, false);
   if (!normalizedSpokenOriginal) return 0;
 
-  const targetVariants = getTargetPronunciationVariants(targetText);
+  const {
+    variants: targetVariants,
+    isSingleLetterTarget,
+    isToneStrictSingleLetterTarget,
+  } = getTargetPronunciationVariants(targetText);
   if (targetVariants.length === 0) return 0;
+
+  if (
+    isSingleLetterTarget &&
+    hasSingleLetterAliasTokenMatch(
+      normalizedSpokenOriginal,
+      targetVariants,
+      !isToneStrictSingleLetterTarget,
+    )
+  ) {
+    return 1;
+  }
 
   let bestScore = 0;
   for (const targetVariant of targetVariants) {
@@ -397,7 +513,12 @@ export function getSpeechSimilarity(
     for (const spokenCandidate of spokenCandidates) {
       bestScore = Math.max(
         bestScore,
-        scorePronunciationCandidate(spokenCandidate, targetVariant),
+        scorePronunciationCandidate(
+          spokenCandidate,
+          targetVariant,
+          isSingleLetterTarget,
+          isToneStrictSingleLetterTarget,
+        ),
       );
     }
   }

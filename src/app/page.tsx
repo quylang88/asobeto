@@ -10,7 +10,12 @@ import { GameBubblePop } from "@/screens/game-bubble-pop";
 import { GameDiacriticBuild } from "@/screens/game-diacritic-build";
 import { GameMemoryFlip } from "@/screens/game-memory-flip";
 import { GameAnimalFeed } from "@/screens/game-animal-feed";
-import { worlds, getWorldData } from "@/data/game-config";
+import {
+  worlds,
+  getWorldData,
+  type LessonContent,
+  createBossFloor1Lessons,
+} from "@/data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 
 type Screen =
@@ -50,6 +55,9 @@ export default function AsobetoApp() {
     selectedTower: null,
     selectedFloor: null,
   });
+  const [bossReviewLessons, setBossReviewLessons] = useState<
+    LessonContent[] | null
+  >(null);
 
   const handleStart = () => {
     setGameState({ ...gameState, currentScreen: "worldMap" });
@@ -73,6 +81,10 @@ export default function AsobetoApp() {
     if (selectedTower?.isBoss) {
       const autoFloorId = resolveBossEntryFloorId(selectedWorldId, towerId);
       if (autoFloorId !== null) {
+        // Mỗi lần vào lại BOSS floor 1 đều sinh bộ đề mới.
+        setBossReviewLessons(
+          autoFloorId === 1 ? createBossFloor1Lessons() : null,
+        );
         setGameState({
           ...gameState,
           currentScreen: "lesson",
@@ -83,6 +95,7 @@ export default function AsobetoApp() {
       }
     }
 
+    setBossReviewLessons(null);
     setGameState({
       ...gameState,
       currentScreen: "floorSelection",
@@ -92,6 +105,7 @@ export default function AsobetoApp() {
   };
 
   const handleSelectFloor = (floorId: number) => {
+    setBossReviewLessons(null);
     setGameState({
       ...gameState,
       currentScreen: "lesson",
@@ -127,6 +141,7 @@ export default function AsobetoApp() {
       );
 
       if (selectedTower?.isBoss) {
+        setBossReviewLessons(null);
         setGameState({
           ...gameState,
           currentScreen: "towerSelection",
@@ -193,20 +208,26 @@ export default function AsobetoApp() {
       const selectedFloor = selectedTower?.floors?.find(
         (f) => f.id === gameState.selectedFloor!,
       );
+      const isBossReviewFloor = Boolean(
+        selectedTower?.isBoss && selectedFloor?.id === 1,
+      );
+      const currentLessons = isBossReviewFloor
+        ? (bossReviewLessons ?? createBossFloor1Lessons())
+        : (selectedFloor?.content ?? []);
       const shouldSkipFloorSelection = Boolean(selectedTower?.isBoss);
       const lessonBackScreen: Screen = shouldSkipFloorSelection
         ? "towerSelection"
         : "floorSelection";
-      const diacriticChallengeLesson = selectedFloor?.content?.find(
+      const diacriticChallengeLesson = currentLessons.find(
         (lesson) => lesson.lessonKind === "diacritic_build_challenge",
       );
-      const bubbleChallengeLesson = selectedFloor?.content?.find(
+      const bubbleChallengeLesson = currentLessons.find(
         (lesson) => lesson.lessonKind === "bubble_pop_challenge",
       );
-      const memoryFlipChallengeLesson = selectedFloor?.content?.find(
+      const memoryFlipChallengeLesson = currentLessons.find(
         (lesson) => lesson.lessonKind === "memory_flip_challenge",
       );
-      const animalFeedChallengeLesson = selectedFloor?.content?.find(
+      const animalFeedChallengeLesson = currentLessons.find(
         (lesson) => lesson.lessonKind === "animal_feed_challenge",
       );
 
@@ -278,9 +299,14 @@ export default function AsobetoApp() {
           floorId={gameState.selectedFloor!}
           floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
           floorMaxStars={selectedFloor?.maxStars ?? 3}
-          lessons={selectedFloor?.content || []}
+          lessons={currentLessons}
           onComplete={handleLessonComplete}
           onBossFloorSelect={(targetFloorId) => {
+            if (targetFloorId === 1) {
+              // Khi bé chọn ôn lại floor 1 ở màn BOSS review,
+              // tạo lại bộ lesson để tránh lặp đề cũ.
+              setBossReviewLessons(createBossFloor1Lessons());
+            }
             setGameState((prev) => ({
               ...prev,
               currentScreen: "lesson",
