@@ -5,9 +5,9 @@ import type { LessonContent } from "@/data/game-config";
 const DRAWN_ALPHA_THRESHOLD = 24;
 const TARGET_ALPHA_THRESHOLD = 32;
 
-export const DEFAULT_TRACING_ONE_STAR_THRESHOLD = 0.5;
-export const DEFAULT_TRACING_TWO_STAR_THRESHOLD = 0.85;
-export const BOSS_TRACING_PASS_THRESHOLD = 0.7;
+const DEFAULT_TRACING_ONE_STAR_THRESHOLD = 0.5;
+const DEFAULT_TRACING_TWO_STAR_THRESHOLD = 0.85;
+const BOSS_TRACING_PASS_THRESHOLD = 0.7;
 
 export interface TracingScoringThresholds {
   passThreshold: number;

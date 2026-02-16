@@ -29,8 +29,6 @@ import {
   getEmptyTraceEvaluation,
   type TraceEvaluation,
   type TracingScoringThresholds,
-  DEFAULT_TRACING_ONE_STAR_THRESHOLD,
-  DEFAULT_TRACING_TWO_STAR_THRESHOLD,
 } from "../scoring/tracing-scoring";
 
 // Re-export constants for backward compatibility if needed by index.ts
@@ -49,10 +47,14 @@ interface LetterTracingCanvasProps {
   onFrameTap?: () => void;
 }
 
+// Local defaults matching tracing-scoring.ts standard values
+const FALLBACK_ONE_STAR_THRESHOLD = 0.5;
+const FALLBACK_TWO_STAR_THRESHOLD = 0.85;
+
 const DEFAULT_THRESHOLDS: TracingScoringThresholds = {
-  passThreshold: DEFAULT_TRACING_ONE_STAR_THRESHOLD,
-  oneStarThreshold: DEFAULT_TRACING_ONE_STAR_THRESHOLD,
-  twoStarThreshold: DEFAULT_TRACING_TWO_STAR_THRESHOLD,
+  passThreshold: FALLBACK_ONE_STAR_THRESHOLD,
+  oneStarThreshold: FALLBACK_ONE_STAR_THRESHOLD,
+  twoStarThreshold: FALLBACK_TWO_STAR_THRESHOLD,
   maxStars: 2,
 };
 
