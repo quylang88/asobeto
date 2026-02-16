@@ -9,7 +9,10 @@ import {
   type SpeechRecognitionResultEventLike,
   type SpeechRecognitionWindow,
 } from "../types";
-import { getSpeechSimilarity } from "../utils";
+import {
+  evaluatePronunciationAttempt,
+  getPronunciationScoringThresholds,
+} from "../scoring/pronunciation-scoring";
 
 interface UseThresholdSpeechParams {
   currentLesson: LessonContent | undefined;
@@ -110,31 +113,17 @@ export function useThresholdSpeech({
       stopSpeechRecognition(true);
       stopMicLevelCapture();
 
-      const oneStarThreshold =
-        currentLesson.scoring?.starThresholds?.oneStar ?? 0.5;
-      const twoStarThreshold =
-        currentLesson.scoring?.starThresholds?.twoStars ?? 0.75;
-      const lessonMaxStars = currentLesson.scoring?.maxStars ?? 2;
-
-      if (!transcript) {
-        onScoringResult(false, FEEDBACK_ADVANCE_DELAY_MS, 0);
-        return;
-      }
-
-      const similarity = getSpeechSimilarity(transcript, targetText);
-
-      let earnedStars = 0;
-      if (similarity >= twoStarThreshold) {
-        earnedStars = 2;
-      } else if (similarity >= oneStarThreshold) {
-        earnedStars = 1;
-      }
-      earnedStars = Math.min(lessonMaxStars, earnedStars);
+      const thresholds = getPronunciationScoringThresholds(currentLesson);
+      const result = evaluatePronunciationAttempt(
+        transcript,
+        targetText,
+        thresholds,
+      );
 
       onScoringResult(
-        similarity >= oneStarThreshold,
+        result.isPassed,
         FEEDBACK_ADVANCE_DELAY_MS,
-        earnedStars,
+        result.earnedStars,
       );
     },
     [

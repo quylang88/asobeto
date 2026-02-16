@@ -24,16 +24,15 @@ import {
   type DemoCanvasPoint,
 } from "@/lib/tracing-algo";
 import { type TracingGridMetrics } from "@/data/tracing";
-
-export interface TraceEvaluation {
-  score: number;
-  stars: number;
-  precision: number;
-  coverage: number;
-}
+import {
+  evaluateTracingScore,
+  getEmptyTraceEvaluation,
+  type TraceEvaluation,
+} from "../scoring/tracing-scoring";
 
 // Re-export constants for backward compatibility if needed by index.ts
 export { LETTER_TRACING_CANVAS_WIDTH, LETTER_TRACING_CANVAS_HEIGHT };
+export type { TraceEvaluation };
 
 type TracingCanvasMode = "practice" | "demo" | "preview";
 
@@ -828,70 +827,20 @@ export function LetterTracingCanvas({
     if (!onEvaluate) return;
     const canvas = canvasRef.current;
     if (!canvas || !normalizedTarget) {
-      onEvaluate({ score: 0, stars: 0, precision: 0, coverage: 0 });
+      onEvaluate(getEmptyTraceEvaluation());
       return;
     }
-
-    const drawCtx = canvas.getContext("2d");
-    if (!drawCtx) {
-      onEvaluate({ score: 0, stars: 0, precision: 0, coverage: 0 });
-      return;
-    }
-
-    const targetCanvas = document.createElement("canvas");
-    targetCanvas.width = canvas.width;
-    targetCanvas.height = canvas.height;
-    const targetCtx = targetCanvas.getContext("2d");
-    if (!targetCtx) {
-      onEvaluate({ score: 0, stars: 0, precision: 0, coverage: 0 });
-      return;
-    }
-
-    const ratio = window.devicePixelRatio || 1;
-    targetCtx.scale(ratio, ratio);
-    drawGuideGlyph(
-      targetCtx,
-      traceDisplayText,
-      tracingGridMetrics,
-      guideFontSize,
-      "#111111",
-      guideGlyphConfig,
-      true,
+    onEvaluate(
+      evaluateTracingScore({
+        drawCanvas: canvas,
+        targetText: traceDisplayText,
+        metrics: tracingGridMetrics,
+        guideFontSize,
+        oneStarThreshold,
+        twoStarThreshold,
+        guideGlyphConfig,
+      }),
     );
-
-    const drawnData = drawCtx.getImageData(
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    ).data;
-    const targetData = targetCtx.getImageData(
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    ).data;
-
-    let drawnPixels = 0;
-    let targetPixels = 0;
-    let overlapPixels = 0;
-
-    for (let i = 3; i < drawnData.length; i += 4) {
-      const drawn = drawnData[i] > 24;
-      const target = targetData[i] > 32;
-
-      if (drawn) drawnPixels += 1;
-      if (target) targetPixels += 1;
-      if (drawn && target) overlapPixels += 1;
-    }
-
-    const coverage = targetPixels > 0 ? overlapPixels / targetPixels : 0;
-    const precision = drawnPixels > 0 ? overlapPixels / drawnPixels : 0;
-    const score = clamp01(coverage * 0.7 + precision * 0.3);
-    const stars =
-      score >= twoStarThreshold ? 2 : score >= oneStarThreshold ? 1 : 0;
-
-    onEvaluate({ score, stars, precision, coverage });
   };
 
   return (

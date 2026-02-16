@@ -26,7 +26,7 @@ export function BossReviewChoiceView({
         <div className="absolute -left-16 top-24 h-56 w-56 rounded-full bg-orange-bright/35 blur-3xl" />
         <div className="absolute -right-14 top-28 h-52 w-52 rounded-full bg-blue-soft/35 blur-3xl" />
         <div className="absolute bottom-6 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-green-bright/20 blur-3xl" />
-        <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.85)_1px,transparent_1px)] [background-size:18px_18px]" />
+        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(rgba(255,255,255,0.85)_1px,transparent_1px)] bg-size-[18px_18px]" />
       </div>
 
       <div className="sticky top-0 z-20 bg-white/92 pt-safe shadow-md backdrop-blur-sm">
@@ -97,7 +97,7 @@ export function BossReviewChoiceView({
               animate={{ scale: [1.05, 1, 1.05] }}
               transition={{ duration: 2.6, repeat: Infinity }}
             />
-            <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.95)_1px,transparent_1px)] [background-size:20px_20px]" />
+            <div className="pointer-events-none absolute inset-0 opacity-20 bg-[radial-gradient(rgba(255,255,255,0.95)_1px,transparent_1px)] bg-size-[20px_20px]" />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/75 to-transparent" />
 
             <div className="relative z-10 flex items-center gap-4">
@@ -106,7 +106,9 @@ export function BossReviewChoiceView({
                 <Swords className="absolute -right-1 -top-1 h-4 w-4 text-white" />
               </div>
               <div>
-                <h2 className="font-hp-special text-2xl text-white">Game Bí Ẩn</h2>
+                <h2 className="font-hp-special text-2xl text-white">
+                  Game bí ẩn
+                </h2>
                 <p className="text-sm text-white/90">
                   Bước vào thử thách huyền bí của Boss.
                 </p>
