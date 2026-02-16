@@ -47,7 +47,6 @@ interface LetterTracingCanvasProps {
   onFrameTap?: () => void;
 }
 
-const LINE_WIDTH = 28;
 const GENERIC_DEMO_DURATION_MS = 4200;
 const DEFAULT_DEMO_PAUSE_MS = 800;
 const DEFAULT_DEMO_STROKE_DURATION_MS = 1250;
@@ -105,12 +104,9 @@ function getGuideFontSize(
   return Math.round(baseSize * 0.48);
 }
 
-function getTraceLineWidthLocal(targetText: string): number {
-  const targetLength = [...targetText].length;
-  if (targetLength <= 1) return 16;
-  if (targetLength === 2) return 14;
-  if (targetLength <= 4) return 12;
-  return Math.max(10, LINE_WIDTH * 0.38);
+const STROKE_WIDTH_RATIO = 0.088;
+function getTraceLineWidthLocal(fontSize: number): number {
+  return Math.max(4, Math.round(fontSize * STROKE_WIDTH_RATIO));
 }
 
 async function ensureTracingFontReady(fontSize: number): Promise<void> {
@@ -449,8 +445,8 @@ export function LetterTracingCanvas({
     [traceDisplayText, tracingGridMetrics],
   );
   const lineWidth = useMemo(
-    () => getTraceLineWidthLocal(traceDisplayText),
-    [traceDisplayText],
+    () => getTraceLineWidthLocal(guideFontSize),
+    [guideFontSize],
   );
   const traceDemoConfig = letterStrokeAnimation?.demo;
   const traceDemoStrategy = traceDemoConfig?.strategy ?? "auto";
