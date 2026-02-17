@@ -1,4 +1,5 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildVocabIntroVoiceOptions,
   buildVocabSpellingAudio,
@@ -21,10 +22,10 @@ export function createVocabListenLookLesson(
     mainImage: buildWordWithImage(wordAssetKey),
     targetText: word,
     relatedLetters: reviewLetters,
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "none",
       passPolicy: "always",
       maxStars: 0,
-    },
+    }),
   };
 }

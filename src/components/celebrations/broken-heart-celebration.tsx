@@ -7,8 +7,9 @@ import {
   playCelebrationAudio,
   preloadCelebrationAudio,
 } from "@/lib/app-audio";
+import { AUDIO } from "@/data/game-config";
 
-const DEFAULT_BROKEN_HEART_SOUND = "/assets/audio/feedback/wrong-answer.mp3";
+const DEFAULT_BROKEN_HEART_SOUND = AUDIO.FEEDBACK.WRONG_ANSWER;
 
 const SHARDS = [
   { id: 1, x: -126, y: -76, delay: 0.06, duration: 1.2 },

@@ -1,4 +1,5 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildVocabIntroVoiceOptions,
   type VocabWordBuildLessonConfig,
@@ -25,13 +26,13 @@ export function createVocabWordBuildLesson(
     targetTokens: wordTokens,
     tokenPool: wordTokenPool,
     relatedLetters: reviewLetters,
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "word_assembly_accuracy",
       passPolicy: "always",
       starThresholds: {
         oneStar: 1,
       },
       maxStars: 1,
-    },
+    }),
   };
 }

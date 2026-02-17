@@ -2,6 +2,7 @@ import type {
   LessonAnswer,
   LessonContent,
 } from "../../world-1-alphabet/map-structure";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildWordImagePath,
   type VocabImageQuizChoice,
@@ -64,13 +65,13 @@ export function createVocabImageQuizLesson(
         isCorrect: false,
       })),
     ]),
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "correct_answer",
       passPolicy: "always",
       starThresholds: {
         oneStar: 1,
       },
       maxStars: 1,
-    },
+    }),
   };
 }

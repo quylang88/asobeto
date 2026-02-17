@@ -1,4 +1,5 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildLetterIntroVoiceOptions,
   buildMainLetterAudio,
@@ -23,10 +24,10 @@ export function createLetterListenLesson(
     gating: {
       requiredAudioPlays: 3,
     },
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "none",
       passPolicy: "always",
       maxStars: 0,
-    },
+    }),
   };
 }

@@ -74,10 +74,6 @@ const LEVEL_LABEL: Record<DiacriticBuildLevelId, string> = {
 };
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
-const CORRECT_TAP_AUDIO = "/assets/audio/game/common/pop.mp3";
-const WRONG_TAP_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
-const PASS_AUDIO = "/assets/audio/feedback/success-answer.mp3";
-const FAIL_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 const CATCHER_TONE_TARGET_OFFSET_X = 56;
 
 interface GameDiacriticBuildProps {
@@ -351,18 +347,20 @@ export function GameDiacriticBuild({
   );
 
   useEffect(() => {
+    if (!diacriticConfig) return;
     preloadAppAudioList([
-      CORRECT_TAP_AUDIO,
-      WRONG_TAP_AUDIO,
-      PASS_AUDIO,
-      FAIL_AUDIO,
+      diacriticConfig.audio.correctTap,
+      diacriticConfig.audio.wrongTap,
+      diacriticConfig.audio.pass,
+      diacriticConfig.audio.fail,
     ]);
-  }, []);
+  }, [diacriticConfig]);
 
   const selectedLevel = selectedLevelId
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
   const challengeHeaderTitle = diacriticConfig?.headerTitle?.trim() || floorName;
+  const diacriticAudio = diacriticConfig?.audio;
   const catcherToneTargetX = useMemo(
     () =>
       clampNumber(
@@ -591,7 +589,9 @@ export function GameDiacriticBuild({
       passSequenceRef.current = true;
       const earnedStars = getEarnedStarsOnPass(level);
       stopGameLoop();
-      playAudio(PASS_AUDIO);
+      if (diacriticAudio?.pass) {
+        playAudio(diacriticAudio.pass);
+      }
       setShowFailCelebration(false);
       setPassCelebrationStars(earnedStars);
 
@@ -603,7 +603,13 @@ export function GameDiacriticBuild({
         finalizeLevel(true, level, earnedStars);
       }, PASS_EFFECT_HOLD_MS);
     },
-    [clearTimeoutRef, finalizeLevel, getEarnedStarsOnPass, stopGameLoop],
+    [
+      clearTimeoutRef,
+      diacriticAudio,
+      finalizeLevel,
+      getEarnedStarsOnPass,
+      stopGameLoop,
+    ],
   );
 
   const triggerLevelFail = useCallback(
@@ -611,7 +617,9 @@ export function GameDiacriticBuild({
       if (passSequenceRef.current) return;
       passSequenceRef.current = true;
       stopGameLoop();
-      playAudio(FAIL_AUDIO);
+      if (diacriticAudio?.fail) {
+        playAudio(diacriticAudio.fail);
+      }
       setPassCelebrationStars(0);
       setShowFailCelebration(true);
 
@@ -623,7 +631,7 @@ export function GameDiacriticBuild({
         finalizeLevel(false, level);
       }, FAIL_EFFECT_HOLD_MS);
     },
-    [clearTimeoutRef, finalizeLevel, stopGameLoop],
+    [clearTimeoutRef, diacriticAudio, finalizeLevel, stopGameLoop],
   );
 
   const getSlotCenter = useCallback((): { x: number; y: number } => {
@@ -902,7 +910,9 @@ export function GameDiacriticBuild({
 
         if (capturedMarkers.length > 0) {
           capturedMarkers.forEach((marker) => {
-            playAudio(CORRECT_TAP_AUDIO);
+            if (diacriticAudio?.correctTap) {
+              playAudio(diacriticAudio.correctTap);
+            }
             launchMarkerToSlot(marker);
           });
         }
@@ -910,7 +920,9 @@ export function GameDiacriticBuild({
         if (collidedDebrisCount > 0) {
           livesRef.current = Math.max(0, livesRef.current - collidedDebrisCount);
           setLives(livesRef.current);
-          playAudio(WRONG_TAP_AUDIO);
+          if (diacriticAudio?.wrongTap) {
+            playAudio(diacriticAudio.wrongTap);
+          }
           if ("vibrate" in navigator) {
             navigator.vibrate(45);
           }
@@ -952,6 +964,7 @@ export function GameDiacriticBuild({
       return false;
     },
     [
+      diacriticAudio,
       isCatcherDragMode,
       isEntityCollidingWithCatcher,
       launchMarkerToSlot,
@@ -1047,13 +1060,17 @@ export function GameDiacriticBuild({
         entitiesRef: fallingEntitiesRef,
         onEntitiesChange: setFallingEntities,
         onMarkerTap: (entity) => {
-          playAudio(CORRECT_TAP_AUDIO);
+          if (diacriticAudio?.correctTap) {
+            playAudio(diacriticAudio.correctTap);
+          }
           launchMarkerToSlot(entity);
         },
         onDebrisTap: () => {
           livesRef.current = Math.max(0, livesRef.current - 1);
           setLives(livesRef.current);
-          playAudio(WRONG_TAP_AUDIO);
+          if (diacriticAudio?.wrongTap) {
+            playAudio(diacriticAudio.wrongTap);
+          }
 
           if ("vibrate" in navigator) {
             navigator.vibrate(45);
@@ -1068,6 +1085,7 @@ export function GameDiacriticBuild({
       });
     },
     [
+      diacriticAudio,
       isCatcherDragMode,
       launchMarkerToSlot,
       phase,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mascot } from "../../components/beto-mascot";
 import {
@@ -12,7 +12,7 @@ import {
   BossReviewChoiceView,
   LessonCompletionView,
 } from "@/components/completion";
-import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
+import { preloadAppAudioList, stopAllAppAudio } from "@/lib/app-audio";
 import {
   getStoredFloorProgress,
   getStoredLessonStars,
@@ -56,10 +56,6 @@ import {
   useThresholdSpeech,
   useWordBuildDrag,
 } from "./hooks";
-import {
-  LESSON_FAILURE_FEEDBACK_AUDIO,
-  LESSON_SUCCESS_FEEDBACK_AUDIO,
-} from "./constants";
 
 interface LessonInterfaceProps {
   worldId: number;
@@ -174,13 +170,52 @@ export function LessonInterface({
       bossEntryResolved && !(showBossReviewChoiceScreen && isBossReviewFloor),
     autoPlayDelayMs: lessonAutoplayDelayMs,
   });
+  const lessonFeedbackAudio = useMemo(() => {
+    const sources = new Set<string>();
+    let defaultSuccess: string | undefined;
+    let defaultFailure: string | undefined;
+
+    lessons.forEach((lesson) => {
+      if (lesson.type !== "active") return;
+      const success = lesson.scoring?.feedbackAudio?.success?.trim();
+      const failure = lesson.scoring?.feedbackAudio?.failure?.trim();
+      if (success) {
+        sources.add(success);
+        if (!defaultSuccess) {
+          defaultSuccess = success;
+        }
+      }
+      if (failure) {
+        sources.add(failure);
+        if (!defaultFailure) {
+          defaultFailure = failure;
+        }
+      }
+    });
+
+    return {
+      sources: [...sources],
+      defaultSuccess,
+      defaultFailure,
+    };
+  }, [lessons]);
+  const successFeedbackAudio =
+    (currentLesson?.type === "active"
+      ? currentLesson.scoring?.feedbackAudio?.success
+      : undefined) ??
+    lessonFeedbackAudio.defaultSuccess;
+  const failureFeedbackAudio =
+    (currentLesson?.type === "active"
+      ? currentLesson.scoring?.feedbackAudio?.failure
+      : undefined) ??
+    lessonFeedbackAudio.defaultFailure;
   const playCelebrationFeedback = useCallback(
     (correct: boolean) => {
-      playOneShotAudio(
-        correct ? LESSON_SUCCESS_FEEDBACK_AUDIO : LESSON_FAILURE_FEEDBACK_AUDIO,
-      );
+      const audioSource = correct ? successFeedbackAudio : failureFeedbackAudio;
+      if (!audioSource) return;
+      playOneShotAudio(audioSource);
     },
-    [playOneShotAudio],
+    [failureFeedbackAudio, playOneShotAudio, successFeedbackAudio],
   );
 
   useEffect(() => {
@@ -188,9 +223,9 @@ export function LessonInterface({
   }, [currentLesson]);
 
   useEffect(() => {
-    preloadCelebrationAudio(LESSON_SUCCESS_FEEDBACK_AUDIO);
-    preloadCelebrationAudio(LESSON_FAILURE_FEEDBACK_AUDIO);
-  }, []);
+    if (!lessonFeedbackAudio.sources.length) return;
+    preloadAppAudioList(lessonFeedbackAudio.sources);
+  }, [lessonFeedbackAudio.sources]);
 
   useEffect(() => {
     if (!isBossReviewFloor) {

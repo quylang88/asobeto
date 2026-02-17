@@ -6,6 +6,7 @@ import type {
 import {
   BOSS_REVIEW_LESSON_PASS_THRESHOLD,
   createLessonScoring,
+  withDefaultLessonFeedbackAudio,
 } from "../../scoring-config";
 import {
   createLetterPronunciationPracticeLesson,
@@ -18,6 +19,7 @@ import {
   createVocabTracePracticeLesson,
   type VocabImageQuizChoice,
 } from "../../lesson-templates/vocab";
+import { buildVocabWordAudio } from "../../audio";
 
 interface ReviewLetterOption {
   id: string;
@@ -92,7 +94,7 @@ function createBossReviewScoring(metric: ScoringMetric): LessonScoring {
     return createLessonScoring(metric, BOSS_REVIEW_SCORING_OVERRIDES);
   }
 
-  return {
+  return withDefaultLessonFeedbackAudio({
     metric,
     passPolicy: "always",
     maxStars: 0,
@@ -101,7 +103,7 @@ function createBossReviewScoring(metric: ScoringMetric): LessonScoring {
       oneStar: 1,
       twoStars: 1,
     },
-  };
+  });
 }
 
 function shuffleArray<T>(items: T[]): T[] {
@@ -172,7 +174,7 @@ function createBossVocabImageQuizLesson(
   const lesson = createVocabImageQuizLesson({
     lessonId,
     title: "Nghe và chọn đúng ảnh từ vựng",
-    mainAudio: `/assets/audio/words/${option.assetKey}.mp3`,
+    mainAudio: buildVocabWordAudio(option.assetKey),
     correct: option,
     distractors: getWordDistractors(option),
     disableIntro: true,

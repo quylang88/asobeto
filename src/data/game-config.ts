@@ -57,6 +57,7 @@ export type {
   LessonScoreEvaluation,
   ResolvedLessonScoring,
 } from "./scoring-config";
+export { AUDIO, AUDIO_CATALOG_METADATA } from "./audio";
 
 export interface World {
   id: number;

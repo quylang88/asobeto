@@ -4,6 +4,7 @@ import {
   AnimalFeedLevelId,
   AnimalFeedProgressSegment,
 } from "../world-1-alphabet/map-structure";
+import { AUDIO } from "../audio";
 
 export const ANIMAL_FEED_GAME_TITLE = "Bò ăn cỏ";
 export const ANIMAL_FEED_GAME_INSTRUCTION =
@@ -50,6 +51,7 @@ export interface AnimalFeedGameDataInput {
   headerTitle?: string;
   instruction?: string;
   rules?: string[];
+  audio?: Partial<AnimalFeedGameConfig["audio"]>;
   animalIconId?: string;
   foodVisualId?: string;
   progressSentence?: string;
@@ -120,12 +122,20 @@ export function createAnimalFeedGameConfig(
   const correctWord =
     input.correctWord?.trim().toLocaleLowerCase("vi-VN") || "cỏ";
   const rules = input.rules?.length ? input.rules : ANIMAL_FEED_GAME_RULES;
+  const resolvedAudio = {
+    passFlyEffect: AUDIO.GAME.COMMON.POP,
+    passProgressPing: AUDIO.FEEDBACK.SUCCESS_ANSWER,
+    lifeLoss: AUDIO.FEEDBACK.WRONG_ANSWER,
+    eatingGrass: AUDIO.GAME.ANIMAL_FEED.EATING_GRASS,
+    ...(input.audio ?? {}),
+  } satisfies AnimalFeedGameConfig["audio"];
 
   return {
     title: input.title ?? "Chọn mức độ",
     headerTitle: input.headerTitle ?? ANIMAL_FEED_GAME_TITLE,
     instruction: input.instruction ?? ANIMAL_FEED_GAME_INSTRUCTION,
     rules,
+    audio: resolvedAudio,
     animalIconId: input.animalIconId?.trim() || "bof",
     foodVisualId: input.foodVisualId?.trim() || "grass-bush",
     progressSentence:

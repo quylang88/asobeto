@@ -42,8 +42,6 @@ const LEVEL_LABEL: Record<BubblePopLevelId, string> = {
 };
 const PASS_EFFECT_HOLD_MS = 2200;
 const FAIL_EFFECT_HOLD_MS = 2200;
-const TARGET_BUBBLE_HIT_AUDIO = "/assets/audio/game/common/pop.mp3";
-const WRONG_BUBBLE_HIT_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
 
 type BubbleKind = "target" | "wrong" | "empty";
 type BubbleLetter = string;
@@ -303,6 +301,7 @@ export function GameBubblePop({
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
   const challengeHeaderTitle = bubbleConfig?.headerTitle?.trim() || floorName;
+  const bubbleAudio = bubbleConfig?.audio;
 
   useEffect(() => {
     const [firstLetter] = targetLetters;
@@ -312,12 +311,12 @@ export function GameBubblePop({
   useEffect(() => {
     if (!bubbleConfig) return;
     preloadAppAudioList([
-      TARGET_BUBBLE_HIT_AUDIO,
-      WRONG_BUBBLE_HIT_AUDIO,
+      bubbleAudio?.targetBubbleHit,
+      bubbleAudio?.wrongBubbleHit,
       bubbleConfig.introAudio,
       ...Object.values(bubbleConfig.targetAudioByLetter ?? {}),
     ]);
-  }, [bubbleConfig]);
+  }, [bubbleAudio, bubbleConfig]);
 
   const isLevelUnlocked = useCallback(
     (levelId: BubblePopLevelId) => {
@@ -383,13 +382,16 @@ export function GameBubblePop({
 
   const playTapFeedbackAudio = useCallback((kind: "target" | "wrong") => {
     const src =
-      kind === "target" ? TARGET_BUBBLE_HIT_AUDIO : WRONG_BUBBLE_HIT_AUDIO;
+      kind === "target"
+        ? bubbleAudio?.targetBubbleHit
+        : bubbleAudio?.wrongBubbleHit;
+    if (!src) return;
     playAppAudio(src, {
       allowOverlap: true,
       retries: 1,
       retryDelayMs: 80,
     });
-  }, []);
+  }, [bubbleAudio]);
 
   const enqueuePopup = useCallback(
     (x: number, y: number, label: string, tone: "good" | "bad") => {

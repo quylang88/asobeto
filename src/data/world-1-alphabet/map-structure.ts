@@ -44,6 +44,10 @@ export interface LessonScoring {
   };
   maxStars: number;
   progressMode?: LessonScoringProgressMode;
+  feedbackAudio?: {
+    success: string;
+    failure: string;
+  };
 }
 
 export interface WordToken {
@@ -94,7 +98,10 @@ export interface BubblePopGameConfig {
   rules: string[];
   rulesAudioText: string;
   introAudio?: string;
-  rulesAudio?: string;
+  audio: {
+    targetBubbleHit: string;
+    wrongBubbleHit: string;
+  };
   targetAudioByLetter?: Record<string, string>;
   startLives: number;
   targetLetters: [string, string];
@@ -133,6 +140,12 @@ export interface AnimalFeedGameConfig {
   headerTitle?: string;
   instruction?: string;
   rules: string[];
+  audio: {
+    passFlyEffect: string;
+    passProgressPing: string;
+    lifeLoss: string;
+    eatingGrass: string;
+  };
   animalIconId: string;
   foodVisualId: string;
   progressSentence: string;
@@ -203,6 +216,12 @@ export interface DiacriticBuildGameConfig {
   instruction?: string;
   rules: string[];
   rulesAudioText?: string;
+  audio: {
+    correctTap: string;
+    wrongTap: string;
+    pass: string;
+    fail: string;
+  };
   countdownHintText?: string;
   interactionMode?: DiacriticBuildInteractionMode;
   targetLetter: string;

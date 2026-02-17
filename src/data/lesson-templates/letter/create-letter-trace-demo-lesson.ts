@@ -1,4 +1,5 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildLetterIntroVoiceOptions,
   normalizeLetter,
@@ -22,10 +23,10 @@ export function createLetterTraceDemoLesson(
     gating: {
       requireAnimationComplete: true,
     },
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "none",
       passPolicy: "always",
       maxStars: 0,
-    },
+    }),
   };
 }

@@ -5,6 +5,7 @@ import {
   DiacriticBuildLevelConfig,
   DiacriticBuildLevelId,
 } from "../world-1-alphabet/map-structure";
+import { AUDIO } from "../audio";
 
 export const DIACRITIC_BUILD_GAME_TITLE = "Dấu kỳ diệu";
 export const DIACRITIC_BUILD_GAME_INSTRUCTION =
@@ -158,6 +159,7 @@ export interface DiacriticBuildGameDataInput {
   baseLetter: string;
   markerSymbol: string;
   debrisSymbols: string[];
+  audio?: Partial<DiacriticBuildGameConfig["audio"]>;
   interactionMode?: DiacriticBuildInteractionMode;
   catcherHitboxScale?: number;
   title?: string;
@@ -223,6 +225,7 @@ export function createDiacriticBuildGameConfig({
   baseLetter,
   markerSymbol,
   debrisSymbols,
+  audio,
   interactionMode,
   catcherHitboxScale,
   title,
@@ -246,6 +249,13 @@ export function createDiacriticBuildGameConfig({
     typeof catcherHitboxScale === "number" && Number.isFinite(catcherHitboxScale)
       ? Math.max(0.85, catcherHitboxScale)
       : 1;
+  const resolvedAudio = {
+    correctTap: AUDIO.GAME.COMMON.POP,
+    wrongTap: AUDIO.FEEDBACK.WRONG_ANSWER,
+    pass: AUDIO.FEEDBACK.SUCCESS_ANSWER,
+    fail: AUDIO.FEEDBACK.WRONG_ANSWER,
+    ...(audio ?? {}),
+  } satisfies DiacriticBuildGameConfig["audio"];
 
   return {
     title: title ?? "Chọn mức độ",
@@ -253,6 +263,7 @@ export function createDiacriticBuildGameConfig({
     instruction: instruction ?? DIACRITIC_BUILD_GAME_INSTRUCTION,
     rules: resolvedRules,
     rulesAudioText: resolvedRules.join(" "),
+    audio: resolvedAudio,
     countdownHintText:
       countdownHintText?.trim() || normalizedTargetLetter.toLocaleUpperCase("vi-VN"),
     interactionMode: resolvedInteractionMode,

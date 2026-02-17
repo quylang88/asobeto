@@ -34,10 +34,6 @@ import {
 } from "@/lib/app-audio";
 
 const LEVEL_ORDER: AnimalFeedLevelId[] = ["easy", "normal", "hard"];
-const PASS_FLY_EFFECT_AUDIO = "/assets/audio/game/common/pop.mp3";
-const PASS_PROGRESS_PING_AUDIO = "/assets/audio/feedback/success-answer.mp3";
-const LIFE_LOSS_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
-const EATING_GRASS_AUDIO = "/assets/audio/game/animal-feed/eating-grass.mp3";
 const MAX_FAIL_STREAK = 99;
 const COW_OPEN_MOUTH_MS = 320;
 
@@ -311,13 +307,14 @@ export function GameAnimalFeed({
   );
 
   useEffect(() => {
+    if (!cowGrassConfig) return;
     preloadAppAudioList([
-      PASS_FLY_EFFECT_AUDIO,
-      PASS_PROGRESS_PING_AUDIO,
-      LIFE_LOSS_AUDIO,
-      EATING_GRASS_AUDIO,
+      cowGrassConfig.audio.passFlyEffect,
+      cowGrassConfig.audio.passProgressPing,
+      cowGrassConfig.audio.lifeLoss,
+      cowGrassConfig.audio.eatingGrass,
     ]);
-  }, []);
+  }, [cowGrassConfig]);
 
   const [tutorialElapsedMs, setTutorialElapsedMs] = useState(0);
   const [tutorialDurationMs, setTutorialDurationMs] = useState(0);
@@ -330,6 +327,7 @@ export function GameAnimalFeed({
     ? (levelMap.get(selectedLevelId) ?? null)
     : null;
   const challengeHeaderTitle = cowGrassConfig?.headerTitle?.trim() || floorName;
+  const cowGrassAudio = cowGrassConfig?.audio;
   const sentenceText = (
     cowGrassConfig?.progressSentence ||
     cowGrassConfig?.sentenceTokens
@@ -703,7 +701,9 @@ export function GameAnimalFeed({
       setLives(livesRef.current);
       queueFloatingText(side, "-1 tim", "bad");
       queueHeartDrop();
-      playSfx(LIFE_LOSS_AUDIO);
+      if (cowGrassAudio?.lifeLoss) {
+        playSfx(cowGrassAudio.lifeLoss);
+      }
       updateCowMood("sad", cowGrassConfig.animalSadMs);
       if (from === "wrong" && "vibrate" in navigator) {
         navigator.vibrate(40);
@@ -712,7 +712,14 @@ export function GameAnimalFeed({
         navigator.vibrate(25);
       }
     },
-    [cowGrassConfig, playSfx, queueFloatingText, queueHeartDrop, updateCowMood],
+    [
+      cowGrassAudio,
+      cowGrassConfig,
+      playSfx,
+      queueFloatingText,
+      queueHeartDrop,
+      updateCowMood,
+    ],
   );
 
   const applyProgressIncrement = useCallback(
@@ -736,11 +743,13 @@ export function GameAnimalFeed({
           );
         }, 460);
         registerTimeout(timeoutId);
-        playSfx(PASS_PROGRESS_PING_AUDIO);
+        if (cowGrassAudio?.passProgressPing) {
+          playSfx(cowGrassAudio.passProgressPing);
+        }
       }
       return requirements.every((required, index) => (nextHits[index] ?? 0) >= required);
     },
-    [getSegmentRequirements, playSfx, registerTimeout],
+    [cowGrassAudio, getSegmentRequirements, playSfx, registerTimeout],
   );
 
   const startCorrectResolution = useCallback(
@@ -760,10 +769,19 @@ export function GameAnimalFeed({
       });
       flightIdRef.current += 1;
       queueFloatingText(choice.side, "+1", "good");
-      playSfx(PASS_FLY_EFFECT_AUDIO);
+      if (cowGrassAudio?.passFlyEffect) {
+        playSfx(cowGrassAudio.passFlyEffect);
+      }
       updateCowMood("open", COW_OPEN_MOUTH_MS);
     },
-    [cowGrassConfig, playSfx, queueFloatingText, syncRoundState, updateCowMood],
+    [
+      cowGrassAudio,
+      cowGrassConfig,
+      playSfx,
+      queueFloatingText,
+      syncRoundState,
+      updateCowMood,
+    ],
   );
 
   const startWrongResolution = useCallback(
@@ -824,7 +842,9 @@ export function GameAnimalFeed({
             side: correctChoice.side,
           });
           flightIdRef.current += 1;
-          playSfx(PASS_FLY_EFFECT_AUDIO);
+          if (cowGrassAudio?.passFlyEffect) {
+            playSfx(cowGrassAudio.passFlyEffect);
+          }
         }
         tutorialDidFlyRef.current = true;
       }
@@ -841,7 +861,9 @@ export function GameAnimalFeed({
 
       if (!tutorialDidChewRef.current && tutorial.elapsedMs >= chewTriggerMs) {
         updateCowMood("chew", cowGrassConfig.animalChewMs);
-        playSfx(EATING_GRASS_AUDIO);
+        if (cowGrassAudio?.eatingGrass) {
+          playSfx(cowGrassAudio.eatingGrass);
+        }
         tutorialDidChewRef.current = true;
       }
 
@@ -866,6 +888,7 @@ export function GameAnimalFeed({
       startGameplayRef.current();
     },
     [
+      cowGrassAudio,
       cowGrassConfig,
       maybeMarkTutorialSeen,
       playSfx,
@@ -909,7 +932,9 @@ export function GameAnimalFeed({
       ) {
         round.chewStarted = true;
         updateCowMood("chew", cowGrassConfig.animalChewMs);
-        playSfx(EATING_GRASS_AUDIO);
+        if (cowGrassAudio?.eatingGrass) {
+          playSfx(cowGrassAudio.eatingGrass);
+        }
       }
 
       if (round.resolutionType === "timeout" && !round.penaltyApplied) {
@@ -957,6 +982,7 @@ export function GameAnimalFeed({
     [
       applyLifeLoss,
       applyProgressIncrement,
+      cowGrassAudio,
       cowGrassConfig,
       getSegmentRequirements,
       playSfx,

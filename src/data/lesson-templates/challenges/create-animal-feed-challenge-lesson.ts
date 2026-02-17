@@ -1,5 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import type { AnimalFeedGameDataInput } from "../../mini-games/animal-feed";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   ANIMAL_FEED_GAME_INSTRUCTION,
   ANIMAL_FEED_GAME_TITLE,
@@ -21,11 +22,11 @@ export function createAnimalFeedChallengeLesson(
     lessonKind: "animal_feed_challenge",
     title: ANIMAL_FEED_GAME_TITLE,
     instruction: ANIMAL_FEED_GAME_INSTRUCTION,
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "none",
       passPolicy: "always",
       maxStars: 6,
-    },
+    }),
     animalFeedGame: createAnimalFeedGameConfig(gameConfigInput),
   };
 }

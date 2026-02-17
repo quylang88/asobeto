@@ -7,8 +7,9 @@ import {
   playCelebrationAudio,
   preloadCelebrationAudio,
 } from "@/lib/app-audio";
+import { AUDIO } from "@/data/game-config";
 
-const DEFAULT_STAR_SOUND = "/assets/audio/feedback/success-answer.mp3";
+const DEFAULT_STAR_SOUND = AUDIO.FEEDBACK.SUCCESS_ANSWER;
 
 interface StarCelebrationProps {
   stars: number;

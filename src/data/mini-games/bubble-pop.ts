@@ -4,6 +4,7 @@ import {
   BubblePopLevelId,
   ChallengePassStarRule,
 } from "../world-1-alphabet/map-structure";
+import { AUDIO } from "../audio";
 
 export const BUBBLE_GAME_TITLE = "Bóng bay chữ";
 export const BUBBLE_GAME_INSTRUCTION =
@@ -114,6 +115,7 @@ export interface BubblePopGameDataInput {
   headerTitle?: string;
   instruction?: string;
   rulesText?: string;
+  audio?: Partial<BubblePopGameConfig["audio"]>;
   levelOverrides?: Partial<
     Record<BubblePopLevelId, Partial<BubblePopLevelConfig>>
   >;
@@ -155,9 +157,15 @@ export function createBubblePopGameConfig({
   headerTitle,
   instruction,
   rulesText,
+  audio,
   levelOverrides,
 }: BubblePopGameDataInput): BubblePopGameConfig {
   const resolvedRulesText = rulesText ?? BUBBLE_GAME_RULES_TEXT;
+  const resolvedAudio = {
+    targetBubbleHit: AUDIO.GAME.COMMON.POP,
+    wrongBubbleHit: AUDIO.FEEDBACK.WRONG_ANSWER,
+    ...(audio ?? {}),
+  } satisfies BubblePopGameConfig["audio"];
 
   return {
     title: title ?? "Chọn mức độ",
@@ -165,8 +173,8 @@ export function createBubblePopGameConfig({
     instruction: instruction ?? BUBBLE_GAME_RULES_TEXT,
     rules: [resolvedRulesText],
     rulesAudioText: resolvedRulesText,
-    introAudio: "/assets/audio/game/bubble-pop/intro.mp3",
-    rulesAudio: "/assets/audio/game/bubble-pop/rules.mp3",
+    introAudio: AUDIO.GAME.BUBBLE_POP.INTRO,
+    audio: resolvedAudio,
     targetAudioByLetter,
     startLives: 3,
     targetLetters,

@@ -1,5 +1,6 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
 import type { DiacriticBuildGameDataInput } from "../../mini-games/diacritic-build";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   DIACRITIC_BUILD_GAME_INSTRUCTION,
   DIACRITIC_BUILD_GAME_TITLE,
@@ -22,11 +23,11 @@ export function createDiacriticBuildChallengeLesson(
     lessonKind: "diacritic_build_challenge",
     title: DIACRITIC_BUILD_GAME_TITLE,
     instruction: DIACRITIC_BUILD_GAME_INSTRUCTION,
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "none",
       passPolicy: "always",
       maxStars: 6,
-    },
+    }),
     diacriticBuildGame: createDiacriticBuildGameConfig(gameConfigInput),
   };
 }

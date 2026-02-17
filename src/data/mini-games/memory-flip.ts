@@ -6,6 +6,7 @@ import {
   MemoryFlipLevelId,
   MemoryFlipMoveStarRule,
 } from "../world-1-alphabet/map-structure";
+import { AUDIO } from "../audio";
 
 export const MEMORY_FLIP_GAME_TITLE = "Trí nhớ";
 export const MEMORY_FLIP_GAME_INSTRUCTION =
@@ -280,9 +281,9 @@ export function createMemoryFlipGameConfig({
     levels: createMemoryFlipLevelConfigs({ levelOverrides }),
     cardBackOptions: resolveCardBackOptions(cardBackOptions),
     audio: {
-      flip: "/assets/audio/game/memory-flip/whoosh.mp3",
-      match: "/assets/audio/game/memory-flip/ding-correct.mp3",
-      mismatch: "/assets/audio/game/memory-flip/wrong-bop.mp3",
+      flip: AUDIO.GAME.MEMORY_FLIP.FLIP,
+      match: AUDIO.GAME.MEMORY_FLIP.MATCH,
+      mismatch: AUDIO.GAME.MEMORY_FLIP.MISMATCH,
     },
   };
 }

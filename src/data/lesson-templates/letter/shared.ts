@@ -1,4 +1,8 @@
 import type { LessonAnswer } from "../../world-1-alphabet/map-structure";
+import {
+  buildLetterIntroVoiceOptions,
+  buildMainLetterAudio,
+} from "../../audio";
 
 export type LetterDistractors = [string, string];
 
@@ -15,26 +19,7 @@ export interface LetterQuizLessonConfig extends LetterLessonBaseConfig {
 export function normalizeLetter(letter: string): string {
   return letter.toLocaleLowerCase();
 }
-
-export function buildLetterIntroVoiceOptions(
-  lessonOrder: 1 | 2 | 3 | 4,
-): string[] {
-  const lessonSlugByOrder: Record<1 | 2 | 3 | 4, string> = {
-    1: "listen",
-    2: "quiz",
-    3: "trace-demo",
-    4: "trace-practice",
-  };
-
-  const lessonSlug = lessonSlugByOrder[lessonOrder];
-  return [1, 2, 3].map(
-    (variant) => `/assets/audio/intro-letters/${lessonSlug}-${variant}.mp3`,
-  );
-}
-
-export function buildMainLetterAudio(letterAssetKey: string): string {
-  return `/assets/audio/letters/${letterAssetKey}.mp3`;
-}
+export { buildLetterIntroVoiceOptions, buildMainLetterAudio };
 
 export function createLetterAnswers(
   letter: string,

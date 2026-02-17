@@ -10,9 +10,10 @@ import {
   stopAllAppAudio,
 } from "@/lib/app-audio";
 import { PrimaryButton } from "@/components/common/primary-button";
+import { AUDIO } from "@/data/game-config";
 
-const COMPLETION_SUCCESS_AUDIO = "/assets/audio/feedback/applause-cheering.mp3";
-const COMPLETION_FAIL_AUDIO = "/assets/audio/feedback/try-again.mp3";
+const COMPLETION_SUCCESS_AUDIO = AUDIO.FEEDBACK.APPLAUSE_CHEERING;
+const COMPLETION_FAIL_AUDIO = AUDIO.FEEDBACK.TRY_AGAIN;
 
 interface LessonCompletionViewProps {
   stars: number;

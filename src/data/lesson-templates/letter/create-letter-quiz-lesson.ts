@@ -1,4 +1,5 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildLetterIntroVoiceOptions,
   buildMainLetterAudio,
@@ -22,13 +23,13 @@ export function createLetterQuizLesson(
     mainAudio: buildMainLetterAudio(letterAssetKey),
     answers: createLetterAnswers(letter, distractors),
     targetLetter: normalizedLetter,
-    scoring: {
+    scoring: withDefaultLessonFeedbackAudio({
       metric: "correct_answer",
       passPolicy: "always",
       starThresholds: {
         oneStar: 1,
       },
       maxStars: 1,
-    },
+    }),
   };
 }

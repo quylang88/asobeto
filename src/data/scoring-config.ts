@@ -4,6 +4,7 @@ import type {
   LessonScoringProgressMode,
   ScoringMetric,
 } from "./world-1-alphabet";
+import { AUDIO } from "./audio";
 
 type ThresholdScoringMetric = Extract<
   ScoringMetric,
@@ -33,6 +34,11 @@ export interface LessonScoreEvaluation {
   isPassed: boolean;
   earnedStars: number;
 }
+
+export const DEFAULT_LESSON_FEEDBACK_AUDIO = {
+  success: AUDIO.FEEDBACK.SUCCESS_ANSWER,
+  failure: AUDIO.FEEDBACK.WRONG_ANSWER,
+} as const;
 
 const LESSON_ONE_STAR_THRESHOLD = 0.5;
 const LESSON_TWO_STAR_THRESHOLD = 0.85;
@@ -80,6 +86,22 @@ function resolveDefaultsByMetric(
   return THRESHOLD_SCORING_DEFAULTS_BY_METRIC[thresholdMetric];
 }
 
+export function withDefaultLessonFeedbackAudio(
+  scoring: LessonScoring,
+): LessonScoring {
+  return {
+    ...scoring,
+    feedbackAudio: {
+      success:
+        scoring.feedbackAudio?.success?.trim() ||
+        DEFAULT_LESSON_FEEDBACK_AUDIO.success,
+      failure:
+        scoring.feedbackAudio?.failure?.trim() ||
+        DEFAULT_LESSON_FEEDBACK_AUDIO.failure,
+    },
+  };
+}
+
 export function createLessonScoring(
   metric: ThresholdScoringMetric,
   overrides: Partial<Omit<LessonScoring, "metric">> = {},
@@ -100,7 +122,7 @@ export function createLessonScoring(
       ? clamp01(overrides.passThreshold ?? defaults.passThreshold)
       : undefined;
 
-  return {
+  return withDefaultLessonFeedbackAudio({
     metric,
     passPolicy,
     passThreshold,
@@ -110,7 +132,8 @@ export function createLessonScoring(
     },
     maxStars: Math.max(0, Math.round(overrides.maxStars ?? defaults.maxStars)),
     progressMode: overrides.progressMode ?? defaults.progressMode,
-  };
+    feedbackAudio: overrides.feedbackAudio,
+  });
 }
 
 export function resolveLessonScoring(
