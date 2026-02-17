@@ -29,12 +29,7 @@ import {
   getEmptyTraceEvaluation,
   type TraceEvaluation,
 } from "../scoring/tracing-scoring";
-import {
-  type ScoringConfig,
-  DEFAULT_ONE_STAR_THRESHOLD,
-  DEFAULT_TWO_STAR_THRESHOLD,
-  DEFAULT_MAX_STARS,
-} from "@/data/game-config";
+import { type ScoringConfig } from "@/data/game-config";
 
 // Re-export constants for backward compatibility if needed by index.ts
 export { LETTER_TRACING_CANVAS_WIDTH, LETTER_TRACING_CANVAS_HEIGHT };
@@ -44,9 +39,9 @@ type TracingCanvasMode = "practice" | "demo" | "preview";
 
 interface LetterTracingCanvasProps {
   targetText: string;
+  scoringConfig: ScoringConfig; // Required prop, no default fallback
   mode?: TracingCanvasMode;
   disabled?: boolean;
-  scoringConfig?: ScoringConfig; // Make it optional for backward compatibility or default handling
   onEvaluate?: (result: TraceEvaluation) => void;
   onAutoTraceComplete?: () => void;
   onFrameTap?: () => void;
@@ -64,14 +59,6 @@ const DEFAULT_SINGLE_LETTER_GLYPH: TracingGlyphConfig = {
   x: 30,
   y: 136,
   sizeScale: 2,
-};
-
-// Fallback config if not provided, ensuring component works in isolation
-const FALLBACK_SCORING_CONFIG: ScoringConfig = {
-  passThreshold: DEFAULT_ONE_STAR_THRESHOLD,
-  oneStarThreshold: DEFAULT_ONE_STAR_THRESHOLD,
-  twoStarThreshold: DEFAULT_TWO_STAR_THRESHOLD,
-  maxStars: DEFAULT_MAX_STARS,
 };
 
 interface DemoDrawTimelineSegment {
@@ -423,7 +410,7 @@ export function LetterTracingCanvas({
   targetText,
   mode = "practice",
   disabled,
-  scoringConfig = FALLBACK_SCORING_CONFIG,
+  scoringConfig, // Required prop
   onEvaluate,
   onAutoTraceComplete,
   onFrameTap,
