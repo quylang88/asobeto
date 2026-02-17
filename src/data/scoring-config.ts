@@ -34,10 +34,11 @@ export interface LessonScoreEvaluation {
   earnedStars: number;
 }
 
-export const LESSON_ONE_STAR_THRESHOLD = 0.5;
-export const LESSON_TWO_STAR_THRESHOLD = 0.85;
-export const LESSON_PASS_THRESHOLD = LESSON_ONE_STAR_THRESHOLD;
-export const BOSS_REVIEW_PASS_THRESHOLD = 0.7;
+const LESSON_ONE_STAR_THRESHOLD = 0.5;
+const LESSON_TWO_STAR_THRESHOLD = 0.85;
+const LESSON_PASS_THRESHOLD = LESSON_ONE_STAR_THRESHOLD;
+export const BOSS_REVIEW_LESSON_PASS_THRESHOLD = 0.7;
+export const BOSS_REVIEW_FLOOR_PASS_RATIO = 0.6;
 
 const THRESHOLD_SCORING_DEFAULTS_BY_METRIC: Record<
   ThresholdScoringMetric,
@@ -72,7 +73,9 @@ function resolveThresholdMetric(metric: ScoringMetric): ThresholdScoringMetric {
   return "trace_accuracy";
 }
 
-function resolveDefaultsByMetric(metric: ScoringMetric): ThresholdScoringDefaults {
+function resolveDefaultsByMetric(
+  metric: ScoringMetric,
+): ThresholdScoringDefaults {
   const thresholdMetric = resolveThresholdMetric(metric);
   return THRESHOLD_SCORING_DEFAULTS_BY_METRIC[thresholdMetric];
 }
@@ -114,8 +117,7 @@ export function resolveLessonScoring(
   lesson: LessonContent | undefined,
   fallbackMetric: ThresholdScoringMetric,
 ): ResolvedLessonScoring {
-  const scoring =
-    lesson?.type === "active" ? lesson.scoring : undefined;
+  const scoring = lesson?.type === "active" ? lesson.scoring : undefined;
   const metric = scoring?.metric ?? fallbackMetric;
   const defaults = resolveDefaultsByMetric(metric);
 
@@ -169,4 +171,11 @@ export function evaluateLessonScore(
         ? true
         : normalizedScore >= scoring.passThreshold,
   };
+}
+
+export function getBossReviewRequiredPassCount(totalLessons: number): number {
+  return Math.max(
+    1,
+    Math.ceil(Math.max(0, totalLessons) * BOSS_REVIEW_FLOOR_PASS_RATIO),
+  );
 }

@@ -4,7 +4,7 @@ import type {
   ScoringMetric,
 } from "../map-structure";
 import {
-  BOSS_REVIEW_PASS_THRESHOLD,
+  BOSS_REVIEW_LESSON_PASS_THRESHOLD,
   createLessonScoring,
 } from "../../scoring-config";
 import {
@@ -82,7 +82,7 @@ const REVIEW_WORDS: ReviewWordOption[] = REVIEW_WORD_SEEDS.map((word) => ({
 }));
 
 const BOSS_REVIEW_SCORING_OVERRIDES = {
-  passThreshold: BOSS_REVIEW_PASS_THRESHOLD,
+  passThreshold: BOSS_REVIEW_LESSON_PASS_THRESHOLD,
   maxStars: 0,
   progressMode: "pass_count" as const,
 } satisfies Partial<Omit<LessonScoring, "metric">>;

@@ -8,11 +8,21 @@ import {
   StarCelebration,
   SuccessCelebrationOverlay,
 } from "@/components/celebrations";
-import { BossReviewChoiceView, LessonCompletionView } from "@/components/completion";
+import {
+  BossReviewChoiceView,
+  LessonCompletionView,
+} from "@/components/completion";
 import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
-import { getStoredFloorProgress, getStoredLessonStars } from "@/lib/floor-progress";
-import { getWorldData } from "@/data/game-config";
-import { type LessonAnswer, type LessonContent } from "../../data/game-config";
+import {
+  getStoredFloorProgress,
+  getStoredLessonStars,
+} from "@/lib/floor-progress";
+import {
+  type LessonAnswer,
+  type LessonContent,
+  getBossReviewRequiredPassCount,
+  getWorldData,
+} from "@/data/game-config";
 import {
   LessonActiveRenderer,
   LessonPassivePreviewRenderer,
@@ -46,11 +56,10 @@ import {
   useThresholdSpeech,
   useWordBuildDrag,
 } from "./hooks";
-
-const LESSON_SUCCESS_FEEDBACK_AUDIO =
-  "/assets/audio/feedback/success-answer.mp3";
-const LESSON_FAILURE_FEEDBACK_AUDIO = "/assets/audio/feedback/wrong-answer.mp3";
-const BOSS_REVIEW_PASS_THRESHOLD = 6;
+import {
+  LESSON_FAILURE_FEEDBACK_AUDIO,
+  LESSON_SUCCESS_FEEDBACK_AUDIO,
+} from "./constants";
 
 interface LessonInterfaceProps {
   worldId: number;
@@ -129,14 +138,19 @@ export function LessonInterface({
   const resetSpeechSessionRef = useRef<() => void>(() => {});
 
   const hasLessons = lessons.length > 0;
+  const activeLessonsCount = lessons.filter(
+    (lesson) => lesson.type === "active",
+  ).length;
+  const bossReviewRequiredPassCount =
+    getBossReviewRequiredPassCount(activeLessonsCount);
   const currentTower = getWorldData(worldId).towers.find(
     (tower) => tower.id === towerId,
   );
   const isBossReviewFloor = Boolean(
     currentTower?.isBoss &&
-      floorId === 1 &&
-      lessons.length > 0 &&
-      lessons.every((lesson) => lesson.type === "active"),
+    floorId === 1 &&
+    lessons.length > 0 &&
+    lessons.every((lesson) => lesson.type === "active"),
   );
   const [bossEntryResolved, setBossEntryResolved] = useState(
     () => !isBossReviewFloor,
@@ -157,8 +171,7 @@ export function LessonInterface({
     currentLessonMainAudio,
     currentLessonDisableIntro,
     autoPlayEnabled:
-      bossEntryResolved &&
-      !(showBossReviewChoiceScreen && isBossReviewFloor),
+      bossEntryResolved && !(showBossReviewChoiceScreen && isBossReviewFloor),
     autoPlayDelayMs: lessonAutoplayDelayMs,
   });
   const playCelebrationFeedback = useCallback(
@@ -184,32 +197,41 @@ export function LessonInterface({
       setBossEntryResolved(true);
       return;
     }
-    const storedBossReviewProgress = getStoredFloorProgress({
-      worldId,
-      towerId,
-      floorId,
-    }, floorMaxStars);
+    const storedBossReviewProgress = getStoredFloorProgress(
+      {
+        worldId,
+        towerId,
+        floorId,
+      },
+      floorMaxStars,
+    );
     const storedPassCount =
       storedBossReviewProgress?.passCount ??
       storedBossReviewProgress?.stars ??
       0;
-    if (storedPassCount >= BOSS_REVIEW_PASS_THRESHOLD) {
+    if (storedPassCount >= bossReviewRequiredPassCount) {
       setScore(storedPassCount);
       setShowBossReviewChoiceScreen(true);
     } else {
       setShowBossReviewChoiceScreen(false);
     }
     setBossEntryResolved(true);
-  }, [floorId, floorMaxStars, isBossReviewFloor, towerId, worldId]);
+  }, [
+    bossReviewRequiredPassCount,
+    floorId,
+    floorMaxStars,
+    isBossReviewFloor,
+    towerId,
+    worldId,
+  ]);
 
   const progress = hasLessons ? ((currentStep + 1) / lessons.length) * 100 : 0;
   const isTracePracticeLesson = isTracePracticeLessonKind(currentLessonKind);
   const isWordBuildLesson = isWordBuildLessonKind(currentLessonKind);
   const isLetterTraceDemoLesson =
     isLetterTraceDemoLessonKind(currentLessonKind);
-  const isPronunciationPracticeLesson = isPronunciationPracticeLessonKind(
-    currentLessonKind,
-  );
+  const isPronunciationPracticeLesson =
+    isPronunciationPracticeLessonKind(currentLessonKind);
   const isFloor3ListenLookLesson = isFloor3ListenLookLessonKind(
     currentLessonKind,
     Boolean(currentLesson?.instruction),
@@ -336,7 +358,6 @@ export function LessonInterface({
     "?";
 
   // Lọc các bài học active cho ngữ cảnh chấm điểm
-  const activeLessonsCount = lessons.filter((l) => l.type === "active").length;
   const activeLessonsTotalStars = lessons.reduce(
     (sum, lesson) => sum + getLessonMaxStars(lesson),
     0,
@@ -530,7 +551,7 @@ export function LessonInterface({
 
     if (isBossReviewFloor) {
       const passCount = score;
-      const hasPassedBossReview = passCount >= BOSS_REVIEW_PASS_THRESHOLD;
+      const hasPassedBossReview = passCount >= bossReviewRequiredPassCount;
       const bossSummary = `Bé đã vượt qua ${passCount}/${activeLessonsCount} bài.`;
 
       return (
@@ -575,7 +596,9 @@ export function LessonInterface({
         {isCorrect === false && <BrokenHeartCelebration muteSound />}
       </AnimatePresence>
       <AnimatePresence>
-        {celebrationStars && <StarCelebration stars={celebrationStars} muteSound />}
+        {celebrationStars && (
+          <StarCelebration stars={celebrationStars} muteSound />
+        )}
       </AnimatePresence>
 
       {/* Top bar tách riêng để dễ tái sử dụng khi thêm lesson/floor mới. */}

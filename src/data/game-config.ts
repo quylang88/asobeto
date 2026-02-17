@@ -48,12 +48,9 @@ export {
   createBossFloor1Lessons,
 } from "./world-1-alphabet";
 export {
-  BOSS_REVIEW_PASS_THRESHOLD as LESSON_BOSS_REVIEW_PASS_THRESHOLD,
-  LESSON_ONE_STAR_THRESHOLD,
-  LESSON_TWO_STAR_THRESHOLD,
-  LESSON_PASS_THRESHOLD,
   createLessonScoring,
   evaluateLessonScore,
+  getBossReviewRequiredPassCount,
   resolveLessonScoring,
 } from "./scoring-config";
 export type {

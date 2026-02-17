@@ -2,6 +2,14 @@ import { Floor } from "../map-structure";
 import { createGameFloor } from "../floor-templates";
 import { floor1Lessons } from "./floor-1";
 import { floor2Lessons } from "./floor-2";
+import { getBossReviewRequiredPassCount } from "../../scoring-config";
+
+const BOSS_REVIEW_TOTAL_LESSONS = floor1Lessons.filter(
+  (lesson) => lesson.type === "active",
+).length;
+const BOSS_REVIEW_REQUIRED_PASS_COUNT = getBossReviewRequiredPassCount(
+  BOSS_REVIEW_TOTAL_LESSONS,
+);
 
 export const towerBossFloors: Floor[] = [
   createGameFloor({
@@ -17,7 +25,7 @@ export const towerBossFloors: Floor[] = [
     nameUnlocked: "Game Bí Ẩn",
     nameLocked: "Game Bí Ẩn",
     descriptionUnlocked: "Mini game BOSS (placeholder)",
-    descriptionLocked: "Đạt tối thiểu 6/10 bài ôn tập để mở khóa.",
+    descriptionLocked: `Đạt tối thiểu ${BOSS_REVIEW_REQUIRED_PASS_COUNT}/${BOSS_REVIEW_TOTAL_LESSONS} bài ôn tập để mở khóa.`,
     letter: "!",
     maxStars: 6,
     unlocked: false,
