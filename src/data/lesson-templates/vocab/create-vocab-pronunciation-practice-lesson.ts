@@ -1,4 +1,8 @@
-import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import type {
+  LessonContent,
+  LessonScoring,
+} from "../../world-1-alphabet/map-structure";
+import { createLessonScoring } from "../../scoring-config";
 import {
   buildVocabIntroVoiceOptions,
   buildVocabWordAudio,
@@ -12,10 +16,7 @@ export interface VocabPronunciationPracticeLessonConfig
   useAudio?: boolean;
   showImage?: boolean;
   disableIntro?: boolean;
-  passThreshold?: number;
-  oneStarThreshold?: number;
-  twoStarsThreshold?: number;
-  maxStars?: number;
+  scoringOverrides?: Partial<Omit<LessonScoring, "metric">>;
 }
 
 export function createVocabPronunciationPracticeLesson(
@@ -30,10 +31,7 @@ export function createVocabPronunciationPracticeLesson(
     useAudio = true,
     showImage = true,
     disableIntro = false,
-    passThreshold = 0.5,
-    oneStarThreshold = 0.5,
-    twoStarsThreshold = 0.75,
-    maxStars = 2,
+    scoringOverrides,
   } = config;
 
   return {
@@ -48,15 +46,6 @@ export function createVocabPronunciationPracticeLesson(
     disableIntro,
     targetText: word,
     relatedLetters: reviewLetters,
-    scoring: {
-      metric: "speech_similarity",
-      passPolicy: "threshold",
-      passThreshold,
-      starThresholds: {
-        oneStar: oneStarThreshold,
-        twoStars: twoStarsThreshold,
-      },
-      maxStars,
-    },
+    scoring: createLessonScoring("speech_similarity", scoringOverrides),
   };
 }

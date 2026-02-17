@@ -1,4 +1,5 @@
 import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import { createLessonScoring } from "../../scoring-config";
 import {
   buildVocabIntroVoiceOptions,
   type VocabLessonBaseConfig,
@@ -17,14 +18,6 @@ export function createVocabTracePracticeLesson(
     introVoiceOptions: buildVocabIntroVoiceOptions(4),
     targetText: word,
     relatedLetters: reviewLetters,
-    scoring: {
-      metric: "trace_accuracy",
-      passPolicy: "always",
-      starThresholds: {
-        oneStar: 0.5,
-        twoStars: 0.75,
-      },
-      maxStars: 2,
-    },
+    scoring: createLessonScoring("trace_accuracy"),
   };
 }

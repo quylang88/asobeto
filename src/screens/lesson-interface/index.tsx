@@ -101,6 +101,7 @@ export function LessonInterface({
     Record<string, number>
   >({});
   const lessonStarsThisAttemptRef = useRef<Record<string, number>>({});
+  const lessonPassesThisAttemptRef = useRef<Record<string, boolean>>({});
   const [completionStars, setCompletionStars] = useState<number | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
   const [showBossReviewChoiceScreen, setShowBossReviewChoiceScreen] =
@@ -188,7 +189,10 @@ export function LessonInterface({
       towerId,
       floorId,
     }, floorMaxStars);
-    const storedPassCount = storedBossReviewProgress?.stars ?? 0;
+    const storedPassCount =
+      storedBossReviewProgress?.passCount ??
+      storedBossReviewProgress?.stars ??
+      0;
     if (storedPassCount >= BOSS_REVIEW_PASS_THRESHOLD) {
       setScore(storedPassCount);
       setShowBossReviewChoiceScreen(true);
@@ -312,10 +316,6 @@ export function LessonInterface({
   const wordBuildDisplayRowByLogicalRow = new Map(
     wordBuildUsedRows.map((logicalRow, rowIndex) => [logicalRow, rowIndex + 1]),
   );
-  const traceOneStarThreshold =
-    currentLesson?.scoring?.starThresholds?.oneStar ?? 0.5;
-  const traceTwoStarThreshold =
-    currentLesson?.scoring?.starThresholds?.twoStars ?? 0.85;
   const showPreviewCard =
     !isTracePracticeLesson &&
     !isLetterTraceDemoLesson &&
@@ -387,9 +387,10 @@ export function LessonInterface({
     isWordBuildLesson,
     isWordBuildReady,
     isTracePracticeLesson,
-    traceOneStarThreshold,
+    isBossReviewFloor,
     wordBuildSlotTokenIds,
     lessonStarsThisAttemptRef,
+    lessonPassesThisAttemptRef,
     stopAudio,
     playCelebrationFeedback,
     resetSpeechSession: callResetSpeechSession,
@@ -458,6 +459,7 @@ export function LessonInterface({
     setScore(0);
     setLessonStarsThisAttempt({});
     lessonStarsThisAttemptRef.current = {};
+    lessonPassesThisAttemptRef.current = {};
     setCompletionStars(null);
     setShowCompletion(false);
     setShowBossReviewChoiceScreen(false);
@@ -654,8 +656,6 @@ export function LessonInterface({
               micLevel={micLevel}
               targetText={targetText}
               traceResult={traceResult}
-              traceOneStarThreshold={traceOneStarThreshold}
-              traceTwoStarThreshold={traceTwoStarThreshold}
               handleTraceEvaluate={handleTraceEvaluate}
               playAudio={playAudio}
               handleNext={handleNext}

@@ -29,6 +29,7 @@ import {
   getEmptyTraceEvaluation,
   type TraceEvaluation,
 } from "../scoring/tracing-scoring";
+import type { LessonContent } from "@/data/game-config";
 
 // Re-export constants for backward compatibility if needed by index.ts
 export { LETTER_TRACING_CANVAS_WIDTH, LETTER_TRACING_CANVAS_HEIGHT };
@@ -40,8 +41,7 @@ interface LetterTracingCanvasProps {
   targetText: string;
   mode?: TracingCanvasMode;
   disabled?: boolean;
-  oneStarThreshold?: number;
-  twoStarThreshold?: number;
+  lesson?: LessonContent;
   onEvaluate?: (result: TraceEvaluation) => void;
   onAutoTraceComplete?: () => void;
   onFrameTap?: () => void;
@@ -410,8 +410,7 @@ export function LetterTracingCanvas({
   targetText,
   mode = "practice",
   disabled,
-  oneStarThreshold = 0.5,
-  twoStarThreshold = 0.85,
+  lesson,
   onEvaluate,
   onAutoTraceComplete,
   onFrameTap,
@@ -834,8 +833,7 @@ export function LetterTracingCanvas({
         targetText: traceDisplayText,
         metrics: tracingGridMetrics,
         guideFontSize,
-        oneStarThreshold,
-        twoStarThreshold,
+        lesson,
         guideGlyphConfig,
       }),
     );

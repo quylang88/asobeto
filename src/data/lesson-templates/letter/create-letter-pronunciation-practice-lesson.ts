@@ -1,4 +1,8 @@
-import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import type {
+  LessonContent,
+  LessonScoring,
+} from "../../world-1-alphabet/map-structure";
+import { createLessonScoring } from "../../scoring-config";
 import {
   buildLetterIntroVoiceOptions,
   buildMainLetterAudio,
@@ -12,10 +16,7 @@ export interface LetterPronunciationPracticeLessonConfig
   relatedLetters?: string[];
   useAudio?: boolean;
   disableIntro?: boolean;
-  passThreshold?: number;
-  oneStarThreshold?: number;
-  twoStarsThreshold?: number;
-  maxStars?: number;
+  scoringOverrides?: Partial<Omit<LessonScoring, "metric">>;
 }
 
 export function createLetterPronunciationPracticeLesson(
@@ -29,10 +30,7 @@ export function createLetterPronunciationPracticeLesson(
     relatedLetters = [],
     useAudio = true,
     disableIntro = false,
-    passThreshold = 0.5,
-    oneStarThreshold = 0.5,
-    twoStarsThreshold = 0.75,
-    maxStars = 2,
+    scoringOverrides,
   } = config;
   const normalizedLetter = normalizeLetter(letter);
 
@@ -48,15 +46,6 @@ export function createLetterPronunciationPracticeLesson(
     targetText: normalizedLetter,
     targetLetter: normalizedLetter,
     relatedLetters,
-    scoring: {
-      metric: "speech_similarity",
-      passPolicy: "threshold",
-      passThreshold,
-      starThresholds: {
-        oneStar: oneStarThreshold,
-        twoStars: twoStarsThreshold,
-      },
-      maxStars,
-    },
+    scoring: createLessonScoring("speech_similarity", scoringOverrides),
   };
 }

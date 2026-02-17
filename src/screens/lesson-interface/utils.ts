@@ -77,6 +77,9 @@ export function getPreviewTextSizeClass(value: string): string {
 
 export function getLessonMaxStars(lesson: LessonContent): number {
   if (lesson.type !== "active") return 0;
+  if (lesson.scoring?.progressMode === "pass_count") {
+    return 0;
+  }
   return lesson.scoring?.maxStars ?? 0;
 }
 

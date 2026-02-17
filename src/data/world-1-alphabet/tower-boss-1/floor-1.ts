@@ -1,4 +1,12 @@
-import type { LessonContent } from "../map-structure";
+import type {
+  LessonContent,
+  LessonScoring,
+  ScoringMetric,
+} from "../map-structure";
+import {
+  BOSS_REVIEW_PASS_THRESHOLD,
+  createLessonScoring,
+} from "../../scoring-config";
 import {
   createLetterPronunciationPracticeLesson,
   createLetterQuizLesson,
@@ -73,6 +81,29 @@ const REVIEW_WORDS: ReviewWordOption[] = REVIEW_WORD_SEEDS.map((word) => ({
   ...word,
 }));
 
+const BOSS_REVIEW_SCORING_OVERRIDES = {
+  passThreshold: BOSS_REVIEW_PASS_THRESHOLD,
+  maxStars: 0,
+  progressMode: "pass_count" as const,
+} satisfies Partial<Omit<LessonScoring, "metric">>;
+
+function createBossReviewScoring(metric: ScoringMetric): LessonScoring {
+  if (metric === "trace_accuracy" || metric === "speech_similarity") {
+    return createLessonScoring(metric, BOSS_REVIEW_SCORING_OVERRIDES);
+  }
+
+  return {
+    metric,
+    passPolicy: "always",
+    maxStars: 0,
+    progressMode: "pass_count",
+    starThresholds: {
+      oneStar: 1,
+      twoStars: 1,
+    },
+  };
+}
+
 function shuffleArray<T>(items: T[]): T[] {
   const shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
@@ -130,14 +161,7 @@ function createBossLetterQuizLesson(
     title: "Nghe và chọn chữ cái đã học",
     disableIntro: true,
     fogMode: "locked",
-    scoring: {
-      metric: "correct_answer",
-      passPolicy: "always",
-      maxStars: 1,
-      starThresholds: {
-        oneStar: 1,
-      },
-    },
+    scoring: createBossReviewScoring("correct_answer"),
   };
 }
 
@@ -145,7 +169,7 @@ function createBossVocabImageQuizLesson(
   lessonId: string,
   option: ReviewWordOption,
 ): LessonContent {
-  return createVocabImageQuizLesson({
+  const lesson = createVocabImageQuizLesson({
     lessonId,
     title: "Nghe và chọn đúng ảnh từ vựng",
     mainAudio: `/assets/audio/words/${option.assetKey}.mp3`,
@@ -153,6 +177,11 @@ function createBossVocabImageQuizLesson(
     distractors: getWordDistractors(option),
     disableIntro: true,
   });
+
+  return {
+    ...lesson,
+    scoring: createBossReviewScoring("correct_answer"),
+  };
 }
 
 function createBossPronunciationLetterLesson(
@@ -166,10 +195,7 @@ function createBossPronunciationLetterLesson(
     title: "Nhìn chữ cái và nói lại",
     useAudio: false,
     disableIntro: true,
-    passThreshold: 0.7,
-    oneStarThreshold: 0.7,
-    twoStarsThreshold: 0.9,
-    maxStars: 1,
+    scoringOverrides: BOSS_REVIEW_SCORING_OVERRIDES,
   });
 }
 
@@ -186,10 +212,7 @@ function createBossPronunciationWordLesson(
     useAudio: false,
     showImage: false,
     disableIntro: true,
-    passThreshold: 0.7,
-    oneStarThreshold: 0.7,
-    twoStarsThreshold: 0.9,
-    maxStars: 1,
+    scoringOverrides: BOSS_REVIEW_SCORING_OVERRIDES,
   });
 }
 
@@ -207,16 +230,7 @@ function createBossLetterTracePracticeLesson(
     ...lesson,
     title: "Viết lại chữ cái",
     disableIntro: true,
-    scoring: {
-      metric: "trace_accuracy",
-      passPolicy: "threshold",
-      passThreshold: 0.7,
-      starThresholds: {
-        oneStar: 0.7,
-        twoStars: 0.95,
-      },
-      maxStars: 1,
-    },
+    scoring: createBossReviewScoring("trace_accuracy"),
   };
 }
 
@@ -235,16 +249,7 @@ function createBossVocabTracePracticeLesson(
     ...lesson,
     title: "Viết lại từ vựng",
     disableIntro: true,
-    scoring: {
-      metric: "trace_accuracy",
-      passPolicy: "threshold",
-      passThreshold: 0.7,
-      starThresholds: {
-        oneStar: 0.7,
-        twoStars: 0.95,
-      },
-      maxStars: 1,
-    },
+    scoring: createBossReviewScoring("trace_accuracy"),
   };
 }
 

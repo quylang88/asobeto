@@ -1,10 +1,10 @@
-import type { LessonContent } from "@/data/game-config";
+import {
+  evaluateLessonScore,
+  resolveLessonScoring,
+  type LessonContent,
+  type ResolvedLessonScoring,
+} from "@/data/game-config";
 import { getPhoneticSimilarity } from "@/lib/vietnamese-phonetics";
-
-const DEFAULT_ONE_STAR_THRESHOLD = 0.5;
-const DEFAULT_TWO_STAR_THRESHOLD = 0.8;
-const DEFAULT_MAX_STARS = 2;
-const DEFAULT_PASS_THRESHOLD = 0.7;
 
 const TONE_STRICT_SINGLE_LETTER_TARGETS = new Set([
   "a",
@@ -54,12 +54,7 @@ const LETTER_PRONUNCIATION_ALIASES: Record<string, string[]> = {
   y: ["y", "i"],
 };
 
-export interface PronunciationScoringThresholds {
-  passThreshold: number;
-  oneStarThreshold: number;
-  twoStarThreshold: number;
-  maxStars: number;
-}
+export type PronunciationScoringThresholds = ResolvedLessonScoring;
 
 export interface PronunciationScoringResult {
   similarity: number;
@@ -285,32 +280,7 @@ export function getSpeechSimilarity(
 export function getPronunciationScoringThresholds(
   lesson: LessonContent | undefined,
 ): PronunciationScoringThresholds {
-  if (!lesson || lesson.type !== "active") {
-    return {
-      passThreshold: DEFAULT_PASS_THRESHOLD,
-      oneStarThreshold: DEFAULT_ONE_STAR_THRESHOLD,
-      twoStarThreshold: DEFAULT_TWO_STAR_THRESHOLD,
-      maxStars: DEFAULT_MAX_STARS,
-    };
-  }
-
-  const oneStarThreshold = clamp01(
-    lesson.scoring?.starThresholds?.oneStar ?? DEFAULT_ONE_STAR_THRESHOLD,
-  );
-  const twoStarThreshold = clamp01(
-    lesson.scoring?.starThresholds?.twoStars ?? DEFAULT_TWO_STAR_THRESHOLD,
-  );
-  const passThreshold = clamp01(
-    lesson.scoring?.passThreshold ?? oneStarThreshold,
-  );
-  const maxStars = Math.max(0, lesson.scoring?.maxStars ?? DEFAULT_MAX_STARS);
-
-  return {
-    passThreshold,
-    oneStarThreshold,
-    twoStarThreshold,
-    maxStars,
-  };
+  return resolveLessonScoring(lesson, "speech_similarity");
 }
 
 export function evaluatePronunciationAttempt(
@@ -328,19 +298,11 @@ export function evaluatePronunciationAttempt(
   }
 
   const similarity = getSpeechSimilarity(transcript, targetText);
-  let earnedStars = 0;
-
-  if (similarity >= thresholds.twoStarThreshold) {
-    earnedStars = 2;
-  } else if (similarity >= thresholds.oneStarThreshold) {
-    earnedStars = 1;
-  }
-
-  earnedStars = Math.min(thresholds.maxStars, earnedStars);
+  const { earnedStars, isPassed } = evaluateLessonScore(similarity, thresholds);
 
   return {
     similarity,
     earnedStars,
-    isPassed: similarity >= thresholds.passThreshold,
+    isPassed,
   };
 }

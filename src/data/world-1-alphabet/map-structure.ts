@@ -32,6 +32,8 @@ export interface LessonGating {
   requireAnimationComplete?: boolean;
 }
 
+export type LessonScoringProgressMode = "stars" | "pass_count";
+
 export interface LessonScoring {
   metric: ScoringMetric;
   passPolicy: "always" | "threshold";
@@ -41,6 +43,7 @@ export interface LessonScoring {
     twoStars?: number;
   };
   maxStars: number;
+  progressMode?: LessonScoringProgressMode;
 }
 
 export interface WordToken {

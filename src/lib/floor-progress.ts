@@ -8,6 +8,8 @@ export interface StoredFloorProgress {
   stars: number;
   completed: boolean;
   lessonStars: Record<string, number>;
+  passCount?: number;
+  lessonPasses?: Record<string, boolean>;
 }
 
 interface StoredProgressData {
@@ -23,6 +25,8 @@ interface FloorProgressLocation {
 interface SaveFloorProgressInput extends FloorProgressLocation {
   floorStars: number;
   lessonStars: Record<string, number>;
+  passCount?: number;
+  lessonPasses?: Record<string, boolean>;
   completed?: boolean;
   maxStars?: number;
 }
@@ -59,21 +63,46 @@ function normalizeFloorProgress(
     stars?: unknown;
     completed?: unknown;
     lessonStars?: unknown;
+    passCount?: unknown;
+    lessonPasses?: unknown;
   };
   const lessonStars: Record<string, number> = {};
+  const lessonPasses: Record<string, boolean> = {};
   const rawLessonStars =
     source.lessonStars && typeof source.lessonStars === "object"
       ? (source.lessonStars as Record<string, unknown>)
+      : {};
+  const rawLessonPasses =
+    source.lessonPasses && typeof source.lessonPasses === "object"
+      ? (source.lessonPasses as Record<string, unknown>)
       : {};
 
   for (const [lessonId, stars] of Object.entries(rawLessonStars)) {
     lessonStars[lessonId] = toIntegerInRange(stars, 0, DEFAULT_FLOOR_MAX_STARS);
   }
+  for (const [lessonId, passed] of Object.entries(rawLessonPasses)) {
+    if (passed) {
+      lessonPasses[lessonId] = true;
+    }
+  }
+
+  const hasExplicitPassCount =
+    typeof source.passCount === "number" ||
+    (typeof source.passCount === "string" && source.passCount.trim().length > 0);
+  const derivedPassCount = Object.values(lessonPasses).filter(Boolean).length;
+  const passCount = hasExplicitPassCount
+    ? toIntegerInRange(source.passCount, 0, maxStars)
+    : derivedPassCount > 0
+      ? toIntegerInRange(derivedPassCount, 0, maxStars)
+      : undefined;
 
   return {
     stars: toIntegerInRange(source.stars, 0, maxStars),
     completed: Boolean(source.completed),
     lessonStars,
+    passCount,
+    lessonPasses:
+      Object.keys(lessonPasses).length > 0 ? lessonPasses : undefined,
   };
 }
 
@@ -138,12 +167,23 @@ export function getStoredLessonStars(
   return floorProgress.lessonStars[location.lessonId] ?? 0;
 }
 
+export function getStoredFloorPassCount(
+  location: FloorProgressLocation,
+  maxStars: number = DEFAULT_FLOOR_MAX_STARS,
+): number {
+  const floorProgress = getStoredFloorProgress(location, maxStars);
+  if (!floorProgress) return 0;
+  return floorProgress.passCount ?? 0;
+}
+
 export function saveFloorProgress({
   worldId,
   towerId,
   floorId,
   floorStars,
   lessonStars,
+  passCount,
+  lessonPasses,
   completed = true,
   maxStars = DEFAULT_FLOOR_MAX_STARS,
 }: SaveFloorProgressInput): StoredFloorProgress {
@@ -165,11 +205,39 @@ export function saveFloorProgress({
       normalizedStars,
     );
   }
+  const mergedLessonPasses: Record<string, boolean> = {
+    ...(current.lessonPasses ?? {}),
+  };
+  for (const [lessonId, passed] of Object.entries(lessonPasses ?? {})) {
+    if (passed) {
+      mergedLessonPasses[lessonId] = true;
+    }
+  }
+  const mergedPassCountFromLessonPasses = Object.values(mergedLessonPasses).filter(
+    Boolean,
+  ).length;
+  const resolvedPassCount =
+    passCount === undefined && mergedPassCountFromLessonPasses === 0
+      ? current.passCount
+      : Math.max(
+          current.passCount ?? 0,
+          toIntegerInRange(
+            passCount ?? mergedPassCountFromLessonPasses,
+            0,
+            maxStars,
+          ),
+          toIntegerInRange(mergedPassCountFromLessonPasses, 0, maxStars),
+        );
 
   const updated: StoredFloorProgress = {
     stars: Math.max(current.stars, toIntegerInRange(floorStars, 0, maxStars)),
     completed: current.completed || completed,
     lessonStars: mergedLessonStars,
+    passCount: resolvedPassCount,
+    lessonPasses:
+      Object.keys(mergedLessonPasses).length > 0
+        ? mergedLessonPasses
+        : undefined,
   };
 
   progressData.floors[floorKey] = updated;
@@ -199,7 +267,10 @@ export function hydrateFloorsWithStoredProgress({
 
     return {
       ...floor,
-      stars: stored.stars,
+      stars:
+        typeof stored.passCount === "number"
+          ? stored.passCount
+          : stored.stars,
       completed: floor.completed || stored.completed,
     };
   });

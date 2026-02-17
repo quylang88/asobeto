@@ -35,9 +35,10 @@ interface UseLessonFlowParams {
   isWordBuildLesson: boolean;
   isWordBuildReady: boolean;
   isTracePracticeLesson: boolean;
-  traceOneStarThreshold: number;
+  isBossReviewFloor: boolean;
   wordBuildSlotTokenIds: Array<string | null>;
   lessonStarsThisAttemptRef: RefObject<Record<string, number>>;
+  lessonPassesThisAttemptRef: RefObject<Record<string, boolean>>;
   stopAudio: () => void;
   playCelebrationFeedback: (correct: boolean) => void;
   resetSpeechSession: () => void;
@@ -72,9 +73,10 @@ export function useLessonFlow({
   isWordBuildLesson,
   isWordBuildReady,
   isTracePracticeLesson,
-  traceOneStarThreshold,
+  isBossReviewFloor,
   wordBuildSlotTokenIds,
   lessonStarsThisAttemptRef,
+  lessonPassesThisAttemptRef,
   stopAudio,
   playCelebrationFeedback,
   resetSpeechSession,
@@ -126,6 +128,12 @@ export function useLessonFlow({
           lessonStarsThisAttemptRef.current = next;
           return next;
         });
+        lessonPassesThisAttemptRef.current = {
+          ...lessonPassesThisAttemptRef.current,
+          [currentLesson.id]:
+            (lessonPassesThisAttemptRef.current[currentLesson.id] ?? false) ||
+            correct,
+        };
       }
 
       setIsCorrect(correct);
@@ -149,6 +157,7 @@ export function useLessonFlow({
     [
       clearAdvanceTimeout,
       currentLesson,
+      lessonPassesThisAttemptRef,
       lessonStarsThisAttemptRef,
       setCelebrationStars,
       setIsCorrect,
@@ -247,14 +256,11 @@ export function useLessonFlow({
       }
 
       setTraceResult(result);
-      const lessonMaxStars = currentLesson.scoring?.maxStars ?? 2;
-      const earnedStars = Math.min(lessonMaxStars, result.stars);
-      const correct = result.score >= traceOneStarThreshold;
       const advanceDelayMs =
         currentLesson.lessonKind === "letter_trace_practice"
           ? TRACE_STARS_ADVANCE_DELAY_MS
           : FEEDBACK_ADVANCE_DELAY_MS;
-      handleScoringResult(correct, advanceDelayMs, earnedStars);
+      handleScoringResult(result.isPassed, advanceDelayMs, result.earnedStars);
     },
     [
       currentLesson,
@@ -262,7 +268,6 @@ export function useLessonFlow({
       isCorrect,
       isTracePracticeLesson,
       setTraceResult,
-      traceOneStarThreshold,
     ],
   );
 
@@ -303,6 +308,29 @@ export function useLessonFlow({
     }
 
     const latestLessonStars = lessonStarsThisAttemptRef.current;
+    const latestLessonPasses = lessonPassesThisAttemptRef.current;
+
+    if (isBossReviewFloor) {
+      const attemptPassCount = lessons.reduce((sum, lesson) => {
+        if (lesson.type !== "active") return sum;
+        return sum + (latestLessonPasses[lesson.id] ? 1 : 0);
+      }, 0);
+
+      setCompletionStars(attemptPassCount);
+      saveFloorProgress({
+        worldId,
+        towerId,
+        floorId,
+        floorStars: 0,
+        lessonStars: latestLessonStars,
+        maxStars: floorMaxStars,
+        passCount: attemptPassCount,
+        lessonPasses: latestLessonPasses,
+      });
+      setShowCompletion(true);
+      return;
+    }
+
     const attemptFloorStars = getAttemptFloorStars(
       lessons,
       latestLessonStars,
@@ -325,6 +353,8 @@ export function useLessonFlow({
     floorId,
     floorMaxStars,
     hasLessons,
+    isBossReviewFloor,
+    lessonPassesThisAttemptRef,
     lessonStarsThisAttemptRef,
     lessons,
     resetSpeechSession,

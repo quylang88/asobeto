@@ -49,8 +49,6 @@ interface LessonActiveRendererProps {
   micLevel: number;
   targetText: string;
   traceResult: TraceEvaluation | null;
-  traceOneStarThreshold: number;
-  traceTwoStarThreshold: number;
   handleTraceEvaluate: (result: TraceEvaluation) => void;
   playAudio: (src: string) => void;
   handleNext: () => void;
@@ -89,8 +87,6 @@ export function LessonActiveRenderer({
   micLevel,
   targetText,
   traceResult,
-  traceOneStarThreshold,
-  traceTwoStarThreshold,
   handleTraceEvaluate,
   playAudio,
   handleNext,
@@ -460,8 +456,7 @@ export function LessonActiveRenderer({
             mode="practice"
             targetText={targetText}
             disabled={traceResult !== null}
-            oneStarThreshold={traceOneStarThreshold}
-            twoStarThreshold={traceTwoStarThreshold}
+            lesson={currentLesson}
             onEvaluate={handleTraceEvaluate}
           />
         </div>
