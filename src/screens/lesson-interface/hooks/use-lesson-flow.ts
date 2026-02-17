@@ -9,7 +9,7 @@ import {
   useRef,
 } from "react";
 import { saveFloorProgress } from "@/lib/floor-progress";
-import { getScoringConfig } from "@/data/scoring-utils";
+import { getScoringConfig } from "@/data/game-config";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
 import type { TraceEvaluation } from "../components";
 import {

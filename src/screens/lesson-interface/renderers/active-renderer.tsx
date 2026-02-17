@@ -6,7 +6,7 @@ import { ArrowRight, Mic, Square, Volume2 } from "lucide-react";
 import { LetterTracingCanvas, type TraceEvaluation } from "../components";
 import { PrimaryButton } from "@/components/common/primary-button";
 import type { LessonAnswer, LessonContent } from "@/data/game-config";
-import type { ScoringConfig } from "@/data/scoring-utils";
+import type { ScoringConfig } from "@/data/game-config";
 import type {
   WordBuildActiveDrag,
   WordBuildSlotPlacement,
@@ -459,10 +459,7 @@ export function LessonActiveRenderer({
             mode="practice"
             targetText={targetText}
             disabled={traceResult !== null}
-            oneStarThreshold={traceScoringConfig.oneStarThreshold}
-            twoStarThreshold={traceScoringConfig.twoStarThreshold}
-            passThreshold={traceScoringConfig.passThreshold}
-            maxStars={traceScoringConfig.maxStars}
+            scoringConfig={traceScoringConfig}
             onEvaluate={handleTraceEvaluate}
           />
         </div>

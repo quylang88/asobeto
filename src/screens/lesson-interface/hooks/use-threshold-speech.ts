@@ -13,6 +13,7 @@ import {
   evaluatePronunciationAttempt,
   getPronunciationScoringThresholds,
 } from "../scoring/pronunciation-scoring";
+import { getScoringConfig } from "@/data/game-config";
 
 interface UseThresholdSpeechParams {
   currentLesson: LessonContent | undefined;
@@ -115,6 +116,8 @@ export function useThresholdSpeech({
       stopSpeechRecognition(true);
       stopMicLevelCapture();
 
+      // Sử dụng getPronunciationScoringThresholds (wrapper của getScoringConfig)
+      // hoặc gọi thẳng getScoringConfig từ game-config
       const thresholds = getPronunciationScoringThresholds(
         currentLesson,
         isBossTower,

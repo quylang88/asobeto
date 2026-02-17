@@ -12,7 +12,7 @@ import { BossReviewChoiceView, LessonCompletionView } from "@/components/complet
 import { preloadCelebrationAudio, stopAllAppAudio } from "@/lib/app-audio";
 import { getStoredFloorProgress, getStoredLessonStars } from "@/lib/floor-progress";
 import { getWorldData } from "@/data/game-config";
-import { getScoringConfig } from "@/data/scoring-utils";
+import { getScoringConfig } from "@/data/game-config";
 import { type LessonAnswer, type LessonContent } from "../../data/game-config";
 import {
   LessonActiveRenderer,

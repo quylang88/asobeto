@@ -1,5 +1,13 @@
 // Cấu hình trò chơi trung tâm và quản lý dữ liệu
 import * as World1 from "./world-1-alphabet";
+import {
+  type ScoringConfig,
+  getScoringConfig,
+  DEFAULT_ONE_STAR_THRESHOLD,
+  DEFAULT_TWO_STAR_THRESHOLD,
+  BOSS_PASS_THRESHOLD,
+  DEFAULT_MAX_STARS,
+} from "./scoring-utils";
 
 // Export lại các kiểu và hàm hỗ trợ từ triển khai world chính
 // để đảm bảo tính nhất quán trên toàn ứng dụng
@@ -44,6 +52,17 @@ export {
   shouldTowerBeUnlocked,
   createBossFloor1Lessons,
 } from "./world-1-alphabet";
+
+// Export các hằng số và tiện ích liên quan đến chấm điểm
+// giúp các screen/component lấy dữ liệu cấu hình tập trung
+export type { ScoringConfig };
+export {
+  getScoringConfig,
+  DEFAULT_ONE_STAR_THRESHOLD,
+  DEFAULT_TWO_STAR_THRESHOLD,
+  BOSS_PASS_THRESHOLD,
+  DEFAULT_MAX_STARS,
+};
 
 export interface World {
   id: number;

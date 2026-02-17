@@ -1,6 +1,6 @@
 import type { LessonContent } from "@/data/game-config";
 import { getPhoneticSimilarity } from "@/lib/vietnamese-phonetics";
-import { getScoringConfig } from "@/data/scoring-utils";
+import { type ScoringConfig, getScoringConfig } from "@/data/game-config";
 
 const TONE_STRICT_SINGLE_LETTER_TARGETS = new Set([
   "a",
@@ -50,12 +50,8 @@ const LETTER_PRONUNCIATION_ALIASES: Record<string, string[]> = {
   y: ["y", "i"],
 };
 
-export interface PronunciationScoringThresholds {
-  passThreshold: number;
-  oneStarThreshold: number;
-  twoStarThreshold: number;
-  maxStars: number;
-}
+// Sử dụng chung cấu hình chấm điểm từ game-config
+export type PronunciationScoringThresholds = ScoringConfig;
 
 export interface PronunciationScoringResult {
   similarity: number;
@@ -282,7 +278,7 @@ export function getPronunciationScoringThresholds(
   lesson: LessonContent | undefined,
   isBossTower: boolean = false, // Mặc định false để tương thích ngược nếu chưa update chỗ gọi
 ): PronunciationScoringThresholds {
-  // Sử dụng logic tập trung từ scoring-utils
+  // Sử dụng hàm helper từ game-config để thống nhất logic
   return getScoringConfig(lesson, isBossTower);
 }
 

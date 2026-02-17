@@ -1,6 +1,6 @@
 import { type TracingGlyphConfig, type TracingGridMetrics } from "@/data/tracing";
 import { clamp01, drawGuideGlyph } from "@/lib/tracing-algo";
-import { DEFAULT_MAX_STARS } from "@/data/scoring-utils";
+import { type ScoringConfig } from "@/data/game-config";
 
 const DRAWN_ALPHA_THRESHOLD = 24;
 const TARGET_ALPHA_THRESHOLD = 32;
@@ -18,10 +18,7 @@ interface TraceScoringParams {
   targetText: string;
   metrics: TracingGridMetrics;
   guideFontSize: number;
-  oneStarThreshold: number;
-  twoStarThreshold: number;
-  passThreshold?: number;
-  maxStars?: number;
+  scoringConfig: ScoringConfig;
   guideGlyphConfig?: TracingGlyphConfig;
 }
 
@@ -40,10 +37,7 @@ export function evaluateTracingScore({
   targetText,
   metrics,
   guideFontSize,
-  oneStarThreshold,
-  twoStarThreshold,
-  passThreshold,
-  maxStars = DEFAULT_MAX_STARS,
+  scoringConfig,
   guideGlyphConfig,
 }: TraceScoringParams): TraceEvaluation {
   const drawCtx = drawCanvas.getContext("2d");
@@ -101,19 +95,20 @@ export function evaluateTracingScore({
   const precision = drawnPixels > 0 ? overlapPixels / drawnPixels : 0;
   const score = clamp01(coverage * 0.7 + precision * 0.3);
 
-  // Tính điểm sao dựa trên ngưỡng
+  // Tính điểm sao dựa trên ngưỡng từ cấu hình được truyền vào
   let earnedStars = 0;
-  if (score >= twoStarThreshold) {
+  if (score >= scoringConfig.twoStarThreshold) {
     earnedStars = 2;
-  } else if (score >= oneStarThreshold) {
+  } else if (score >= scoringConfig.oneStarThreshold) {
     earnedStars = 1;
   }
 
   // Giới hạn sao bởi maxStars (ví dụ: Boss maxStars = 0 -> stars = 0)
-  const stars = Math.min(maxStars, earnedStars);
+  const stars = Math.min(scoringConfig.maxStars, earnedStars);
 
   // Tính pass độc lập với sao (cho trường hợp Boss không có sao nhưng vẫn cần pass)
-  const effectivePassThreshold = passThreshold ?? oneStarThreshold;
+  // Nếu không có passThreshold, fallback về oneStarThreshold
+  const effectivePassThreshold = scoringConfig.passThreshold ?? scoringConfig.oneStarThreshold;
   const isPassed = score >= effectivePassThreshold;
 
   return {
