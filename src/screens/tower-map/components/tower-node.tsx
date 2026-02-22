@@ -7,6 +7,7 @@ import type { TowerNodeProps } from "../types";
 
 export function TowerNode({
   tower,
+  theme,
   totalStars,
   requiredStars,
   canBossUnlock,
@@ -52,13 +53,19 @@ export function TowerNode({
         <div className="relative">
           {isBossAccessible && (
             <motion.div
-              className="absolute inset-0 rounded-full bg-yellow-bright/50 blur-xl"
+              className="absolute inset-0 rounded-full blur-xl"
               animate={{
                 scale: [1, 1.3, 1],
                 opacity: [0.5, 0.8, 0.5],
               }}
               transition={{ duration: 2, repeat: Infinity }}
-              style={{ width: 120, height: 120, left: -10, top: -10 }}
+              style={{
+                width: 120,
+                height: 120,
+                left: -10,
+                top: -10,
+                backgroundColor: theme.bossAura,
+              }}
             />
           )}
 
@@ -69,7 +76,7 @@ export function TowerNode({
               width="80"
               height="85"
               rx="8"
-              fill={isBossAccessible ? "#F59E0B" : "#6B7280"}
+              fill={isBossAccessible ? theme.bossBody : "#6B7280"}
             />
 
             <rect
@@ -77,26 +84,26 @@ export function TowerNode({
               y="30"
               width="15"
               height="85"
-              fill={isBossAccessible ? "#D97706" : "#4B5563"}
+              fill={isBossAccessible ? theme.bossSide : "#4B5563"}
             />
             <rect
               x="75"
               y="30"
               width="15"
               height="85"
-              fill={isBossAccessible ? "#D97706" : "#4B5563"}
+              fill={isBossAccessible ? theme.bossSide : "#4B5563"}
             />
 
             <path
               d="M 10 30 Q 50 0 90 30"
-              fill={isBossAccessible ? "#FBBF24" : "#9CA3AF"}
+              fill={isBossAccessible ? theme.bossRoof : "#9CA3AF"}
             />
 
             <circle
               cx="50"
               cy="15"
               r="12"
-              fill={isBossAccessible ? "#FCD34D" : "#9CA3AF"}
+              fill={isBossAccessible ? theme.bossTop : "#9CA3AF"}
             />
 
             <rect
@@ -105,14 +112,14 @@ export function TowerNode({
               width="40"
               height="55"
               rx="4"
-              fill={isBossAccessible ? "#78350F" : "#374151"}
+              fill={isBossAccessible ? theme.bossDoor : "#374151"}
             />
             <line
               x1="50"
               y1="55"
               x2="50"
               y2="110"
-              stroke={isBossAccessible ? "#451A03" : "#1F2937"}
+              stroke={isBossAccessible ? theme.bossDoorLine : "#1F2937"}
               strokeWidth="2"
             />
 
@@ -141,7 +148,7 @@ export function TowerNode({
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
               >
-                <circle cx="50" cy="80" r="12" fill="#FCD34D" />
+                <circle cx="50" cy="80" r="12" fill={theme.bossOrb} />
               </motion.g>
             )}
           </svg>
@@ -205,7 +212,7 @@ export function TowerNode({
             ry="5"
             fill={
               tower.unlocked
-                ? "rgba(74, 222, 128, 0.3)"
+                ? theme.regularTowerShadow
                 : "rgba(156, 163, 175, 0.3)"
             }
           />
@@ -216,7 +223,7 @@ export function TowerNode({
             width="50"
             height="68"
             rx="6"
-            fill={tower.unlocked ? "#4ADE80" : "#9CA3AF"}
+            fill={tower.unlocked ? theme.regularTowerBody : "#9CA3AF"}
           />
 
           {[0, 1, 2].map((floor) => (
@@ -227,13 +234,13 @@ export function TowerNode({
               width="40"
               height="16"
               rx="3"
-              fill={tower.unlocked ? "#86EFAC" : "#D1D5DB"}
+              fill={tower.unlocked ? theme.regularTowerFloor : "#D1D5DB"}
             />
           ))}
 
           <polygon
             points="40,5 15,25 65,25"
-            fill={tower.unlocked ? "#FB923C" : "#6B7280"}
+            fill={tower.unlocked ? theme.regularTowerRoof : "#6B7280"}
           />
 
           {tower.completed && tower.unlocked && (
@@ -258,7 +265,7 @@ export function TowerNode({
                 width="10"
                 height="10"
                 rx="5"
-                fill={tower.unlocked ? "#FEF3C7" : "#E5E7EB"}
+                fill={tower.unlocked ? theme.regularTowerWindow : "#E5E7EB"}
               />
               <rect
                 x="45"
@@ -266,7 +273,7 @@ export function TowerNode({
                 width="10"
                 height="10"
                 rx="5"
-                fill={tower.unlocked ? "#FEF3C7" : "#E5E7EB"}
+                fill={tower.unlocked ? theme.regularTowerWindow : "#E5E7EB"}
               />
             </g>
           ))}
@@ -277,14 +284,14 @@ export function TowerNode({
             width="16"
             height="13"
             rx="8"
-            fill={tower.unlocked ? "#8B5A2B" : "#4B5563"}
+            fill={tower.unlocked ? theme.regularTowerDoor : "#4B5563"}
           />
         </svg>
         <div className="pointer-events-none absolute left-0 top-0 h-20 w-16 md:h-24 md:w-20">
           <div className="absolute left-1/2 top-[59%] -translate-x-1/2 -translate-y-1/2">
             <LetterBlock
               letter={(tower.name.trim().charAt(0) || "?").toLocaleLowerCase()}
-              color="#4ADE80"
+              color={theme.regularTowerBody}
               size="xs"
               locked={!tower.unlocked}
               flat

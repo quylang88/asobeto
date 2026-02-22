@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
 import { Mascot } from "../../components/beto-mascot";
-import { getWorldData } from "../../data/game-config";
+import { getWorldData, getWorldTheme } from "../../data/game-config";
 import type { Floor } from "../../data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 import { TowerBadgeAwardOverlay } from "@/components/badges";
@@ -464,7 +464,15 @@ function BossFloorCard({
 }
 
 // Ladder/Vine connector between floors
-function FloorConnector({ index }: { index: number }) {
+function FloorConnector({
+  index,
+  vinePrimary,
+  vineLeaf,
+}: {
+  index: number;
+  vinePrimary: string;
+  vineLeaf: string;
+}) {
   // Removed condition "if (index === 0) return null;" as we control rendering in parent loop
 
   return (
@@ -479,8 +487,8 @@ function FloorConnector({ index }: { index: number }) {
             x2="0%"
             y2="100%"
           >
-            <stop offset="0%" stopColor="#4ADE80" />
-            <stop offset="100%" stopColor="#22C55E" />
+            <stop offset="0%" stopColor={vinePrimary} />
+            <stop offset="100%" stopColor={vineLeaf} />
           </linearGradient>
         </defs>
         {/* Main vine */}
@@ -497,7 +505,7 @@ function FloorConnector({ index }: { index: number }) {
           cy="8"
           rx="5"
           ry="3"
-          fill="#86EFAC"
+          fill={vineLeaf}
           transform="rotate(-20 12 8)"
         />
         <ellipse
@@ -505,7 +513,7 @@ function FloorConnector({ index }: { index: number }) {
           cy="16"
           rx="5"
           ry="3"
-          fill="#86EFAC"
+          fill={vineLeaf}
           transform="rotate(20 28 16)"
         />
       </svg>
@@ -521,6 +529,7 @@ export function FloorSelection({
   onBack,
 }: FloorSelectionProps) {
   const worldData = getWorldData(worldId);
+  const floorTheme = getWorldTheme(worldId).floorMap;
   const currentTower = worldData.towers.find((t) => t.id === towerId);
   const [earnedBadge, setEarnedBadge] = useState<TowerBadgeRecord | null>(null);
   const floors = useMemo(
@@ -563,7 +572,9 @@ export function FloorSelection({
   }, [currentTower, floors, towerId, worldId]);
 
   return (
-    <div className="relative w-full h-dvh flex flex-col bg-linear-to-b from-sky-100 via-sky-50 to-emerald-50 overflow-hidden">
+    <div
+      className={`relative w-full h-dvh flex flex-col overflow-hidden ${floorTheme.backgroundClass}`}
+    >
       {/* Header - iOS safe area */}
       <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md shadow-sm pt-safe">
         <div className="p-4 flex items-center gap-4">
@@ -617,7 +628,7 @@ export function FloorSelection({
               >
                 <path
                   d="M6 0 Q2 50 6 100 Q10 150 6 200 Q2 250 6 300 Q10 350 6 400"
-                  stroke="#4ADE80"
+                  stroke={floorTheme.vinePrimary}
                   strokeWidth="3"
                   fill="none"
                   strokeLinecap="round"
@@ -630,7 +641,7 @@ export function FloorSelection({
                     cy={50 + i * 100}
                     rx="4"
                     ry="6"
-                    fill="#86EFAC"
+                    fill={floorTheme.vineLeaf}
                     transform={`rotate(${i % 2 === 0 ? -30 : 30} ${i % 2 === 0 ? 2 : 10} ${50 + i * 100})`}
                   />
                 ))}
@@ -650,7 +661,7 @@ export function FloorSelection({
                   y1="0"
                   x2="3"
                   y2="400"
-                  stroke="#D97706"
+                  stroke={floorTheme.ladderRail}
                   strokeWidth="2"
                 />
                 <line
@@ -658,7 +669,7 @@ export function FloorSelection({
                   y1="0"
                   x2="13"
                   y2="400"
-                  stroke="#D97706"
+                  stroke={floorTheme.ladderRail}
                   strokeWidth="2"
                 />
                 {/* Rungs */}
@@ -669,7 +680,7 @@ export function FloorSelection({
                     y1={20 + i * 32}
                     x2="13"
                     y2={20 + i * 32}
-                    stroke="#F59E0B"
+                    stroke={floorTheme.ladderRung}
                     strokeWidth="2"
                     strokeLinecap="round"
                   />
@@ -700,7 +711,11 @@ export function FloorSelection({
 
                     {/* Add connector if this is NOT the last item in the list (which is the TOP item visually) */}
                     {index < floors.length - 1 && (
-                      <FloorConnector index={index} />
+                      <FloorConnector
+                        index={index}
+                        vinePrimary={floorTheme.vinePrimary}
+                        vineLeaf={floorTheme.vineLeaf}
+                      />
                     )}
                   </React.Fragment>
                 );
@@ -711,12 +726,24 @@ export function FloorSelection({
             <div className="mt-4 flex justify-center">
               <svg viewBox="0 0 200 30" className="w-48 h-8">
                 {/* Grass */}
-                <ellipse cx="100" cy="25" rx="90" ry="8" fill="#86EFAC" />
-                <ellipse cx="100" cy="22" rx="70" ry="5" fill="#4ADE80" />
+                <ellipse
+                  cx="100"
+                  cy="25"
+                  rx="90"
+                  ry="8"
+                  fill={floorTheme.groundOuter}
+                />
+                <ellipse
+                  cx="100"
+                  cy="22"
+                  rx="70"
+                  ry="5"
+                  fill={floorTheme.groundInner}
+                />
                 {/* Flowers */}
-                <circle cx="30" cy="18" r="4" fill="#F472B6" />
-                <circle cx="170" cy="18" r="4" fill="#FBBF24" />
-                <circle cx="100" cy="15" r="5" fill="#60A5FA" />
+                <circle cx="30" cy="18" r="4" fill={floorTheme.flowerColors[0]} />
+                <circle cx="170" cy="18" r="4" fill={floorTheme.flowerColors[1]} />
+                <circle cx="100" cy="15" r="5" fill={floorTheme.flowerColors[2]} />
               </svg>
             </div>
           </motion.div>

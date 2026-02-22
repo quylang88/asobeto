@@ -2,26 +2,57 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Mascot } from "@/components/beto-mascot";
 import { PrimaryButton } from "@/components/common/primary-button";
 import {
   canUnlockBoss,
   getTotalStars,
   getWorldData,
+  getWorldTheme,
 } from "@/data/game-config";
 import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
 import { ConnectionLinesSVG, FlyingStar, TowerNode } from "./components";
 import type { FlyingStarData, TowerSelectionProps } from "./types";
 
+const pageFlipVariants = {
+  enter: (direction: 1 | -1) => ({
+    opacity: 0,
+    rotateY: direction > 0 ? -24 : 24,
+    x: direction > 0 ? 72 : -72,
+    scale: 0.97,
+    filter: "blur(1px)",
+  }),
+  center: {
+    opacity: 1,
+    rotateY: 0,
+    x: 0,
+    scale: 1,
+    filter: "blur(0px)",
+  },
+  exit: (direction: 1 | -1) => ({
+    opacity: 0,
+    rotateY: direction > 0 ? 24 : -24,
+    x: direction > 0 ? -72 : 72,
+    scale: 0.97,
+    filter: "blur(1px)",
+  }),
+} as const;
+
 export function TowerSelection({
   worldId,
   worldName,
+  currentPage,
+  totalPages,
+  pageFlipDirection,
+  onPreviousPage,
+  onNextPage,
   onSelectTower,
   onBack,
 }: TowerSelectionProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const worldData = getWorldData(worldId);
+  const worldTheme = getWorldTheme(worldId).towerMap;
   const towerState = useMemo(
     () =>
       hydrateTowersWithStoredProgress({
@@ -45,6 +76,9 @@ export function TowerSelection({
     (tower) => tower.unlocked,
   ).length;
   const isBossUnlockable = canUnlockBoss(towerState, requiredStars);
+  const canGoPreviousPage = currentPage > 1;
+  const canGoNextPage = currentPage < totalPages;
+  const isPageSwitchDisabled = isUnlocking || showFlash || flyingStars.length > 0;
 
   useEffect(() => {
     const element = mapRef.current;
@@ -70,7 +104,7 @@ export function TowerSelection({
       window.removeEventListener("resize", updateDimensions);
       observer.disconnect();
     };
-  }, []);
+  }, [worldId]);
 
   const handleBossUnlock = useCallback(() => {
     if (isUnlocking) return;
@@ -143,59 +177,114 @@ export function TowerSelection({
   }, [isUnlocking, onSelectTower]);
 
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-linear-to-b from-green-bright/20 via-background to-blue-soft/20">
-      <div className="sticky top-0 z-20 bg-white/95 pt-safe shadow-md backdrop-blur-sm">
-        <div className="flex items-center gap-3 p-4">
-          <motion.div whileTap={{ scale: 0.95 }}>
-            <PrimaryButton
-              onClick={onBack}
-              className="rounded-2xl shadow-lg"
-              frontClassName="p-3"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </PrimaryButton>
-          </motion.div>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground md:text-2xl">
-              {worldName}
-            </h1>
-            <p className="text-xs text-muted-foreground">Chọn Tháp Để Học Nha Bé</p>
-          </div>
+    <div className="relative h-dvh w-full overflow-hidden">
+      <AnimatePresence custom={pageFlipDirection} mode="wait">
+        <motion.section
+          key={worldId}
+          custom={pageFlipDirection}
+          variants={pageFlipVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          style={{
+            transformPerspective: 1400,
+            transformOrigin:
+              pageFlipDirection > 0 ? "left center" : "right center",
+          }}
+          className={`absolute inset-0 flex h-dvh w-full flex-col overflow-hidden ${worldTheme.backgroundClass}`}
+        >
+          <div className="sticky top-0 z-20 bg-white/95 pt-safe shadow-md backdrop-blur-sm">
+            <div className="flex items-center gap-3 p-4">
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <PrimaryButton
+                  onClick={onBack}
+                  className="rounded-2xl shadow-lg"
+                  frontClassName="p-3"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </PrimaryButton>
+              </motion.div>
+              <div className="flex-1">
+                <h1 className="text-xl font-bold text-foreground md:text-2xl">
+                  {worldName}
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Chọn Tháp Để Học Nha Bé
+                </p>
+              </div>
 
-          <div
-            id="star-counter"
-            className="flex items-center gap-2 rounded-2xl bg-yellow-bright/20 px-3 py-2"
-          >
-            <Star className="h-5 w-5 fill-yellow-bright text-yellow-bright" />
-            <span className="font-bold text-foreground">{totalStars}</span>
-          </div>
-          <Mascot size="sm" emotion="happy" />
-        </div>
-      </div>
-
-      <div ref={mapRef} className="relative flex-1 overflow-hidden pb-safe">
-        <div className="relative h-full w-full">
-          <ConnectionLinesSVG
-            towers={towerState}
-            connections={worldData.towerConnections}
-            mapHeightPx={mapDimensions.height}
-            mapWidthPx={mapDimensions.width}
-          />
-
-          {towerState.map((tower) => (
-            <div key={tower.id} className="contents">
-              <TowerNode
-                tower={tower}
-                totalStars={bossUnlockProgress}
-                requiredStars={requiredStars}
-                canBossUnlock={isBossUnlockable}
-                onSelect={onSelectTower}
-                onBossUnlock={handleBossUnlock}
-              />
+              <div
+                id="star-counter"
+                className={`flex items-center gap-2 rounded-2xl px-3 py-2 ${worldTheme.starCounterClass}`}
+              >
+                <Star className="h-5 w-5 fill-yellow-bright text-yellow-bright" />
+                <span className="font-bold text-foreground">{totalStars}</span>
+              </div>
+              <Mascot size="sm" emotion="happy" />
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+
+          <div ref={mapRef} className="relative flex-1 overflow-hidden pb-safe">
+            <div className="relative h-full w-full">
+              <ConnectionLinesSVG
+                towers={towerState}
+                connections={worldData.towerConnections}
+                mapHeightPx={mapDimensions.height}
+                mapWidthPx={mapDimensions.width}
+                theme={worldTheme}
+              />
+
+              {towerState.map((tower) => (
+                <div key={tower.id} className="contents">
+                  <TowerNode
+                    tower={tower}
+                    theme={worldTheme}
+                    totalStars={bossUnlockProgress}
+                    requiredStars={requiredStars}
+                    canBossUnlock={isBossUnlockable}
+                    onSelect={onSelectTower}
+                    onBossUnlock={handleBossUnlock}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-4 pb-4 pt-2">
+            <div className="flex items-center justify-between pb-safe">
+              <div className="pointer-events-auto">
+                {canGoPreviousPage && (
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onPreviousPage}
+                    disabled={isPageSwitchDisabled}
+                    className="ios-button flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2 font-bold text-foreground shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                    <span>Trang trước</span>
+                  </motion.button>
+                )}
+              </div>
+              <div className="pointer-events-auto">
+                {canGoNextPage && (
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onNextPage}
+                    disabled={isPageSwitchDisabled}
+                    className="ios-button flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2 font-bold text-foreground shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span>Trang sau</span>
+                    <ChevronRight className="h-5 w-5" />
+                  </motion.button>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      </AnimatePresence>
 
       <AnimatePresence>
         {flyingStars.map((star, index) => (

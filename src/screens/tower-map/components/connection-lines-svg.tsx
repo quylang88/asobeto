@@ -73,6 +73,7 @@ export function ConnectionLinesSVG({
   connections,
   mapHeightPx,
   mapWidthPx,
+  theme,
 }: ConnectionLinesSVGProps) {
   const isMdViewport = mapWidthPx >= 768;
 
@@ -99,12 +100,15 @@ export function ConnectionLinesSVG({
         const y2 = getTowerAnchorY(toTower, "top", mapHeightPx, isMdViewport);
 
         const isUnlocked = fromTower.completed;
+        const lineColor = isUnlocked
+          ? theme.connectionUnlocked
+          : theme.connectionLocked;
 
         return (
           <g key={index}>
             <motion.path
               d={getCurvedPath(x1, y1, x2, y2)}
-              stroke={isUnlocked ? "#4ADE80" : "#9CA3AF"}
+              stroke={lineColor}
               strokeWidth="1.3"
               strokeDasharray={isUnlocked ? "0" : "2.5 2.5"}
               fill="none"
@@ -114,22 +118,12 @@ export function ConnectionLinesSVG({
               transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
               style={{
                 filter: isUnlocked
-                  ? "drop-shadow(0 0.5px 1px rgba(74, 222, 128, 0.5))"
+                  ? `drop-shadow(0 0.5px 1px ${theme.connectionGlow})`
                   : "none",
               }}
             />
-            <circle
-              cx={x1}
-              cy={y1}
-              r="0.75"
-              fill={isUnlocked ? "#4ADE80" : "#9CA3AF"}
-            />
-            <circle
-              cx={x2}
-              cy={y2}
-              r="0.75"
-              fill={isUnlocked ? "#4ADE80" : "#9CA3AF"}
-            />
+            <circle cx={x1} cy={y1} r="0.75" fill={lineColor} />
+            <circle cx={x2} cy={y2} r="0.75" fill={lineColor} />
           </g>
         );
       })}

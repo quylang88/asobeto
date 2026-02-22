@@ -15,6 +15,9 @@ import {
   getWorldData,
   type LessonContent,
   createBossFloor1Lessons,
+  type World1BookPage,
+  WORLD1_BOOK_TOTAL_PAGES,
+  getWorld1BookPageWorldId,
 } from "@/data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 
@@ -30,6 +33,25 @@ interface GameState {
   selectedWorld: number | null;
   selectedTower: number | null;
   selectedFloor: number | null;
+}
+
+const WORLD1_ID = 1;
+const FIRST_WORLD1_PAGE: World1BookPage = 1;
+const LAST_WORLD1_PAGE: World1BookPage = WORLD1_BOOK_TOTAL_PAGES;
+
+function clampWorld1Page(page: number): World1BookPage {
+  return Math.max(FIRST_WORLD1_PAGE, Math.min(LAST_WORLD1_PAGE, page)) as World1BookPage;
+}
+
+function resolveDataWorldId(
+  selectedWorld: number | null,
+  world1BookPage: World1BookPage,
+): number | null {
+  if (selectedWorld === null) return null;
+  if (selectedWorld === WORLD1_ID) {
+    return getWorld1BookPageWorldId(world1BookPage);
+  }
+  return selectedWorld;
 }
 
 function resolveBossEntryFloorId(worldId: number, towerId: number): number | null {
@@ -55,6 +77,11 @@ export default function AsobetoApp() {
     selectedTower: null,
     selectedFloor: null,
   });
+  const [world1BookPage, setWorld1BookPage] =
+    useState<World1BookPage>(FIRST_WORLD1_PAGE);
+  const [towerPageFlipDirection, setTowerPageFlipDirection] = useState<1 | -1>(
+    1,
+  );
   const [bossReviewLessons, setBossReviewLessons] = useState<
     LessonContent[] | null
   >(null);
@@ -64,22 +91,46 @@ export default function AsobetoApp() {
   };
 
   const handleSelectWorld = (worldId: number) => {
+    const isWorld1 = worldId === WORLD1_ID;
+    setWorld1BookPage(FIRST_WORLD1_PAGE);
+    setTowerPageFlipDirection(1);
     setGameState({
       ...gameState,
       currentScreen: "towerSelection",
       selectedWorld: worldId,
+      selectedTower: null,
+      selectedFloor: null,
+    });
+    if (!isWorld1) {
+      setTowerPageFlipDirection(1);
+    }
+  };
+
+  const handleWorld1PageNavigate = (direction: 1 | -1) => {
+    if (gameState.selectedWorld !== WORLD1_ID) return;
+    const nextPage = clampWorld1Page(world1BookPage + direction);
+    if (nextPage === world1BookPage) return;
+
+    setTowerPageFlipDirection(direction);
+    setWorld1BookPage(nextPage);
+    setBossReviewLessons(null);
+    setGameState({
+      ...gameState,
+      currentScreen: "towerSelection",
+      selectedTower: null,
+      selectedFloor: null,
     });
   };
 
   const handleSelectTower = (towerId: number) => {
-    const selectedWorldId = gameState.selectedWorld;
-    if (selectedWorldId === null) return;
+    const dataWorldId = resolveDataWorldId(gameState.selectedWorld, world1BookPage);
+    if (dataWorldId === null) return;
 
-    const worldData = getWorldData(selectedWorldId);
+    const worldData = getWorldData(dataWorldId);
     const selectedTower = worldData.towers.find((tower) => tower.id === towerId);
 
     if (selectedTower?.isBoss) {
-      const autoFloorId = resolveBossEntryFloorId(selectedWorldId, towerId);
+      const autoFloorId = resolveBossEntryFloorId(dataWorldId, towerId);
       if (autoFloorId !== null) {
         // Mỗi lần vào lại BOSS floor 1 đều sinh bộ đề mới.
         setBossReviewLessons(
@@ -120,9 +171,11 @@ export default function AsobetoApp() {
       newState.selectedWorld = null;
       newState.selectedTower = null;
       newState.selectedFloor = null;
+      setWorld1BookPage(FIRST_WORLD1_PAGE);
     } else if (toScreen === "worldMap") {
       newState.selectedTower = null;
       newState.selectedFloor = null;
+      setWorld1BookPage(FIRST_WORLD1_PAGE);
     } else if (toScreen === "towerSelection") {
       newState.selectedFloor = null;
     }
@@ -131,11 +184,11 @@ export default function AsobetoApp() {
   };
 
   const handleLessonComplete = () => {
-    const selectedWorldId = gameState.selectedWorld;
+    const dataWorldId = resolveDataWorldId(gameState.selectedWorld, world1BookPage);
     const selectedTowerId = gameState.selectedTower;
 
-    if (selectedWorldId !== null && selectedTowerId !== null) {
-      const worldData = getWorldData(selectedWorldId);
+    if (dataWorldId !== null && selectedTowerId !== null) {
+      const worldData = getWorldData(dataWorldId);
       const selectedTower = worldData.towers.find(
         (tower) => tower.id === selectedTowerId,
       );
@@ -176,8 +229,20 @@ export default function AsobetoApp() {
       );
       return (
         <TowerSelection
-          worldId={gameState.selectedWorld!}
+          worldId={
+            resolveDataWorldId(gameState.selectedWorld, world1BookPage) ??
+            WORLD1_ID
+          }
           worldName={selectedWorld?.name || "Unknown World"}
+          currentPage={gameState.selectedWorld === WORLD1_ID ? world1BookPage : 1}
+          totalPages={
+            gameState.selectedWorld === WORLD1_ID ? WORLD1_BOOK_TOTAL_PAGES : 1
+          }
+          pageFlipDirection={
+            gameState.selectedWorld === WORLD1_ID ? towerPageFlipDirection : 1
+          }
+          onPreviousPage={() => handleWorld1PageNavigate(-1)}
+          onNextPage={() => handleWorld1PageNavigate(1)}
           onSelectTower={handleSelectTower}
           onBack={() => handleBack("worldMap")}
         />
@@ -185,13 +250,15 @@ export default function AsobetoApp() {
     }
 
     case "floorSelection": {
-      const worldData = getWorldData(gameState.selectedWorld!);
+      const dataWorldId =
+        resolveDataWorldId(gameState.selectedWorld, world1BookPage) ?? WORLD1_ID;
+      const worldData = getWorldData(dataWorldId);
       const selectedTower = worldData.towers.find(
         (t) => t.id === gameState.selectedTower!,
       );
       return (
         <FloorSelection
-          worldId={gameState.selectedWorld!}
+          worldId={dataWorldId}
           towerId={gameState.selectedTower!}
           towerName={selectedTower?.name || "Unknown Tower"}
           onSelectFloor={handleSelectFloor}
@@ -201,7 +268,9 @@ export default function AsobetoApp() {
     }
 
     case "lesson": {
-      const worldData = getWorldData(gameState.selectedWorld!);
+      const dataWorldId =
+        resolveDataWorldId(gameState.selectedWorld, world1BookPage) ?? WORLD1_ID;
+      const worldData = getWorldData(dataWorldId);
       const selectedTower = worldData.towers.find(
         (t) => t.id === gameState.selectedTower!,
       );
@@ -234,7 +303,7 @@ export default function AsobetoApp() {
       if (diacriticChallengeLesson) {
         return (
           <GameDiacriticBuild
-            worldId={gameState.selectedWorld!}
+            worldId={dataWorldId}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -249,7 +318,7 @@ export default function AsobetoApp() {
       if (bubbleChallengeLesson) {
         return (
           <GameBubblePop
-            worldId={gameState.selectedWorld!}
+            worldId={dataWorldId}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -264,7 +333,7 @@ export default function AsobetoApp() {
       if (memoryFlipChallengeLesson) {
         return (
           <GameMemoryFlip
-            worldId={gameState.selectedWorld!}
+            worldId={dataWorldId}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -279,7 +348,7 @@ export default function AsobetoApp() {
       if (animalFeedChallengeLesson) {
         return (
           <GameAnimalFeed
-            worldId={gameState.selectedWorld!}
+            worldId={dataWorldId}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -293,8 +362,8 @@ export default function AsobetoApp() {
 
       return (
         <LessonInterface
-          key={`${gameState.selectedWorld}-${gameState.selectedTower}-${gameState.selectedFloor}`}
-          worldId={gameState.selectedWorld!}
+          key={`${dataWorldId}-${gameState.selectedTower}-${gameState.selectedFloor}`}
+          worldId={dataWorldId}
           towerId={gameState.selectedTower!}
           floorId={gameState.selectedFloor!}
           floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}

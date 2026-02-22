@@ -1,8 +1,17 @@
-import type { Tower, TowerConnection } from "@/data/game-config";
+import type {
+  Tower,
+  TowerConnection,
+  TowerMapTheme,
+} from "@/data/game-config";
 
 export interface TowerSelectionProps {
   worldId: number;
   worldName: string;
+  currentPage: number;
+  totalPages: number;
+  pageFlipDirection: 1 | -1;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
   onSelectTower: (towerId: number) => void;
   onBack: () => void;
 }
@@ -24,6 +33,7 @@ export interface FlyingStarProps extends Omit<FlyingStarData, "id"> {
 
 export interface TowerNodeProps {
   tower: Tower;
+  theme: TowerMapTheme;
   totalStars: number;
   requiredStars: number;
   canBossUnlock: boolean;
@@ -36,4 +46,5 @@ export interface ConnectionLinesSVGProps {
   connections: TowerConnection[];
   mapHeightPx: number;
   mapWidthPx: number;
+  theme: TowerMapTheme;
 }
