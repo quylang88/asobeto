@@ -209,23 +209,7 @@ const world1BookPageThemes: Record<World1BookPage, WorldUiTheme> = {
   },
 };
 
-const WORLD1_BOOK_PAGE_WORLD_ID_MAP: Record<World1BookPage, number> = {
-  1: 1,
-  2: 101,
-  3: 102,
-};
-
 export const WORLD1_BOOK_TOTAL_PAGES = 3;
-
-export function getWorld1BookPageWorldId(page: World1BookPage): number {
-  return WORLD1_BOOK_PAGE_WORLD_ID_MAP[page];
-}
-
-export function getWorld1BookPageByDataWorldId(worldId: number): World1BookPage {
-  if (worldId === WORLD1_BOOK_PAGE_WORLD_ID_MAP[2]) return 2;
-  if (worldId === WORLD1_BOOK_PAGE_WORLD_ID_MAP[3]) return 3;
-  return 1;
-}
 
 export interface World {
   id: number;
@@ -281,26 +265,52 @@ interface WorldData {
   towerConnections: World1.TowerConnection[];
 }
 
-// Map ID của world với các module dữ liệu của chúng
-const worldDataMap: Record<number, WorldData> = {
+export interface GetWorldDataOptions {
+  world1BookPage?: World1BookPage;
+}
+
+const world1BookPageDataMap: Record<World1BookPage, WorldData> = {
   1: {
     towers: World1.towers,
-    towerConnections: World1.towerConnections,
+    towerConnections: world1PageTowerConnections,
   },
-  101: {
+  2: {
     towers: world1Page2Towers,
     towerConnections: world1PageTowerConnections,
   },
-  102: {
+  3: {
     towers: world1Page3Towers,
     towerConnections: world1PageTowerConnections,
   },
 };
 
-export function getWorldData(worldId: number): WorldData {
+function normalizeWorld1BookPage(page: number | undefined): World1BookPage {
+  if (page === 2 || page === 3) return page;
+  return 1;
+}
+
+// Map ID của world với các module dữ liệu của chúng (trừ world-1 có phân trang riêng)
+const worldDataMap: Record<number, WorldData> = {
+  1: world1BookPageDataMap[1],
+};
+
+export function getWorldData(
+  worldId: number,
+  options: GetWorldDataOptions = {},
+): WorldData {
+  if (worldId === 1) {
+    const page = normalizeWorld1BookPage(options.world1BookPage);
+    return world1BookPageDataMap[page];
+  }
   return worldDataMap[worldId] || worldDataMap[1];
 }
 
-export function getWorldTheme(worldId: number): WorldUiTheme {
-  return world1BookPageThemes[getWorld1BookPageByDataWorldId(worldId)];
+export function getWorldTheme(
+  worldId: number,
+  world1BookPage: World1BookPage = 1,
+): WorldUiTheme {
+  if (worldId === 1) {
+    return world1BookPageThemes[world1BookPage];
+  }
+  return world1BookPageThemes[1];
 }

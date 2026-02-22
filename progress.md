@@ -2057,3 +2057,43 @@ Addendum (Boss unlock star-motion jitter + clarity pass)
 - Tuned spread/offset: fewer stars (8), tighter endpoint randomization, smaller midpoint drift for stable convergence into boss gate.
 - Replaced blurry animated halo with crisp star rendering: dark stroke + warm fill + static glow ring, so stars remain visually obvious while still highlighted.
 - Validation probe: at `t=700ms`, flying stars center near boss target (`avgY=703`) matching target region (`y≈703`) without early disappearance.
+
+---
+
+Update (World 1 paging unification + page-nav button-only)
+
+TODO
+- [x] Remove pseudo world IDs (`101`, `102`) from `game-config` and keep page 1/2/3 data under world 1.
+- [x] Keep one shared `towerConnections` for all world-1 pages.
+- [x] Update app flow to fetch world data by `(worldId=1, world1BookPage)` instead of remapped world IDs.
+- [x] Convert tower-map pagination controls to icon-only buttons (no visible text labels).
+- [x] Re-validate typecheck/lint and run interaction smoke checks.
+
+Notes
+- `src/data/game-config.ts`
+  - Removed `WORLD1_BOOK_PAGE_WORLD_ID_MAP`, `getWorld1BookPageWorldId`, and `getWorld1BookPageByDataWorldId`.
+  - Added `GetWorldDataOptions` with `world1BookPage` and a `world1BookPageDataMap` to keep page-1/2/3 grouped under world-1.
+  - `getWorldData(worldId, { world1BookPage })` now resolves world-1 pages without creating extra world IDs.
+  - `getWorldTheme(worldId, world1BookPage)` now resolves theme directly from page for world-1.
+- `src/app/page.tsx`
+  - Removed `resolveDataWorldId` mapping logic.
+  - Updated tower/floor/lesson lookups to call `getWorldData(selectedWorldId, { world1BookPage })`.
+  - Kept runtime `worldId` as real world ID (`1` for world-1) across screens.
+  - Included `selectedWorldPage` in `LessonInterface` key to avoid stale instance reuse between world-1 pages.
+- `src/screens/tower-map/index.tsx`
+  - Data/theme now resolved via `worldId + currentPage`.
+  - Page-flip key now includes page (`${worldId}-${world1BookPage}`) so transitions still animate after removing `101/102`.
+  - Previous/next controls now icon-only buttons with `aria-label` for accessibility (`Trang trước`, `Trang sau`) and no visible text spans.
+- `src/screens/floor-selection/index.tsx`
+  - Added optional `world1BookPage` prop and passed it to `getWorldData/getWorldTheme`.
+
+Validation
+- `pnpm exec tsc --noEmit` pass.
+- `pnpm lint` pass.
+- Skill Playwright client command failed due missing runtime package:
+  - `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'playwright'` from `$HOME/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js`.
+- Playwright MCP smoke test (fallback) on local dev server:
+  - Navigated `welcome -> world map -> world-1 tower map`.
+  - Verified page switching `1 -> 2 -> 3` still works with unified world-1 data path.
+  - Verified nav controls are icon-only in DOM (empty `textContent`, no label spans) while keeping `aria-label` for accessibility.
+  - Console error check returned no browser errors.

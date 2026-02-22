@@ -10,6 +10,7 @@ import {
   getTotalStars,
   getWorldData,
   getWorldTheme,
+  type World1BookPage,
 } from "@/data/game-config";
 import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
 import { ConnectionLinesSVG, FlyingStar, TowerNode } from "./components";
@@ -51,8 +52,10 @@ export function TowerSelection({
   onBack,
 }: TowerSelectionProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const worldData = getWorldData(worldId);
-  const worldTheme = getWorldTheme(worldId).towerMap;
+  const world1BookPage: World1BookPage =
+    currentPage === 2 || currentPage === 3 ? currentPage : 1;
+  const worldData = getWorldData(worldId, { world1BookPage });
+  const worldTheme = getWorldTheme(worldId, world1BookPage).towerMap;
   const towerState = useMemo(
     () =>
       hydrateTowersWithStoredProgress({
@@ -104,7 +107,7 @@ export function TowerSelection({
       window.removeEventListener("resize", updateDimensions);
       observer.disconnect();
     };
-  }, [worldId]);
+  }, [worldId, world1BookPage]);
 
   const handleBossUnlock = useCallback(() => {
     if (isUnlocking) return;
@@ -180,7 +183,7 @@ export function TowerSelection({
     <div className="relative h-dvh w-full overflow-hidden">
       <AnimatePresence custom={pageFlipDirection} mode="wait">
         <motion.section
-          key={worldId}
+          key={`${worldId}-${world1BookPage}`}
           custom={pageFlipDirection}
           variants={pageFlipVariants}
           initial="enter"
@@ -260,10 +263,10 @@ export function TowerSelection({
                     whileTap={{ scale: 0.95 }}
                     onClick={onPreviousPage}
                     disabled={isPageSwitchDisabled}
-                    className="ios-button flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2 font-bold text-foreground shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label="Trang trước"
+                    className="ios-button flex items-center justify-center rounded-2xl bg-white/90 p-3 text-foreground shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <ChevronLeft className="h-5 w-5" />
-                    <span>Trang trước</span>
                   </motion.button>
                 )}
               </div>
@@ -274,9 +277,9 @@ export function TowerSelection({
                     whileTap={{ scale: 0.95 }}
                     onClick={onNextPage}
                     disabled={isPageSwitchDisabled}
-                    className="ios-button flex items-center gap-2 rounded-2xl bg-white/90 px-4 py-2 font-bold text-foreground shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label="Trang sau"
+                    className="ios-button flex items-center justify-center rounded-2xl bg-white/90 p-3 text-foreground shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <span>Trang sau</span>
                     <ChevronRight className="h-5 w-5" />
                   </motion.button>
                 )}

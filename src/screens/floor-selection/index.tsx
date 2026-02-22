@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
 import { Mascot } from "../../components/beto-mascot";
 import { getWorldData, getWorldTheme } from "../../data/game-config";
-import type { Floor } from "../../data/game-config";
+import type { Floor, World1BookPage } from "../../data/game-config";
 import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
 import { TowerBadgeAwardOverlay } from "@/components/badges";
 import {
@@ -28,6 +28,7 @@ import {
 
 interface FloorSelectionProps {
   worldId: number;
+  world1BookPage?: World1BookPage;
   towerId: number;
   towerName: string;
   onSelectFloor: (floorId: number) => void;
@@ -523,13 +524,14 @@ function FloorConnector({
 
 export function FloorSelection({
   worldId,
+  world1BookPage = 1,
   towerId,
   towerName,
   onSelectFloor,
   onBack,
 }: FloorSelectionProps) {
-  const worldData = getWorldData(worldId);
-  const floorTheme = getWorldTheme(worldId).floorMap;
+  const worldData = getWorldData(worldId, { world1BookPage });
+  const floorTheme = getWorldTheme(worldId, world1BookPage).floorMap;
   const currentTower = worldData.towers.find((t) => t.id === towerId);
   const [earnedBadge, setEarnedBadge] = useState<TowerBadgeRecord | null>(null);
   const floors = useMemo(
