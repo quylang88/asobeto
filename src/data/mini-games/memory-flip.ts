@@ -1,11 +1,11 @@
-import {
+import type {
   MemoryFlipCardBackOption,
   MemoryFlipCardToken,
   MemoryFlipGameConfig,
   MemoryFlipLevelConfig,
   MemoryFlipLevelId,
   MemoryFlipMoveStarRule,
-} from "../world-1-alphabet/map-structure";
+} from "../world-1-alphabet";
 import { AUDIO } from "../audio";
 
 export const MEMORY_FLIP_GAME_TITLE = "Trí nhớ";

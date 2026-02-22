@@ -1,4 +1,4 @@
-import { LessonContent } from "../map-structure";
+import type { LessonContent } from "../types";
 import { createMemoryFlipChallengeLesson } from "../../lesson-templates/challenges";
 
 export const floor2Lessons: LessonContent[] = [

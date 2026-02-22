@@ -1,4 +1,4 @@
-import { Floor } from "../map-structure";
+import type { Floor } from "../types";
 import { createGameFloor } from "../floor-templates";
 import { floor1Lessons } from "./floor-1";
 import { floor2Lessons } from "./floor-2";

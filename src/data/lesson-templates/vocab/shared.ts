@@ -1,4 +1,4 @@
-import type { WordToken } from "../../world-1-alphabet/map-structure";
+import type { WordToken } from "../../world-1-alphabet";
 import {
   buildVocabIntroVoiceOptions,
   buildVocabSpellingAudio,

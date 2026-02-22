@@ -1,4 +1,4 @@
-import { LessonContent, WordToken } from "../map-structure";
+import type { LessonContent, WordToken } from "../types";
 import {
   createVocabListenLookLesson,
   createVocabPronunciationPracticeLesson,

@@ -2,7 +2,7 @@ import type {
   LessonContent,
   LessonScoring,
   ScoringMetric,
-} from "../map-structure";
+} from "../types";
 import {
   BOSS_REVIEW_LESSON_PASS_THRESHOLD,
   createLessonScoring,

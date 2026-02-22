@@ -1,4 +1,4 @@
-import { LessonContent } from "../map-structure";
+import type { LessonContent } from "../types";
 import { createBubblePopChallengeLesson } from "../../lesson-templates/challenges";
 import { AUDIO } from "../../audio";
 

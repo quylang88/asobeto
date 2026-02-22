@@ -1,4 +1,4 @@
-import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import type { LessonContent } from "../../world-1-alphabet";
 import { createLessonScoring } from "../../scoring-config";
 import {
   buildVocabIntroVoiceOptions,

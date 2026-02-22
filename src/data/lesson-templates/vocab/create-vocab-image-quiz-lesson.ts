@@ -1,7 +1,7 @@
 import type {
   LessonAnswer,
   LessonContent,
-} from "../../world-1-alphabet/map-structure";
+} from "../../world-1-alphabet";
 import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildWordImagePath,

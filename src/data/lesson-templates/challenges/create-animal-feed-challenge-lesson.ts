@@ -1,4 +1,4 @@
-import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import type { LessonContent } from "../../world-1-alphabet";
 import type { AnimalFeedGameDataInput } from "../../mini-games/animal-feed";
 import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {

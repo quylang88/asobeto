@@ -2017,3 +2017,43 @@ Addendum
 Addendum
 - Enforced rule: `buildWordImagePath` is now called only inside `src/data/lesson-templates/vocab/create-vocab-image-quiz-lesson.ts`.
 - Removed UI/data direct calls elsewhere; boss floor data now passes only `assetKey`, and image path resolution happens in the vocab image quiz template.
+
+---
+
+Update (Boss tower unlock visuals + star-flight smoothing)
+
+TODO
+- [x] Remove redundant boss stars (left-side + interior decorative star).
+- [x] Show boss unlock progress badge only while the boss tower is still locked.
+- [x] Rework unlock star-flight animation to be smoother and target the real boss tower node.
+- [x] Fix boss target lookup by anchoring on the real boss button/target element (not `div.contents`).
+- [x] Re-validate lint/typecheck and runtime animation behavior.
+
+Notes
+- Added `id="boss-tower"` to the actual boss button and a dedicated `id="boss-tower-target"` anchor for precise flight destination.
+- Flying stars now animate with curved keyframes (`start -> mid -> end`) using per-star duration and easing for smoother movement.
+- Added animation cleanup via `onComplete` to remove finished flying stars.
+- Flash/navigation timing is now derived from the latest-arriving star instead of a fixed timeout.
+- Removed decorative boss stars requested by UI feedback.
+
+Validation
+- `pnpm exec eslint src/screens/tower-map.tsx` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright runtime probe (boss unlock click): sampled flying-star center moved from `avgY ~90` to `avgY ~595` with `maxY ~717` before cleanup, confirming stars descend from header area to boss-tower region.
+- Visual screenshot check confirms the left-side boss star is removed and the `5/5` unlock badge is still shown while boss remains locked.
+
+Addendum (Boss-star visibility + final landing)
+- Kept stars visible until final segment (`opacity` now fades only at tail end), so they no longer appear to disappear near tower connections.
+- Added 4-point trajectory (`start -> mid -> late -> end`) with late-stage drop directly onto boss target.
+- Tightened end-point random offset so stars converge on boss gate area.
+- Increased visual salience: larger star size (`w-10 h-10`) + animated glow halo.
+- Playwright probe after patch:
+  - At `t=520ms`: star cluster near boss (`avgY=659`, `maxY=701`) while target is around `y=703`.
+  - At `t=700ms`: remaining star around boss (`avgY=683`) before final fade.
+
+Addendum (Boss unlock star-motion jitter + clarity pass)
+- Removed per-star completion state updates during flight to avoid mid-animation re-render jitter.
+- Simplified flight path back to 3-point arc and switched x/y/rotate tween to linear interpolation for smoother continuous motion.
+- Tuned spread/offset: fewer stars (8), tighter endpoint randomization, smaller midpoint drift for stable convergence into boss gate.
+- Replaced blurry animated halo with crisp star rendering: dark stroke + warm fill + static glow ring, so stars remain visually obvious while still highlighted.
+- Validation probe: at `t=700ms`, flying stars center near boss target (`avgY=703`) matching target region (`y≈703`) without early disappearance.

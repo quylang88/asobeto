@@ -1,9 +1,9 @@
-import {
+import type {
   AnimalFeedGameConfig,
   AnimalFeedLevelConfig,
   AnimalFeedLevelId,
   AnimalFeedProgressSegment,
-} from "../world-1-alphabet/map-structure";
+} from "../world-1-alphabet";
 import { AUDIO } from "../audio";
 
 export const ANIMAL_FEED_GAME_TITLE = "Bò ăn cỏ";

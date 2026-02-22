@@ -1,4 +1,4 @@
-import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import type { LessonContent } from "../../world-1-alphabet";
 import type { DiacriticBuildGameDataInput } from "../../mini-games/diacritic-build";
 import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {

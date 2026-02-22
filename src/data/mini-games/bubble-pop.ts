@@ -1,9 +1,9 @@
-import {
+import type {
   BubblePopGameConfig,
   BubblePopLevelConfig,
   BubblePopLevelId,
   ChallengePassStarRule,
-} from "../world-1-alphabet/map-structure";
+} from "../world-1-alphabet";
 import { AUDIO } from "../audio";
 
 export const BUBBLE_GAME_TITLE = "Bóng bay chữ";

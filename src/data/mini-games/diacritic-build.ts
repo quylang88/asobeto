@@ -1,10 +1,10 @@
-import {
+import type {
   ChallengePassStarRule,
   DiacriticBuildGameConfig,
   DiacriticBuildInteractionMode,
   DiacriticBuildLevelConfig,
   DiacriticBuildLevelId,
-} from "../world-1-alphabet/map-structure";
+} from "../world-1-alphabet";
 import { AUDIO } from "../audio";
 
 export const DIACRITIC_BUILD_GAME_TITLE = "Dấu kỳ diệu";

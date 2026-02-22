@@ -1,4 +1,4 @@
-import type { LessonContent } from "../../world-1-alphabet/map-structure";
+import type { LessonContent } from "../../world-1-alphabet";
 import type { BubblePopGameDataInput } from "../../mini-games/bubble-pop";
 import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {

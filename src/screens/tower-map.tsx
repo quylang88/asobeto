@@ -93,36 +93,56 @@ function getTowerAnchorX(
 function FlyingStar({
   startX,
   startY,
+  midX,
+  midY,
   endX,
   endY,
   delay,
-  onComplete,
+  duration,
 }: {
   startX: number;
   startY: number;
+  midX: number;
+  midY: number;
   endX: number;
   endY: number;
   delay: number;
-  onComplete?: () => void;
+  duration: number;
 }) {
   return (
     <motion.div
-      className="fixed z-50 pointer-events-none"
-      initial={{ x: startX, y: startY, scale: 1, opacity: 1 }}
+      className="fixed left-0 top-0 z-50 pointer-events-none"
+      initial={{ x: startX, y: startY, scale: 0.84, opacity: 0 }}
       animate={{
-        x: endX,
-        y: endY,
-        scale: [1, 1.5, 0.5],
-        opacity: [1, 1, 0],
+        x: [startX, midX, endX],
+        y: [startY, midY, endY],
+        scale: [0.84, 1.1, 0.96],
+        rotate: [0, 200, 360],
+        opacity: [0, 1, 1],
       }}
       transition={{
-        duration: 0.8,
-        delay,
-        ease: "easeInOut",
+        x: { duration, delay, ease: "linear", times: [0, 0.48, 1] },
+        y: { duration, delay, ease: "linear", times: [0, 0.48, 1] },
+        rotate: { duration, delay, ease: "linear", times: [0, 0.48, 1] },
+        scale: { duration, delay, ease: "easeOut", times: [0, 0.48, 1] },
+        opacity: { duration, delay, ease: "linear", times: [0, 0.2, 1] },
       }}
-      onAnimationComplete={onComplete}
     >
-      <Star className="w-8 h-8 text-yellow-bright fill-yellow-bright drop-shadow-lg" />
+      <div
+        className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          boxShadow:
+            "0 0 0 5px rgba(251,191,36,0.34), 0 0 26px rgba(245,158,11,0.72)",
+        }}
+      />
+      <Star
+        className="relative h-10 w-10 text-amber-900 fill-yellow-300"
+        strokeWidth={2.4}
+        style={{
+          filter:
+            "drop-shadow(0 0 8px rgba(251,191,36,0.95)) drop-shadow(0 0 2px rgba(255,255,255,0.95))",
+        }}
+      />
     </motion.div>
   );
 }
@@ -167,6 +187,7 @@ function TowerNode({
   if (tower.isBoss) {
     return (
       <motion.button
+        id="boss-tower"
         onClick={handleTap}
         disabled={!isBossAccessible}
         className={`absolute -translate-x-1/2 -translate-y-1/2 ios-button ${
@@ -233,10 +254,6 @@ function TowerNode({
               r="12"
               fill={isBossAccessible ? "#FCD34D" : "#9CA3AF"}
             />
-            <Star
-              className="absolute"
-              style={{ left: 38, top: 3, width: 24, height: 24 }}
-            />
 
             {/* Cánh cổng */}
             <rect
@@ -283,21 +300,24 @@ function TowerNode({
                 transition={{ duration: 1, repeat: Infinity }}
               >
                 <circle cx="50" cy="80" r="12" fill="#FCD34D" />
-                <Star
-                  className="w-5 h-5 text-amber-800"
-                  style={{ x: 42, y: 72 }}
-                />
               </motion.g>
             )}
           </svg>
 
-          {/* Hiển thị số sao hiện tại */}
-          <div className="absolute -top-2 -right-10 md:-right-12 flex items-center gap-1 bg-white rounded-full px-2 py-1 shadow-lg z-10">
-            <Star className="w-4 h-4 text-yellow-bright fill-yellow-bright" />
-            <span className="text-xs font-bold text-foreground">
-              {totalStars}/{requiredStars}
-            </span>
-          </div>
+          <div
+            id="boss-tower-target"
+            className="absolute left-1/2 top-[66%] h-1 w-1 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          />
+
+          {/* Chỉ hiển thị tiến độ sao khi tháp boss vẫn chưa mở khóa */}
+          {!tower.unlocked && (
+            <div className="absolute -top-2 -right-10 md:-right-12 flex items-center gap-1 bg-white rounded-full px-2 py-1 shadow-lg z-10">
+              <Star className="w-4 h-4 text-yellow-bright fill-yellow-bright" />
+              <span className="text-xs font-bold text-foreground">
+                {totalStars}/{requiredStars}
+              </span>
+            </div>
+          )}
         </div>
       </motion.button>
     );
@@ -538,7 +558,16 @@ export function TowerSelection({
   );
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [flyingStars, setFlyingStars] = useState<
-    { id: number; startX: number; startY: number; endX: number; endY: number }[]
+    {
+      id: number;
+      startX: number;
+      startY: number;
+      midX: number;
+      midY: number;
+      endX: number;
+      endY: number;
+      duration: number;
+    }[]
   >([]);
   const [showFlash, setShowFlash] = useState(false);
   const [mapDimensions, setMapDimensions] = useState({
@@ -587,40 +616,70 @@ export function TowerSelection({
       .getElementById("star-counter")
       ?.getBoundingClientRect();
     const bossTowerRect = document
+      .getElementById("boss-tower-target")
+      ?.getBoundingClientRect();
+    const fallbackBossTowerRect = document
       .getElementById("boss-tower")
       ?.getBoundingClientRect();
 
-    if (!starCounterRect || !bossTowerRect) {
+    const finalBossRect = bossTowerRect ?? fallbackBossTowerRect;
+
+    if (!starCounterRect || !finalBossRect) {
       // Dự phòng: chỉ điều hướng
       setTimeout(() => {
+        setIsUnlocking(false);
         onSelectTower(6);
       }, 500);
       return;
     }
 
-    const endX = bossTowerRect.left + bossTowerRect.width / 2 - 16;
-    const endY = bossTowerRect.top + bossTowerRect.height / 2 - 16;
+    const startCenterX = starCounterRect.left + starCounterRect.width / 2;
+    const startCenterY = starCounterRect.top + starCounterRect.height / 2;
+    const endCenterX = finalBossRect.left + finalBossRect.width / 2;
+    const endCenterY = finalBossRect.top + finalBossRect.height / 2;
+    const flightDistanceY = Math.abs(startCenterY - endCenterY);
+    const arcLift = Math.min(120, Math.max(34, flightDistanceY * 0.2));
 
     // Tạo sao bay
-    const stars = Array.from({ length: 8 }, (_, i) => ({
-      id: i,
-      startX: starCounterRect.left + Math.random() * 40,
-      startY: starCounterRect.top + Math.random() * 20,
-      endX: endX + (Math.random() - 0.5) * 40,
-      endY: endY + (Math.random() - 0.5) * 40,
-    }));
+    const stars = Array.from({ length: 8 }, (_, i) => {
+      const startX = startCenterX + (Math.random() - 0.5) * 22;
+      const startY = startCenterY + (Math.random() - 0.5) * 16;
+      const endX = endCenterX + (Math.random() - 0.5) * 6;
+      const endY = endCenterY + (Math.random() - 0.5) * 6;
+      const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 20;
+      const midY =
+        startY + (endY - startY) * (0.44 + Math.random() * 0.06) - arcLift;
+
+      return {
+        id: i,
+        startX,
+        startY,
+        midX,
+        midY,
+        endX,
+        endY,
+        duration: 1.06 + Math.random() * 0.12,
+      };
+    });
 
     setFlyingStars(stars);
+
+    const latestArrivalMs = stars.reduce((maxDelay, star, index) => {
+      const starEndMs = index * 70 + star.duration * 1000;
+      return Math.max(maxDelay, starEndMs);
+    }, 0);
 
     // Hiển thị chớp sáng sau khi sao đến nơi
     setTimeout(() => {
       setShowFlash(true);
-    }, 900);
+    }, Math.max(620, latestArrivalMs - 120));
 
     // Điều hướng sau khi hoạt ảnh hoàn tất
     setTimeout(() => {
+      setFlyingStars([]);
+      setIsUnlocking(false);
       onSelectTower(6);
-    }, 1500);
+    }, latestArrivalMs + 320);
   }, [isUnlocking, onSelectTower]);
 
   return (
@@ -670,11 +729,7 @@ export function TowerSelection({
 
           {/* Các node tháp */}
           {towerState.map((tower) => (
-            <div
-              key={tower.id}
-              id={tower.isBoss ? "boss-tower" : undefined}
-              className="contents"
-            >
+            <div key={tower.id} className="contents">
               <TowerNode
                 tower={tower}
                 totalStars={bossUnlockProgress}
@@ -697,7 +752,10 @@ export function TowerSelection({
             startY={star.startY}
             endX={star.endX}
             endY={star.endY}
-            delay={index * 0.08}
+            midX={star.midX}
+            midY={star.midY}
+            duration={star.duration}
+            delay={index * 0.06}
           />
         ))}
       </AnimatePresence>

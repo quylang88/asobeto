@@ -1,4 +1,4 @@
-import type { LessonAnswer } from "../../world-1-alphabet/map-structure";
+import type { LessonAnswer } from "../../world-1-alphabet";
 import {
   buildLetterIntroVoiceOptions,
   buildMainLetterAudio,

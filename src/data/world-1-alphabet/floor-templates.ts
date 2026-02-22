@@ -3,7 +3,7 @@ import type {
   FloorSelectionIcon,
   FloorType,
   LessonContent,
-} from "./map-structure";
+} from "./types";
 
 const DEFAULT_LOCKED_NAME = "Điều Bí Ẩn";
 const DEFAULT_LOCKED_DESCRIPTION = "Chờ bé tới khám phá!";

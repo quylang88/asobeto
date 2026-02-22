@@ -1,4 +1,4 @@
-import { LessonContent } from "../map-structure";
+import type { LessonContent } from "../types";
 import {
   createLetterListenLesson,
   createLetterQuizLesson,
