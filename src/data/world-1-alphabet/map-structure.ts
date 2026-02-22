@@ -4,7 +4,7 @@ import { tower2Floors } from "./tower-2";
 import { tower3Floors } from "./tower-3";
 import { tower4Floors } from "./tower-4";
 import { tower5Floors } from "./tower-5";
-import { towerBossFloors } from "./tower-boss-1";
+import { towerBossFloors } from "./tower-boss";
 
 // Cấu trúc cây tháp:
 //          T1 (gốc)
