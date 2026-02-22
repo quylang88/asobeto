@@ -68,12 +68,12 @@ export const AUDIO_CATALOG_METADATA = {
     bubblePopTargetA: {
       src: AUDIO.GAME.BUBBLE_POP.TARGET_BY_LETTER.a,
       purpose: "Âm đọc chữ mục tiêu 'a' cho Bubble Pop.",
-      usedBy: ["src/data/world-1-alphabet/tower-1/floor-4.ts"],
+      usedBy: ["src/data/world-1-alphabet/page-1/tower-1/floor-4.ts"],
     },
     bubblePopTargetC: {
       src: AUDIO.GAME.BUBBLE_POP.TARGET_BY_LETTER.c,
       purpose: "Âm đọc chữ mục tiêu 'c' cho Bubble Pop.",
-      usedBy: ["src/data/world-1-alphabet/tower-1/floor-4.ts"],
+      usedBy: ["src/data/world-1-alphabet/page-1/tower-1/floor-4.ts"],
     },
     memoryFlipWhoosh: {
       src: AUDIO.GAME.MEMORY_FLIP.FLIP,
@@ -110,7 +110,7 @@ export const AUDIO_CATALOG_METADATA = {
       purpose: "Âm đọc từ vựng chính theo mã asset.",
       usedBy: [
         "src/data/lesson-templates/vocab/shared.ts",
-        "src/data/world-1-alphabet/tower-boss-1/floor-1.ts",
+        "src/data/world-1-alphabet/page-1/tower-boss/floor-1.ts",
       ],
     },
     vocabIntroVariant: {

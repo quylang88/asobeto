@@ -1,6 +1,9 @@
 import type { Tower, TowerConnection } from "./types";
-import { tower1Floors } from "./tower-1";
-import { towerBossFloors } from "./tower-boss";
+import type { TowerSeed } from "./page-seed-types";
+import { page2RegularSeeds } from "./page-2";
+import { page3RegularSeeds } from "./page-3";
+import { tower1Floors } from "./page-1/tower-1";
+import { towerBossFloors } from "./page-1/tower-boss";
 
 const WORLD1_PAGE_CONNECTIONS: TowerConnection[] = [
   { from: 1, to: 2 },
@@ -10,15 +13,6 @@ const WORLD1_PAGE_CONNECTIONS: TowerConnection[] = [
   { from: 4, to: 6 },
   { from: 5, to: 6 },
 ];
-
-interface TowerSeed {
-  id: number;
-  name: string;
-  letters: string;
-  stars: number;
-  completed: boolean;
-  unlocked: boolean;
-}
 
 const WORLD1_LAYOUT = [
   { id: 1, x: 50, y: 15, parentIds: [] as number[] },
@@ -48,96 +42,10 @@ function createWorld1BookPageTowers(
       position: { x: node.x, y: node.y },
       parentIds: node.parentIds,
       isBoss,
-      floors: isBoss ? towerBossFloors : tower1Floors,
+      floors: isBoss ? towerBossFloors : seed.floors ?? tower1Floors,
     };
   });
 }
-
-const page2RegularSeeds: TowerSeed[] = [
-  {
-    id: 1,
-    name: "á",
-    letters: "á, à",
-    stars: 3,
-    completed: true,
-    unlocked: true,
-  },
-  {
-    id: 2,
-    name: "ả",
-    letters: "ả, ã",
-    stars: 2,
-    completed: true,
-    unlocked: true,
-  },
-  {
-    id: 3,
-    name: "ạ",
-    letters: "ạ, â",
-    stars: 3,
-    completed: true,
-    unlocked: true,
-  },
-  {
-    id: 4,
-    name: "ê",
-    letters: "ê, ô",
-    stars: 0,
-    completed: false,
-    unlocked: true,
-  },
-  {
-    id: 5,
-    name: "ơ",
-    letters: "ơ, ư",
-    stars: 0,
-    completed: false,
-    unlocked: true,
-  },
-];
-
-const page3RegularSeeds: TowerSeed[] = [
-  {
-    id: 1,
-    name: "an",
-    letters: "an, am",
-    stars: 3,
-    completed: true,
-    unlocked: true,
-  },
-  {
-    id: 2,
-    name: "at",
-    letters: "at, ac",
-    stars: 2,
-    completed: true,
-    unlocked: true,
-  },
-  {
-    id: 3,
-    name: "on",
-    letters: "on, om",
-    stars: 3,
-    completed: true,
-    unlocked: true,
-  },
-  {
-    id: 4,
-    name: "ot",
-    letters: "ot, oc",
-    stars: 0,
-    completed: false,
-    unlocked: true,
-  },
-  {
-    id: 5,
-    name: "en",
-    letters: "en, em",
-    stars: 0,
-    completed: false,
-    unlocked: true,
-  },
-];
 
 const sharedBossSeed: TowerSeed = {
   id: 6,

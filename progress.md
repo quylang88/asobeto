@@ -2097,3 +2097,106 @@ Validation
   - Verified page switching `1 -> 2 -> 3` still works with unified world-1 data path.
   - Verified nav controls are icon-only in DOM (empty `textContent`, no label spans) while keeping `aria-label` for accessibility.
   - Console error check returned no browser errors.
+
+---
+
+Update (World 1 page-2 tower seed data remap)
+
+TODO
+- [x] Remap all 5 regular tower seed labels for world-1 page 2.
+- [x] Keep existing stars/completed/unlocked state unchanged.
+- [x] Run lint check on updated data file.
+
+Notes
+- Updated `src/data/world-1-alphabet/map-structure-pages.ts` `page2RegularSeeds`:
+  - Tower 1: `name: "u"`, `letters: "u, q, quả"`
+  - Tower 2: `name: "ơ"`, `letters: "ơ, s, nơ"`
+  - Tower 3: `name: "â"`, `letters: "â, g, gấu"`
+  - Tower 4: `name: "ư"`, `letters: "ư, t, sư tử"`
+  - Tower 5: `name: "ê"`, `letters: "ê, d, dê"`
+- No changes to layout, unlock graph, or boss seed.
+
+Validation
+- `pnpm exec eslint src/data/world-1-alphabet/map-structure-pages.ts` pass.
+
+---
+
+Update (World 1 page-2 per-tower floor lesson data)
+
+TODO
+- [x] Stop using shared `tower1Floors` for world-1 page-2 towers.
+- [x] Add dedicated floor data (1-4) per tower for page-2 labels:
+  - `u/q/quả`, `ơ/s/nơ`, `â/g/gấu`, `ư/t/sư tử`, `ê/d/dê`.
+- [x] Keep page-3 behavior unchanged.
+- [x] Re-run lint + typecheck.
+
+Notes
+- `src/data/world-1-alphabet/map-structure-pages.ts`
+  - Added page-local lesson builders:
+    - letter floor lessons (listen/quiz/trace-demo/trace-practice)
+    - vocabulary floor lessons (listen-look/pronunciation/word-build/trace)
+    - floor-4 bubble challenge
+  - Extended `TowerSeed` with optional `floors`.
+  - `createWorld1BookPageTowers` now uses `seed.floors` when provided (fallback to `tower1Floors` only when missing).
+  - `page2RegularSeeds` now includes fully-defined `floors` for all 5 regular towers, each with unique lesson IDs prefixed `w1p2-t{towerId}-...`.
+  - Floor-4 on page-2 now uses bubble targets per tower letter pair instead of hardcoded tower-1 data.
+- Asset/audio keys for new letters/words follow telex-style keys (`ow`, `aa`, `uw`, `ee`, `quar`, `gaaus`, `suwtuwr`, etc.) so they can be wired to real files without changing lesson structure.
+
+Validation
+- `pnpm exec eslint src/data/world-1-alphabet/map-structure-pages.ts` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (World-1 data hierarchy by page/tower/floor)
+
+TODO
+- [x] Move all world-1 tower data (`tower-1..5`, `tower-boss`) out of root level into page folders.
+- [x] Standardize structure to `page-1/page-2/page-3 -> tower-x -> floor-y`.
+- [x] Keep shared logic/data at world root only (types, templates, map builders).
+- [x] Rewire imports and delete old root tower folders.
+- [x] Re-run lint + typecheck.
+
+Notes
+- New structure under `src/data/world-1-alphabet`:
+  - `page-1/tower-1..tower-5/tower-boss` with full floor files and tower index data.
+  - `page-2/tower-1..tower-5/tower-boss` with per-floor lesson files and per-tower indexes.
+  - `page-3/tower-1..tower-5/tower-boss` mirrored tower/floor structure (currently reusing page-1 tower-1 floor lessons for content parity).
+- Removed old root folders:
+  - `src/data/world-1-alphabet/tower-1..tower-5`
+  - `src/data/world-1-alphabet/tower-boss`
+- Updated mapping and exports:
+  - `src/data/world-1-alphabet/map-structure.ts` now sources page-1 tower/boss data from `page-1/...`.
+  - `src/data/world-1-alphabet/map-structure-pages.ts` now sources page-2/page-3 seeds from `page-2` / `page-3`.
+  - `src/data/world-1-alphabet/index.ts` boss lesson export now points to `page-1/tower-boss/floor-1`.
+  - `src/data/audio/registry.ts` `usedBy` paths updated to new page-based locations.
+
+Validation
+- `pnpm exec eslint src/data/world-1-alphabet src/data/audio/registry.ts` pass.
+- `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Unify page helpers for page-1/page-2/page-3 reuse)
+
+TODO
+- [x] Merge duplicated `page-1/helpers.ts` and `page-2/helpers.ts` into one shared helper module.
+- [x] Rewire all `page-1` and `page-2` floor files to import from shared helper.
+- [x] Remove old per-page helper files.
+- [x] Verify lint + typecheck.
+
+Notes
+- Added shared helper: `src/data/world-1-alphabet/page-helpers.ts`.
+  - Common builders: letter/vocabulary/bubble/diacritic-build/animal-feed/memory-flip.
+  - Includes compatibility aliases (`createPage1*`, `createPage2*`) so floor modules stay readable and migration-safe.
+- Updated all floor files in:
+  - `src/data/world-1-alphabet/page-1/tower-*/floor-*.ts`
+  - `src/data/world-1-alphabet/page-2/tower-*/floor-*.ts`
+  to import from `../../page-helpers`.
+- Removed:
+  - `src/data/world-1-alphabet/page-1/helpers.ts`
+  - `src/data/world-1-alphabet/page-2/helpers.ts`
+
+Validation
+- `pnpm exec eslint src/data/world-1-alphabet/page-helpers.ts src/data/world-1-alphabet/page-1 src/data/world-1-alphabet/page-2` pass.
+- `pnpm exec tsc --noEmit` pass.

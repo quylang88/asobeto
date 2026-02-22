@@ -1,10 +1,8 @@
 import type { Tower, TowerConnection } from "./types";
-import { tower1Floors } from "./tower-1";
-import { tower2Floors } from "./tower-2";
-import { tower3Floors } from "./tower-3";
-import { tower4Floors } from "./tower-4";
-import { tower5Floors } from "./tower-5";
-import { towerBossFloors } from "./tower-boss";
+import type { TowerSeed } from "./page-seed-types";
+import { page1RegularSeeds } from "./page-1";
+import { tower1Floors } from "./page-1/tower-1";
+import { towerBossFloors } from "./page-1/tower-boss";
 
 // Cấu trúc cây tháp:
 //          T1 (gốc)
@@ -15,81 +13,52 @@ import { towerBossFloors } from "./tower-boss";
 //        \   /
 //       Tháp Boss
 
-export const towers: Tower[] = [
-  {
-    id: 1,
-    name: "a",
-    letters: "a, c",
-    stars: 3,
-    maxStars: 12,
-    completed: true,
-    unlocked: true,
-    position: { x: 50, y: 15 },
-    parentIds: [],
-    floors: tower1Floors,
-  },
-  {
-    id: 2,
-    name: "ă",
-    letters: "ă, n",
-    stars: 2,
-    maxStars: 12,
-    completed: true,
-    unlocked: true,
-    position: { x: 25, y: 38 },
-    parentIds: [1],
-    floors: tower2Floors,
-  },
-  {
-    id: 3,
-    name: "ô",
-    letters: "ô, b",
-    stars: 3,
-    maxStars: 12,
-    completed: true,
-    unlocked: true,
-    position: { x: 75, y: 38 },
-    parentIds: [1],
-    floors: tower3Floors,
-  },
-  {
-    id: 4,
-    name: "o",
-    letters: "o",
-    stars: 0,
-    maxStars: 12,
-    completed: false,
-    unlocked: true,
-    position: { x: 25, y: 62 },
-    parentIds: [2],
-    floors: tower4Floors,
-  },
-  {
-    id: 5,
-    name: "e",
-    letters: "e, m",
-    stars: 0,
-    maxStars: 12,
-    completed: false,
-    unlocked: true,
-    position: { x: 75, y: 62 },
-    parentIds: [3],
-    floors: tower5Floors,
-  },
-  {
-    id: 6,
-    name: "BOSS",
-    letters: "Thử Thách",
-    stars: 0,
-    maxStars: 2,
-    completed: false,
-    unlocked: false,
-    position: { x: 50, y: 85 },
-    parentIds: [4, 5],
-    isBoss: true,
-    floors: towerBossFloors,
-  },
+const WORLD1_LAYOUT = [
+  { id: 1, x: 50, y: 15, parentIds: [] as number[] },
+  { id: 2, x: 25, y: 38, parentIds: [1] },
+  { id: 3, x: 75, y: 38, parentIds: [1] },
+  { id: 4, x: 25, y: 62, parentIds: [2] },
+  { id: 5, x: 75, y: 62, parentIds: [3] },
+  { id: 6, x: 50, y: 85, parentIds: [4, 5] },
 ];
+
+function createWorld1PageTowers(
+  regularSeeds: TowerSeed[],
+  bossSeed: TowerSeed,
+): Tower[] {
+  return WORLD1_LAYOUT.map((node) => {
+    const seed = node.id === 6 ? bossSeed : regularSeeds[node.id - 1];
+    const isBoss = node.id === 6;
+
+    return {
+      id: node.id,
+      name: seed.name,
+      letters: seed.letters,
+      stars: seed.stars,
+      maxStars: isBoss ? 2 : 12,
+      completed: seed.completed,
+      unlocked: seed.unlocked,
+      position: { x: node.x, y: node.y },
+      parentIds: node.parentIds,
+      isBoss,
+      floors: isBoss ? towerBossFloors : seed.floors ?? tower1Floors,
+    };
+  });
+}
+
+const page1BossSeed: TowerSeed = {
+  id: 6,
+  name: "BOSS",
+  letters: "Thử Thách",
+  stars: 0,
+  completed: false,
+  unlocked: false,
+};
+
+export const towers: Tower[] = createWorld1PageTowers(
+  page1RegularSeeds,
+  page1BossSeed,
+);
 
 // Định nghĩa các kết nối giữa các tháp
 export const towerConnections: TowerConnection[] = [

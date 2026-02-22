@@ -2,7 +2,7 @@ import type { Tower } from "./types";
 
 export * from "./types";
 export { towers, towerConnections } from "./map-structure";
-export { createBossFloor1Lessons } from "./tower-boss/floor-1";
+export { createBossFloor1Lessons } from "./page-1/tower-boss/floor-1";
 
 // Tính tổng số sao đạt được
 export function getTotalStars(towerList: Tower[]): number {
