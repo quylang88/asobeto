@@ -1,12 +1,58 @@
+import type { Floor } from "../../types";
 import type { TowerSeed } from "../../page-seed-types";
-import { tower1Floors } from "../../page-1/tower-1";
+import {
+  createGameFloor,
+  createLetterLearningFloor,
+  createVocabularyLearningFloor,
+} from "../../floor-templates";
+import { floor1Lessons } from "./floor-1";
+import { floor2Lessons } from "./floor-2";
+import { floor3Lessons } from "./floor-3";
+import { floor4Lessons } from "./floor-4";
+
+export const page3Tower5Floors: Floor[] = [
+  createLetterLearningFloor({
+    variant: "primary",
+    id: 1,
+    nameUnlocked: "Chữ k",
+    descriptionUnlocked: "Giới thiệu chữ cái",
+    letter: "k",
+    maxStars: 3,
+    content: floor1Lessons,
+  }),
+  createLetterLearningFloor({
+    variant: "secondary",
+    id: 2,
+    nameUnlocked: "Chữ y",
+    descriptionUnlocked: "Giới thiệu chữ cái",
+    letter: "y",
+    maxStars: 3,
+    content: floor2Lessons,
+  }),
+  createVocabularyLearningFloor({
+    id: 3,
+    nameUnlocked: "Từ vựng",
+    descriptionUnlocked: "Ghép từ, luyện nói và viết",
+    letter: "k",
+    maxStars: 3,
+    content: floor3Lessons,
+  }),
+  createGameFloor({
+    id: 4,
+    nameUnlocked: "Bóng bay chữ",
+    descriptionUnlocked: "Mini game",
+    letter: "?",
+    maxStars: 6,
+    content: floor4Lessons,
+  }),
+];
 
 export const page3Tower5Seed: TowerSeed = {
   id: 5,
-  name: "en",
-  letters: "en, em",
+  name: "k",
+  letters: "k, y, kiến",
   stars: 0,
   completed: false,
   unlocked: true,
-  floors: tower1Floors,
+  floors: page3Tower5Floors,
 };

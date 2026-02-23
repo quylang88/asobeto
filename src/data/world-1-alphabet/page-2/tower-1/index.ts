@@ -33,7 +33,7 @@ export const page2Tower1Floors: Floor[] = [
     id: 3,
     nameUnlocked: "Từ vựng",
     descriptionUnlocked: "Ghép từ, luyện nói và viết",
-    letter: "q",
+    letter: "m",
     maxStars: 3,
     content: floor3Lessons,
   }),
@@ -50,7 +50,7 @@ export const page2Tower1Floors: Floor[] = [
 export const page2Tower1Seed: TowerSeed = {
   id: 1,
   name: "u",
-  letters: "u, q, quả",
+  letters: "u, q, mũ",
   stars: 3,
   completed: true,
   unlocked: true,
