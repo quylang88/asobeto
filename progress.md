@@ -2237,3 +2237,20 @@ Notes
 - Verification:
   - `pnpm lint` pass.
   - `pnpm exec tsc --noEmit` pass.
+
+Update (Dot-below row for vocabulary tracing)
+
+TODO
+- [x] Add 1 extra row below baseline for word targets containing dấu nặng.
+- [x] Keep baseline emphasis position unchanged.
+- [x] Re-run lint + typecheck.
+
+Notes
+- Updated `/src/screens/lesson-interface/components/letter-tracing-canvas.tsx`:
+  - Added `WORD_DOT_BELOW_EXTRA_ROWS` and `DOT_BELOW_COMBINING_MARK` constants.
+  - Added `hasDotBelowToneMark(text)` using Unicode NFD + `\u0323` detection.
+  - `effectiveTracingRows` now adds `+1` when target is word-like (`length > 1`) and contains dot-below mark.
+  - Baseline remains anchored at `baseTracingRows`.
+- Validation:
+  - `pnpm lint` pass.
+  - `pnpm exec tsc --noEmit` pass.

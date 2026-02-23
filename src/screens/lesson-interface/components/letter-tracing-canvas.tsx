@@ -57,6 +57,8 @@ const FILLED_STROKE_COLOR = "#0b0f1a";
 const TRACING_PRIMARY_FONT_NAME = "HP001_4_hang_normal";
 const DESCENDER_CHAR_SET = new Set(["q", "g", "y", "p"]);
 const DESCENDER_EXTRA_ROWS = 3;
+const WORD_DOT_BELOW_EXTRA_ROWS = 1;
+const DOT_BELOW_COMBINING_MARK = "\u0323";
 const DEFAULT_TRACING_ROWS = 4;
 const PRIMARY_GRID_LINE_WIDTH = 2.2;
 const DEFAULT_SINGLE_LETTER_GLYPH: TracingGlyphConfig = {
@@ -113,6 +115,10 @@ function normalizeTextForDescenderCheck(text: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function hasDotBelowToneMark(text: string): boolean {
+  return text.normalize("NFD").includes(DOT_BELOW_COMBINING_MARK);
 }
 
 const STROKE_WIDTH_RATIO = 0.088;
@@ -472,6 +478,10 @@ export function LetterTracingCanvas({
   const traceDisplayText = letterStrokeAnimation?.letter ?? traceTargetText;
   const baseTracingLayout = letterStrokeAnimation?.layout;
   const baseTracingRows = baseTracingLayout?.rows ?? DEFAULT_TRACING_ROWS;
+  const isWordLikeTarget = useMemo(
+    () => [...traceDisplayText].length > 1,
+    [traceDisplayText],
+  );
   const normalizedDescenderText = useMemo(
     () => normalizeTextForDescenderCheck(traceDisplayText),
     [traceDisplayText],
@@ -483,9 +493,14 @@ export function LetterTracingCanvas({
       ),
     [normalizedDescenderText],
   );
-  const effectiveTracingRows = hasDescenderTarget
-    ? baseTracingRows + DESCENDER_EXTRA_ROWS
-    : baseTracingRows;
+  const hasWordDotBelowTone = useMemo(
+    () => isWordLikeTarget && hasDotBelowToneMark(traceDisplayText),
+    [isWordLikeTarget, traceDisplayText],
+  );
+  const effectiveTracingRows =
+    baseTracingRows +
+    (hasDescenderTarget ? DESCENDER_EXTRA_ROWS : 0) +
+    (hasWordDotBelowTone ? WORD_DOT_BELOW_EXTRA_ROWS : 0);
   const baselineRowIndex = baseTracingRows;
   const effectiveTracingLayout = useMemo(
     () => ({
