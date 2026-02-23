@@ -55,6 +55,10 @@ const TRACE_STROKE_COLOR = "#111827";
 const USER_STROKE_COLOR = "#0f172a";
 const FILLED_STROKE_COLOR = "#0b0f1a";
 const TRACING_PRIMARY_FONT_NAME = "HP001_4_hang_normal";
+const DESCENDER_CHAR_SET = new Set(["q", "g", "y", "p"]);
+const DESCENDER_EXTRA_ROWS = 3;
+const DEFAULT_TRACING_ROWS = 4;
+const PRIMARY_GRID_LINE_WIDTH = 2.2;
 const DEFAULT_SINGLE_LETTER_GLYPH: TracingGlyphConfig = {
   x: 30,
   y: 136,
@@ -102,6 +106,13 @@ function getGuideFontSize(
   if (targetLength === 2) return Math.round(baseSize * 0.72);
   if (targetLength <= 4) return Math.round(baseSize * 0.58);
   return Math.round(baseSize * 0.48);
+}
+
+function normalizeTextForDescenderCheck(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 const STROKE_WIDTH_RATIO = 0.088;
@@ -328,7 +339,13 @@ function drawDemoTimelineFrame(
   }
 }
 
-function WritingGridOverlay({ metrics }: { metrics: TracingGridMetrics }) {
+function WritingGridOverlay({
+  metrics,
+  baselineRowIndex,
+}: {
+  metrics: TracingGridMetrics;
+  baselineRowIndex?: number;
+}) {
   const columnWidth = metrics.cellSize;
   const rowHeight = metrics.cellSize;
   const primaryVerticalLines = Array.from(
@@ -347,6 +364,12 @@ function WritingGridOverlay({ metrics }: { metrics: TracingGridMetrics }) {
     { length: metrics.rows },
     (_, index) => metrics.margin + (index + 0.5) * rowHeight,
   );
+  const emphasizedBaselineY =
+    baselineRowIndex !== undefined &&
+    baselineRowIndex >= 0 &&
+    baselineRowIndex <= metrics.rows
+      ? metrics.margin + baselineRowIndex * rowHeight
+      : undefined;
 
   return (
     <svg
@@ -362,7 +385,7 @@ function WritingGridOverlay({ metrics }: { metrics: TracingGridMetrics }) {
           x2={x}
           y2={metrics.canvasHeight - metrics.margin}
           stroke="#38bdf8"
-          strokeWidth={2.2}
+          strokeWidth={PRIMARY_GRID_LINE_WIDTH}
           strokeDasharray="8 8"
         />
       ))}
@@ -374,10 +397,20 @@ function WritingGridOverlay({ metrics }: { metrics: TracingGridMetrics }) {
           x2={metrics.canvasWidth - metrics.margin}
           y2={y}
           stroke="#38bdf8"
-          strokeWidth={2.2}
+          strokeWidth={PRIMARY_GRID_LINE_WIDTH}
           strokeDasharray="8 8"
         />
       ))}
+      {emphasizedBaselineY !== undefined && (
+        <line
+          x1={metrics.margin}
+          y1={emphasizedBaselineY}
+          x2={metrics.canvasWidth - metrics.margin}
+          y2={emphasizedBaselineY}
+          stroke="#0284c7"
+          strokeWidth={PRIMARY_GRID_LINE_WIDTH * 2}
+        />
+      )}
       {helperVerticalLines.map((x, index) => (
         <line
           key={`grid-helper-v-${index}`}
@@ -437,9 +470,33 @@ export function LetterTracingCanvas({
     [traceTargetText],
   );
   const traceDisplayText = letterStrokeAnimation?.letter ?? traceTargetText;
+  const baseTracingLayout = letterStrokeAnimation?.layout;
+  const baseTracingRows = baseTracingLayout?.rows ?? DEFAULT_TRACING_ROWS;
+  const normalizedDescenderText = useMemo(
+    () => normalizeTextForDescenderCheck(traceDisplayText),
+    [traceDisplayText],
+  );
+  const hasDescenderTarget = useMemo(
+    () =>
+      [...normalizedDescenderText].some((character) =>
+        DESCENDER_CHAR_SET.has(character),
+      ),
+    [normalizedDescenderText],
+  );
+  const effectiveTracingRows = hasDescenderTarget
+    ? baseTracingRows + DESCENDER_EXTRA_ROWS
+    : baseTracingRows;
+  const baselineRowIndex = baseTracingRows;
+  const effectiveTracingLayout = useMemo(
+    () => ({
+      ...(baseTracingLayout ?? {}),
+      rows: effectiveTracingRows,
+    }),
+    [baseTracingLayout, effectiveTracingRows],
+  );
   const tracingGridMetrics = useMemo(
-    () => createTracingGridMetrics(letterStrokeAnimation?.layout),
-    [letterStrokeAnimation],
+    () => createTracingGridMetrics(effectiveTracingLayout),
+    [effectiveTracingLayout],
   );
   const guideFontSize = useMemo(
     () => getGuideFontSize(traceDisplayText, tracingGridMetrics),
@@ -455,15 +512,32 @@ export function LetterTracingCanvas({
     () => [...traceDisplayText].length === 1,
     [traceDisplayText],
   );
+  const adjustedDescenderFallbackGlyph = useMemo<TracingGlyphConfig>(() => {
+    const rowScale =
+      effectiveTracingRows > 0 ? baseTracingRows / effectiveTracingRows : 1;
+    const defaultGlyphY = DEFAULT_SINGLE_LETTER_GLYPH.y ?? 136;
+    return {
+      ...DEFAULT_SINGLE_LETTER_GLYPH,
+      y: defaultGlyphY * rowScale,
+    };
+  }, [baseTracingRows, effectiveTracingRows]);
   const guideGlyphConfig = useMemo<TracingGlyphConfig | undefined>(() => {
     if (isSingleLetterTarget) {
+      if (hasDescenderTarget && !letterStrokeAnimation?.glyph) {
+        return adjustedDescenderFallbackGlyph;
+      }
       return {
         ...DEFAULT_SINGLE_LETTER_GLYPH,
         ...letterStrokeAnimation?.glyph,
       };
     }
     return letterStrokeAnimation?.glyph;
-  }, [isSingleLetterTarget, letterStrokeAnimation]);
+  }, [
+    adjustedDescenderFallbackGlyph,
+    hasDescenderTarget,
+    isSingleLetterTarget,
+    letterStrokeAnimation,
+  ]);
 
   useEffect(() => {
     let didCancel = false;
@@ -852,7 +926,10 @@ export function LetterTracingCanvas({
           onFrameTap();
         }}
       >
-        <WritingGridOverlay metrics={tracingGridMetrics} />
+        <WritingGridOverlay
+          metrics={tracingGridMetrics}
+          baselineRowIndex={baselineRowIndex}
+        />
         <canvas
           ref={guideCanvasRef}
           className="pointer-events-none absolute inset-0"

@@ -2200,3 +2200,40 @@ Notes
 Validation
 - `pnpm exec eslint src/data/world-1-alphabet/page-helpers.ts src/data/world-1-alphabet/page-1 src/data/world-1-alphabet/page-2` pass.
 - `pnpm exec tsc --noEmit` pass.
+
+---
+
+Update (Descender tracing rows + baseline emphasis for q/g/y/p)
+
+TODO
+- [x] Detect descender targets (`q/g/y/p`) with accent-insensitive normalization.
+- [x] Add 3 extra rows only for descender targets while keeping non-descender layout unchanged.
+- [x] Emphasize original baseline line in writing grid for descender targets.
+- [x] Preserve fallback single-letter glyph placement when descender mode is active.
+- [x] Re-run lint + typecheck.
+
+Notes
+- Updated `/src/screens/lesson-interface/components/letter-tracing-canvas.tsx`:
+  - Added descender detection using `normalize("NFD")` + combining mark stripping.
+  - Added dynamic `effectiveTracingRows` and `baselineRowIndex`.
+  - Kept default layout unchanged for non-descender targets.
+  - Added emphasized solid baseline line in `WritingGridOverlay`.
+  - Adjusted fallback single-letter glyph `y` for descender mode when no glyph config exists.
+- Verification:
+  - `pnpm lint` pass.
+  - `pnpm exec tsc --noEmit` pass.
+- Playwright skill client check is currently blocked in this environment because package `playwright` is not installed for `/Users/quylang/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js`.
+
+Update (Baseline emphasis consistency)
+
+TODO
+- [x] Make baseline emphasis apply to all tracing targets, not only descender targets.
+- [x] Re-run lint + typecheck.
+
+Notes
+- In `/src/screens/lesson-interface/components/letter-tracing-canvas.tsx`, `baselineRowIndex` now always uses `baseTracingRows`.
+  - Non-descender letters: bold line appears on the bottom/base line.
+  - Descender letters (`q/g/y/p`): bold line remains at original baseline above descender rows.
+- Verification:
+  - `pnpm lint` pass.
+  - `pnpm exec tsc --noEmit` pass.
