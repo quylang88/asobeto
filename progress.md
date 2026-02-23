@@ -2254,3 +2254,31 @@ Notes
 - Validation:
   - `pnpm lint` pass.
   - `pnpm exec tsc --noEmit` pass.
+
+Update (Fix tracing scoring anti-cheat + stroke-order enforcement)
+
+Scope
+- [x] Fix tracing scoring bug where filling the whole grid could still pass.
+- [x] Enforce stroke-order validation when stroke masks can be derived.
+- [x] Penalize heavily for off-target drawing beyond faint guide.
+
+Implementation
+- Updated `src/screens/lesson-interface/components/letter-tracing-canvas.tsx`:
+  - Capture user-drawn strokes in order (per pointer down/up segment).
+  - Pass ordered `drawnStrokes` into tracing scorer.
+  - Resolve runtime stroke set (`manual` demo strokes or auto-generated single-letter strokes) and pass as `expectedStrokes`.
+- Updated `src/screens/lesson-interface/scoring/tracing-scoring.ts`:
+  - Added stricter path scoring (`coverage + precision`) with precision-weighted anti-cheat.
+  - Added hard fail gates for:
+    - too low precision,
+    - too low coverage,
+    - excessive drawn/target ratio (full-grid scribble).
+  - Added stroke-aware scoring using per-stroke/component masks:
+    - per-stroke coverage,
+    - ordered stroke matching from captured user stroke sequence.
+  - Force fail if stroke order/coverage gates are not satisfied when multi-stroke expectation exists.
+
+Validation
+- `pnpm lint -- src/screens/lesson-interface/scoring/tracing-scoring.ts src/screens/lesson-interface/components/letter-tracing-canvas.tsx` pass
+- `pnpm exec tsc --noEmit` pass
+- `pnpm lint` pass
