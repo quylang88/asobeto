@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Lock, ChevronLeft, Medal } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { worlds } from "../data/game-config";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { TowerBadgeCollectionModal } from "@/components/badges";
-import { getLetterBadgeCollection } from "@/lib/tower-badges";
+import { useLetterBadgeCollection } from "@/lib/tower-badges";
 
 interface WorldMapProps {
   onSelectWorld: (worldId: number) => void;
@@ -16,7 +16,7 @@ interface WorldMapProps {
 
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
   const [isBadgeCollectionOpen, setIsBadgeCollectionOpen] = useState(false);
-  const letterBadges = useMemo(() => getLetterBadgeCollection(), []);
+  const letterBadges = useLetterBadgeCollection();
   const unlockedBadgeCount = letterBadges.filter(
     (badge) => badge.unlocked,
   ).length;

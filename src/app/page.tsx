@@ -42,18 +42,18 @@ function clampWorld1Page(page: number): World1BookPage {
   return Math.max(FIRST_WORLD1_PAGE, Math.min(LAST_WORLD1_PAGE, page)) as World1BookPage;
 }
 
-function resolveBossEntryFloorId(
+async function resolveBossEntryFloorId(
   worldId: number,
   towerId: number,
   world1BookPage: World1BookPage,
-): number | null {
+): Promise<number | null> {
   const worldData = getWorldData(worldId, { world1BookPage });
   const bossTower = worldData.towers.find((tower) => tower.id === towerId);
   if (!bossTower?.isBoss || !bossTower.floors?.length) {
     return null;
   }
 
-  const hydratedFloors = hydrateFloorsWithStoredProgress({
+  const hydratedFloors = await hydrateFloorsWithStoredProgress({
     worldId,
     world1BookPage,
     towerId,
@@ -115,7 +115,7 @@ export default function AsobetoApp() {
     });
   };
 
-  const handleSelectTower = (towerId: number) => {
+  const handleSelectTower = async (towerId: number) => {
     const selectedWorldId = gameState.selectedWorld;
     if (selectedWorldId === null) return;
 
@@ -123,7 +123,7 @@ export default function AsobetoApp() {
     const selectedTower = worldData.towers.find((tower) => tower.id === towerId);
 
     if (selectedTower?.isBoss) {
-      const autoFloorId = resolveBossEntryFloorId(
+      const autoFloorId = await resolveBossEntryFloorId(
         selectedWorldId,
         towerId,
         world1BookPage,

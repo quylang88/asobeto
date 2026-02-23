@@ -44,6 +44,7 @@ const FLOOR_VISUALS = {
 
 const VOCABULARY_FLOOR_TITLE = "Từ vựng";
 const VOCABULARY_FLOOR_DESCRIPTION = "Ghép từ, luyện nói và viết";
+const VOCABULARY_FLOOR_MAX_STARS = 5;
 
 interface SharedFloorConfig {
   id: number;
@@ -116,6 +117,7 @@ export function createVocabularyLearningFloor(
 
   return createFloor({
     ...restConfig,
+    maxStars: VOCABULARY_FLOOR_MAX_STARS,
     nameUnlocked: VOCABULARY_FLOOR_TITLE,
     descriptionUnlocked: VOCABULARY_FLOOR_DESCRIPTION,
     floorType: "vocabulary_learning",

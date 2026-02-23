@@ -2,7 +2,7 @@ import type { LessonContent } from "../../world-1-alphabet";
 import { withDefaultLessonFeedbackAudio } from "../../scoring-config";
 import {
   buildVocabIntroVoiceOptions,
-  buildVocabSpellingAudio,
+  buildVocabWordAudio,
   buildWordWithImage,
   type VocabLessonBaseConfig,
 } from "./shared";
@@ -16,9 +16,9 @@ export function createVocabListenLookLesson(
     id: lessonId,
     type: "passive",
     lessonKind: "vocab_listen_look",
-    title: "Nghe đánh vần và nhìn",
+    title: "Nghe phát âm và nhìn",
     introVoiceOptions: buildVocabIntroVoiceOptions(1),
-    mainAudio: buildVocabSpellingAudio(wordAssetKey),
+    mainAudio: buildVocabWordAudio(wordAssetKey),
     mainImage: buildWordWithImage(wordAssetKey),
     targetText: word,
     relatedLetters: reviewLetters,

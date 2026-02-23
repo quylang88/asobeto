@@ -319,7 +319,7 @@ export function useLessonFlow({
       }, 0);
 
       setCompletionStars(attemptPassCount);
-      saveFloorProgress({
+      void saveFloorProgress({
         worldId,
         world1BookPage,
         towerId,
@@ -341,7 +341,7 @@ export function useLessonFlow({
     );
 
     setCompletionStars(attemptFloorStars);
-    saveFloorProgress({
+    void saveFloorProgress({
       worldId,
       world1BookPage,
       towerId,

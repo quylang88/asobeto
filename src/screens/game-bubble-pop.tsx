@@ -158,19 +158,11 @@ function getLevelStorageKey(
   return `${lessonId}:${levelId}`;
 }
 
-function getInitialLevelStars({
-  worldId,
-  world1BookPage,
-  towerId,
-  floorId,
-  floorMaxStars,
+function getInitialLevelStarsFromStoredProgress({
+  stored,
   lessonId,
 }: {
-  worldId: number;
-  world1BookPage?: number;
-  towerId: number;
-  floorId: number;
-  floorMaxStars: number;
+  stored: Awaited<ReturnType<typeof getStoredFloorProgress>>;
   lessonId: string;
 }): Record<BubblePopLevelId, number> {
   const emptyStars: Record<BubblePopLevelId, number> = {
@@ -178,17 +170,6 @@ function getInitialLevelStars({
     normal: 0,
     hard: 0,
   };
-  if (typeof window === "undefined") return emptyStars;
-
-  const stored = getStoredFloorProgress(
-    {
-      worldId,
-      world1BookPage,
-      towerId,
-      floorId,
-    },
-    floorMaxStars,
-  );
   if (!stored) return emptyStars;
 
   const easyStored =
@@ -268,16 +249,11 @@ export function GameBubblePop({
     useState<BubblePopLevelId | null>(null);
   const [levelStars, setLevelStars] = useState<
     Record<BubblePopLevelId, number>
-  >(() =>
-    getInitialLevelStars({
-      worldId,
-      world1BookPage,
-      towerId,
-      floorId,
-      floorMaxStars,
-      lessonId: lesson.id,
-    }),
-  );
+  >({
+    easy: 0,
+    normal: 0,
+    hard: 0,
+  });
 
   const playfieldRef = useRef<HTMLDivElement | null>(null);
   const playfieldSizeRef = useRef({ width: 360, height: 520 });
@@ -324,6 +300,35 @@ export function GameBubblePop({
       ...Object.values(bubbleConfig.targetAudioByLetter ?? {}),
     ]);
   }, [bubbleAudio, bubbleConfig]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const stored = await getStoredFloorProgress(
+        {
+          worldId,
+          world1BookPage,
+          towerId,
+          floorId,
+        },
+        floorMaxStars,
+      );
+      if (cancelled) return;
+
+      setLevelStars(
+        getInitialLevelStarsFromStoredProgress({
+          stored,
+          lessonId: lesson.id,
+        }),
+      );
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId]);
 
   const isLevelUnlocked = useCallback(
     (levelId: BubblePopLevelId) => {
@@ -458,7 +463,7 @@ export function GameBubblePop({
         hard: clampInteger(nextLevelStars.hard, 0, 3),
       };
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
-      saveFloorProgress({
+      void saveFloorProgress({
         worldId,
         world1BookPage,
         towerId,

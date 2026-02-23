@@ -119,12 +119,6 @@ export const AUDIO_CATALOG_METADATA = {
       purpose: "Âm intro từ vựng theo lesson và variant.",
       usedBy: ["src/data/lesson-templates/vocab/shared.ts"],
     },
-    vocabSpelling: {
-      template: AUDIO_TEMPLATES.VOCAB_SPELLING,
-      placeholders: ["wordAssetKey"],
-      purpose: "Âm đánh vần của từ vựng theo mã asset.",
-      usedBy: ["src/data/lesson-templates/vocab/shared.ts"],
-    },
   },
 } as const satisfies {
   static: Record<string, AudioStaticMetadata>;

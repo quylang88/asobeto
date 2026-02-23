@@ -33,7 +33,6 @@ export const AUDIO_TEMPLATES = {
     "/assets/audio/intro-letters/{lessonSlug}-{variant}.mp3",
   VOCAB_MAIN: "/assets/audio/words/{wordAssetKey}.mp3",
   VOCAB_INTRO_VARIANT: "/assets/audio/intro-words/{lessonSlug}-{variant}.mp3",
-  VOCAB_SPELLING: "/assets/audio/intro-words/{wordAssetKey}/spelling.mp3",
 } as const;
 
 type IntroLessonOrder = 1 | 2 | 3 | 4;
@@ -94,8 +93,4 @@ export function buildVocabIntroVoiceOptions(
       variant,
     }),
   );
-}
-
-export function buildVocabSpellingAudio(wordAssetKey: string): string {
-  return applyAudioTemplate(AUDIO_TEMPLATES.VOCAB_SPELLING, { wordAssetKey });
 }

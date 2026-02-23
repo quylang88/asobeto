@@ -1,6 +1,7 @@
+import { useLiveQuery } from "dexie-react-hooks";
 import type { Tower } from "@/data/game-config";
+import { getBadge, listBadges, unlockBadge } from "@/services/dbService";
 
-const TOWER_BADGE_STORAGE_KEY = "asobeto-tower-badges-v1";
 const FORCE_UNLOCK_ALL_BADGES_FOR_TESTING = true;
 const LETTER_BADGE_CODES = [
   "A",
@@ -34,25 +35,18 @@ const LETTER_BADGE_CODES = [
   "Y",
 ] as const;
 
-const LETTER_BADGE_IMAGE_BY_CODE: Partial<Record<(typeof LETTER_BADGE_CODES)[number], string>> =
-  {
-    A: "/assets/images/badges/anpanman.webp",
-    AW: "/assets/images/badges/sailor-moon-v2.webp",
-    AA: "/assets/images/badges/rapunzel.webp",
-    B: "/assets/images/badges/baymax.webp",
-    C: "/assets/images/badges/chopper.webp",
-    D: "/assets/images/badges/doraemon.webp",
-    DD: "/assets/images/badges/team-rocket.webp",
-    E: "/assets/images/badges/eevee.webp",
-  };
-
-interface StoredTowerBadge {
-  unlockedAt: string;
-}
-
-interface StoredTowerBadgeData {
-  badges: Record<string, StoredTowerBadge>;
-}
+const LETTER_BADGE_IMAGE_BY_CODE: Partial<
+  Record<(typeof LETTER_BADGE_CODES)[number], string>
+> = {
+  A: "/assets/images/badges/anpanman.webp",
+  AW: "/assets/images/badges/sailor-moon-v2.webp",
+  AA: "/assets/images/badges/rapunzel.webp",
+  B: "/assets/images/badges/baymax.webp",
+  C: "/assets/images/badges/chopper.webp",
+  D: "/assets/images/badges/doraemon.webp",
+  DD: "/assets/images/badges/team-rocket.webp",
+  E: "/assets/images/badges/eevee.webp",
+};
 
 export interface TowerBadgeLocation {
   worldId: number;
@@ -69,95 +63,37 @@ export interface TowerBadgeRecord extends TowerBadgeLocation {
   unlocked: boolean;
 }
 
-function canUseStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+function toIsoTime(unlockedAt: number | null): string | null {
+  if (typeof unlockedAt !== "number" || !Number.isFinite(unlockedAt)) return null;
+  return new Date(unlockedAt).toISOString();
 }
 
 export function getTowerBadgeKey({ worldId, towerId }: TowerBadgeLocation): string {
   return `${worldId}:${towerId}`;
 }
 
-function normalizeStoredBadge(value: unknown): StoredTowerBadge | null {
-  if (!value || typeof value !== "object") return null;
-  const source = value as { unlockedAt?: unknown };
-  if (typeof source.unlockedAt !== "string" || source.unlockedAt.length === 0) {
-    return null;
-  }
-  return {
-    unlockedAt: source.unlockedAt,
-  };
-}
-
-function readBadgeData(): StoredTowerBadgeData {
-  if (!canUseStorage()) {
-    return { badges: {} };
-  }
-
-  try {
-    const raw = window.localStorage.getItem(TOWER_BADGE_STORAGE_KEY);
-    if (!raw) return { badges: {} };
-
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return { badges: {} };
-
-    const badgesSource =
-      "badges" in parsed && parsed.badges && typeof parsed.badges === "object"
-        ? (parsed.badges as Record<string, unknown>)
-        : {};
-
-    const badges: Record<string, StoredTowerBadge> = {};
-    for (const [badgeKey, badgeValue] of Object.entries(badgesSource)) {
-      const normalized = normalizeStoredBadge(badgeValue);
-      if (normalized) {
-        badges[badgeKey] = normalized;
-      }
-    }
-
-    return { badges };
-  } catch {
-    return { badges: {} };
-  }
-}
-
-function writeBadgeData(data: StoredTowerBadgeData): void {
-  if (!canUseStorage()) return;
-
-  try {
-    window.localStorage.setItem(TOWER_BADGE_STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // Bỏ qua lỗi quota/storage để tránh chặn luồng chơi.
-  }
-}
-
-export function getTowerBadgeUnlockTime(location: TowerBadgeLocation): string | null {
-  const data = readBadgeData();
-  const badgeKey = getTowerBadgeKey(location);
-  return data.badges[badgeKey]?.unlockedAt ?? null;
-}
-
-export function hasTowerBadge(location: TowerBadgeLocation): boolean {
-  return getTowerBadgeUnlockTime(location) !== null;
-}
-
-export function unlockTowerBadge(
+export async function getTowerBadgeUnlockTime(
   location: TowerBadgeLocation,
-): { newlyUnlocked: boolean; unlockedAt: string } {
-  const data = readBadgeData();
-  const badgeKey = getTowerBadgeKey(location);
-  const existing = normalizeStoredBadge(data.badges[badgeKey]);
-  if (existing) {
-    return {
-      newlyUnlocked: false,
-      unlockedAt: existing.unlockedAt,
-    };
-  }
+): Promise<string | null> {
+  const badge = await getBadge(getTowerBadgeKey(location));
+  return toIsoTime(badge?.unlockedAt ?? null);
+}
 
-  const unlockedAt = new Date().toISOString();
-  data.badges[badgeKey] = { unlockedAt };
-  writeBadgeData(data);
+export async function hasTowerBadge(location: TowerBadgeLocation): Promise<boolean> {
+  const unlockedAt = await getTowerBadgeUnlockTime(location);
+  return unlockedAt !== null;
+}
+
+export async function unlockTowerBadge(
+  location: TowerBadgeLocation,
+): Promise<{ newlyUnlocked: boolean; unlockedAt: string }> {
+  const result = await unlockBadge(getTowerBadgeKey(location));
+
+  // Luôn trả về thời điểm unlock ổn định để UI hiển thị consistent giữa các lần gọi.
+  const unlockedAt = toIsoTime(result.row.unlockedAt) ?? new Date().toISOString();
 
   return {
-    newlyUnlocked: true,
+    newlyUnlocked: result.newlyUnlocked,
     unlockedAt,
   };
 }
@@ -176,8 +112,7 @@ export function createTowerBadgeRecord({
     ? (unlockedAt ?? "force-unlocked-for-test")
     : unlockedAt;
 
-  const badgeImageSrc =
-    tower.id === 1 ? "/assets/images/badges/anpanman.webp" : null;
+  const badgeImageSrc = tower.id === 1 ? "/assets/images/badges/anpanman.webp" : null;
 
   return {
     key: getTowerBadgeKey({ worldId, towerId: tower.id }),
@@ -192,20 +127,21 @@ export function createTowerBadgeRecord({
   };
 }
 
-export function getTowerBadgeCollection({
+export async function getTowerBadgeCollection({
   worldId,
   towers,
 }: {
   worldId: number;
   towers: Tower[];
-}): TowerBadgeRecord[] {
-  const data = readBadgeData();
+}): Promise<TowerBadgeRecord[]> {
+  const badges = await listBadges();
+  const badgeById = new Map(badges.map((badge) => [badge.badgeId, badge]));
 
   return towers
     .filter((tower) => !tower.isBoss)
     .map((tower) => {
       const badgeKey = getTowerBadgeKey({ worldId, towerId: tower.id });
-      const unlockedAt = normalizeStoredBadge(data.badges[badgeKey])?.unlockedAt ?? null;
+      const unlockedAt = toIsoTime(badgeById.get(badgeKey)?.unlockedAt ?? null);
       return createTowerBadgeRecord({
         worldId,
         tower,
@@ -214,11 +150,11 @@ export function getTowerBadgeCollection({
     });
 }
 
-export function getLetterBadgeCollection(): TowerBadgeRecord[] {
-  const data = readBadgeData();
+export async function getLetterBadgeCollection(): Promise<TowerBadgeRecord[]> {
+  const badges = await listBadges();
   const unlockedCount = FORCE_UNLOCK_ALL_BADGES_FOR_TESTING
     ? LETTER_BADGE_CODES.length
-    : Math.min(LETTER_BADGE_CODES.length, Object.keys(data.badges).length);
+    : Math.min(LETTER_BADGE_CODES.length, badges.length);
 
   return LETTER_BADGE_CODES.map((badgeCode, index) => {
     const unlocked = index < unlockedCount;
@@ -234,4 +170,35 @@ export function getLetterBadgeCollection(): TowerBadgeRecord[] {
       unlocked,
     };
   });
+}
+
+export function useTowerBadgeCollection({
+  worldId,
+  towers,
+}: {
+  worldId: number;
+  towers: Tower[];
+}): TowerBadgeRecord[] {
+  const towerSignature = towers
+    .map((tower) => `${tower.id}:${tower.name}:${tower.letters}:${tower.isBoss ? 1 : 0}`)
+    .join("|");
+
+  const badges = useLiveQuery(
+    () =>
+      getTowerBadgeCollection({
+        worldId,
+        towers,
+      }),
+    [worldId, towerSignature],
+  );
+
+  // Fallback mặc định để tránh null-check lặp lại trong UI.
+  return badges ?? [];
+}
+
+export function useLetterBadgeCollection(): TowerBadgeRecord[] {
+  const badges = useLiveQuery(() => getLetterBadgeCollection(), []);
+
+  // Fallback mặc định để tránh null-check lặp lại trong UI.
+  return badges ?? [];
 }

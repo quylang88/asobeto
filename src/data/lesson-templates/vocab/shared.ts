@@ -1,7 +1,6 @@
 import type { WordToken } from "../../world-1-alphabet";
 import {
   buildVocabIntroVoiceOptions,
-  buildVocabSpellingAudio,
   buildVocabWordAudio,
 } from "../../audio";
 
@@ -25,7 +24,6 @@ export interface VocabImageQuizChoice {
 }
 export {
   buildVocabIntroVoiceOptions,
-  buildVocabSpellingAudio,
   buildVocabWordAudio,
 };
 

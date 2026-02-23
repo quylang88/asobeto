@@ -15,7 +15,7 @@ import {
 import { preloadAppAudioList, stopAllAppAudio } from "@/lib/app-audio";
 import {
   getStoredFloorProgress,
-  getStoredLessonStars,
+  useStoredLessonStars,
 } from "@/lib/floor-progress";
 import {
   type LessonAnswer,
@@ -235,26 +235,35 @@ export function LessonInterface({
       setBossEntryResolved(true);
       return;
     }
-    const storedBossReviewProgress = getStoredFloorProgress(
-      {
-        worldId,
-        world1BookPage,
-        towerId,
-        floorId,
-      },
-      floorMaxStars,
-    );
-    const storedPassCount =
-      storedBossReviewProgress?.passCount ??
-      storedBossReviewProgress?.stars ??
-      0;
-    if (storedPassCount >= bossReviewRequiredPassCount) {
-      setScore(storedPassCount);
-      setShowBossReviewChoiceScreen(true);
-    } else {
-      setShowBossReviewChoiceScreen(false);
-    }
-    setBossEntryResolved(true);
+    let cancelled = false;
+
+    const run = async () => {
+      const storedBossReviewProgress = await getStoredFloorProgress(
+        {
+          worldId,
+          world1BookPage,
+          towerId,
+          floorId,
+        },
+        floorMaxStars,
+      );
+      if (cancelled) return;
+
+      const storedPassCount =
+        storedBossReviewProgress?.passCount ?? storedBossReviewProgress?.stars ?? 0;
+      if (storedPassCount >= bossReviewRequiredPassCount) {
+        setScore(storedPassCount);
+        setShowBossReviewChoiceScreen(true);
+      } else {
+        setShowBossReviewChoiceScreen(false);
+      }
+      setBossEntryResolved(true);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [
     bossReviewRequiredPassCount,
     floorId,
@@ -405,17 +414,17 @@ export function LessonInterface({
   const pairedTracePracticeLessonId = getTracePracticeLessonIdFromDemoLessonId(
     currentLesson?.id,
   );
+  const storedPairedTracePracticeStars = useStoredLessonStars({
+    worldId,
+    world1BookPage,
+    towerId,
+    floorId,
+    lessonId: pairedTracePracticeLessonId ?? "",
+  });
   const canFastForwardTraceDemo =
     isLetterTraceDemoLesson &&
     Boolean(
-      pairedTracePracticeLessonId &&
-      getStoredLessonStars({
-        worldId,
-        world1BookPage,
-        towerId,
-        floorId,
-        lessonId: pairedTracePracticeLessonId,
-      }) >= 1,
+      pairedTracePracticeLessonId && storedPairedTracePracticeStars >= 1,
     );
 
   const callResetSpeechSession = useCallback(() => {

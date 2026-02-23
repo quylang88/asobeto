@@ -1,11 +1,22 @@
+import { useLiveQuery } from "dexie-react-hooks";
 import type { Floor, Tower } from "@/data/game-config";
+import type { JsonValue } from "@/db/database";
+import {
+  getAppState,
+  getLessonProgress,
+  listProgressByPrefix,
+  setAppState,
+  upsertProgress,
+} from "@/services/dbService";
 
-const FLOOR_PROGRESS_STORAGE_KEY = "asobeto-floor-progress-v1";
 const DEFAULT_FLOOR_MAX_STARS = 3;
-const MAX_FLOOR_STARS_STORAGE_CAP = 99;
 const WORLD1_ID = 1;
 const DEFAULT_WORLD1_BOOK_PAGE = 1;
 const MAX_WORLD1_BOOK_PAGE = 99;
+
+const FLOOR_PROGRESS_PREFIX = "floor";
+const FLOOR_LESSON_PROGRESS_PREFIX = "floor-lesson";
+const FLOOR_LESSON_PASSES_PREFIX = "floor-lesson-passes";
 
 export interface StoredFloorProgress {
   stars: number;
@@ -15,11 +26,7 @@ export interface StoredFloorProgress {
   lessonPasses?: Record<string, boolean>;
 }
 
-interface StoredProgressData {
-  floors: Record<string, StoredFloorProgress>;
-}
-
-interface FloorProgressLocation {
+export interface FloorProgressLocation {
   worldId: number;
   world1BookPage?: number;
   towerId: number;
@@ -35,37 +42,11 @@ interface SaveFloorProgressInput extends FloorProgressLocation {
   maxStars?: number;
 }
 
-function canUseStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
-function toIntegerInRange(
-  value: unknown,
-  min: number,
-  max: number,
-): number {
+function toIntegerInRange(value: unknown, min: number, max: number): number {
   const numeric = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(numeric)) return min;
   const rounded = Math.round(numeric);
   return Math.min(max, Math.max(min, rounded));
-}
-
-function getFloorStorageKey({
-  worldId,
-  world1BookPage,
-  towerId,
-  floorId,
-}: FloorProgressLocation): string {
-  const resolvedPage = resolveWorld1BookPage(worldId, world1BookPage);
-  return `${worldId}:p${resolvedPage}:${towerId}:${floorId}`;
-}
-
-function getLegacyFloorStorageKey({
-  worldId,
-  towerId,
-  floorId,
-}: FloorProgressLocation): string {
-  return `${worldId}:${towerId}:${floorId}`;
 }
 
 function resolveWorld1BookPage(
@@ -78,159 +59,154 @@ function resolveWorld1BookPage(
   return toIntegerInRange(rawPage, DEFAULT_WORLD1_BOOK_PAGE, MAX_WORLD1_BOOK_PAGE);
 }
 
-function shouldReadLegacyWorld1Page(location: FloorProgressLocation): boolean {
-  return (
-    location.worldId === WORLD1_ID &&
-    resolveWorld1BookPage(location.worldId, location.world1BookPage) ===
-      DEFAULT_WORLD1_BOOK_PAGE
-  );
+function getFloorStorageKey({
+  worldId,
+  world1BookPage,
+  towerId,
+  floorId,
+}: FloorProgressLocation): string {
+  const resolvedPage = resolveWorld1BookPage(worldId, world1BookPage);
+  return `${worldId}:p${resolvedPage}:${towerId}:${floorId}`;
 }
 
-function resolveStoredFloorProgress(
-  floors: Record<string, StoredFloorProgress>,
+function getFloorProgressLessonId(location: FloorProgressLocation): string {
+  return `${FLOOR_PROGRESS_PREFIX}:${getFloorStorageKey(location)}`;
+}
+
+function getFloorLessonProgressPrefix(location: FloorProgressLocation): string {
+  return `${FLOOR_LESSON_PROGRESS_PREFIX}:${getFloorStorageKey(location)}:`;
+}
+
+function getFloorLessonProgressLessonId(
   location: FloorProgressLocation,
-  maxStars: number,
-): {
-  key: string;
-  progress: StoredFloorProgress | null;
-} {
-  const currentKey = getFloorStorageKey(location);
-  const currentProgress = normalizeFloorProgress(floors[currentKey], maxStars);
-  if (currentProgress) {
-    return { key: currentKey, progress: currentProgress };
-  }
-
-  if (!shouldReadLegacyWorld1Page(location)) {
-    return { key: currentKey, progress: null };
-  }
-
-  const legacyKey = getLegacyFloorStorageKey(location);
-  const legacyProgress = normalizeFloorProgress(floors[legacyKey], maxStars);
-  return { key: currentKey, progress: legacyProgress };
+  lessonId: string,
+): string {
+  return `${getFloorLessonProgressPrefix(location)}${lessonId}`;
 }
 
-function normalizeFloorProgress(
-  value: unknown,
-  maxStars: number = MAX_FLOOR_STARS_STORAGE_CAP,
-): StoredFloorProgress | null {
-  if (!value || typeof value !== "object") return null;
-  const source = value as {
-    stars?: unknown;
-    completed?: unknown;
-    lessonStars?: unknown;
-    passCount?: unknown;
-    lessonPasses?: unknown;
-  };
-  const lessonStars: Record<string, number> = {};
-  const lessonPasses: Record<string, boolean> = {};
-  const rawLessonStars =
-    source.lessonStars && typeof source.lessonStars === "object"
-      ? (source.lessonStars as Record<string, unknown>)
-      : {};
-  const rawLessonPasses =
-    source.lessonPasses && typeof source.lessonPasses === "object"
-      ? (source.lessonPasses as Record<string, unknown>)
-      : {};
+function getFloorLessonPassesKey(location: FloorProgressLocation): string {
+  return `${FLOOR_LESSON_PASSES_PREFIX}:${getFloorStorageKey(location)}`;
+}
 
-  for (const [lessonId, stars] of Object.entries(rawLessonStars)) {
-    lessonStars[lessonId] = toIntegerInRange(stars, 0, DEFAULT_FLOOR_MAX_STARS);
+function extractLessonIdFromProgressKey(
+  progressKey: string,
+  lessonPrefix: string,
+): string | null {
+  if (!progressKey.startsWith(lessonPrefix)) return null;
+  const lessonId = progressKey.slice(lessonPrefix.length);
+  return lessonId.length > 0 ? lessonId : null;
+}
+
+function normalizeLessonPasses(value: JsonValue | null): Record<string, boolean> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
   }
-  for (const [lessonId, passed] of Object.entries(rawLessonPasses)) {
+
+  const source = value as Record<string, unknown>;
+  const lessonPasses: Record<string, boolean> = {};
+
+  for (const [lessonId, passed] of Object.entries(source)) {
     if (passed) {
       lessonPasses[lessonId] = true;
     }
   }
 
-  const hasExplicitPassCount =
-    typeof source.passCount === "number" ||
-    (typeof source.passCount === "string" && source.passCount.trim().length > 0);
-  const derivedPassCount = Object.values(lessonPasses).filter(Boolean).length;
-  const passCount = hasExplicitPassCount
-    ? toIntegerInRange(source.passCount, 0, maxStars)
-    : derivedPassCount > 0
-      ? toIntegerInRange(derivedPassCount, 0, maxStars)
-      : undefined;
-
-  return {
-    stars: toIntegerInRange(source.stars, 0, maxStars),
-    completed: Boolean(source.completed),
-    lessonStars,
-    passCount,
-    lessonPasses:
-      Object.keys(lessonPasses).length > 0 ? lessonPasses : undefined,
-  };
+  return lessonPasses;
 }
 
-function readProgressData(): StoredProgressData {
-  if (!canUseStorage()) {
-    return { floors: {} };
+function normalizeStoredFloorProgress(
+  input: Partial<StoredFloorProgress>,
+  maxStars: number,
+): StoredFloorProgress {
+  const lessonStars: Record<string, number> = {};
+  for (const [lessonId, stars] of Object.entries(input.lessonStars ?? {})) {
+    lessonStars[lessonId] = toIntegerInRange(stars, 0, DEFAULT_FLOOR_MAX_STARS);
   }
 
-  try {
-    const raw = window.localStorage.getItem(FLOOR_PROGRESS_STORAGE_KEY);
-    if (!raw) return { floors: {} };
-
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return { floors: {} };
-
-    const floorsSource =
-      "floors" in parsed && parsed.floors && typeof parsed.floors === "object"
-        ? (parsed.floors as Record<string, unknown>)
-        : {};
-
-    const floors: Record<string, StoredFloorProgress> = {};
-    for (const [floorKey, floorValue] of Object.entries(floorsSource)) {
-      const normalized = normalizeFloorProgress(floorValue);
-      if (normalized) {
-        floors[floorKey] = normalized;
-      }
+  const lessonPasses: Record<string, boolean> = {};
+  for (const [lessonId, passed] of Object.entries(input.lessonPasses ?? {})) {
+    if (passed) {
+      lessonPasses[lessonId] = true;
     }
-
-    return { floors };
-  } catch {
-    return { floors: {} };
   }
+
+  const normalized: StoredFloorProgress = {
+    stars: toIntegerInRange(input.stars, 0, maxStars),
+    completed: Boolean(input.completed),
+    lessonStars,
+    passCount:
+      typeof input.passCount === "number"
+        ? toIntegerInRange(input.passCount, 0, maxStars)
+        : undefined,
+    lessonPasses: Object.keys(lessonPasses).length > 0 ? lessonPasses : undefined,
+  };
+
+  return normalized;
 }
 
-function writeProgressData(progressData: StoredProgressData): void {
-  if (!canUseStorage()) return;
+export async function getStoredFloorProgress(
+  location: FloorProgressLocation,
+  maxStars: number = DEFAULT_FLOOR_MAX_STARS,
+): Promise<StoredFloorProgress | null> {
+  const floorProgressId = getFloorProgressLessonId(location);
+  const lessonPrefix = getFloorLessonProgressPrefix(location);
+  const lessonPassesKey = getFloorLessonPassesKey(location);
 
-  try {
-    window.localStorage.setItem(
-      FLOOR_PROGRESS_STORAGE_KEY,
-      JSON.stringify(progressData),
+  const [floorProgress, lessonProgressList, lessonPassesValue] = await Promise.all([
+    getLessonProgress(floorProgressId),
+    listProgressByPrefix(lessonPrefix),
+    getAppState<JsonValue>(lessonPassesKey),
+  ]);
+
+  if (!floorProgress) {
+    return null;
+  }
+
+  const lessonStars: Record<string, number> = {};
+  for (const lessonProgress of lessonProgressList) {
+    const lessonId = extractLessonIdFromProgressKey(
+      lessonProgress.lessonId,
+      lessonPrefix,
     );
-  } catch {
-    // Bỏ qua lỗi quota/storage để tránh làm gián đoạn trải nghiệm học
+    if (!lessonId) continue;
+    lessonStars[lessonId] = toIntegerInRange(
+      lessonProgress.stars,
+      0,
+      DEFAULT_FLOOR_MAX_STARS,
+    );
   }
+
+  return normalizeStoredFloorProgress(
+    {
+      stars: floorProgress.stars,
+      completed: floorProgress.completed,
+      lessonStars,
+      passCount: floorProgress.passCount,
+      lessonPasses: normalizeLessonPasses(lessonPassesValue),
+    },
+    maxStars,
+  );
 }
 
-export function getStoredFloorProgress(
-  location: FloorProgressLocation,
-  maxStars: number = DEFAULT_FLOOR_MAX_STARS,
-): StoredFloorProgress | null {
-  const progressData = readProgressData();
-  return resolveStoredFloorProgress(progressData.floors, location, maxStars).progress;
-}
-
-export function getStoredLessonStars(
+export async function getStoredLessonStars(
   location: FloorProgressLocation & { lessonId: string },
-): number {
-  const floorProgress = getStoredFloorProgress(location);
-  if (!floorProgress) return 0;
-  return floorProgress.lessonStars[location.lessonId] ?? 0;
+): Promise<number> {
+  const lessonProgress = await getLessonProgress(
+    getFloorLessonProgressLessonId(location, location.lessonId),
+  );
+  return toIntegerInRange(lessonProgress?.stars ?? 0, 0, DEFAULT_FLOOR_MAX_STARS);
 }
 
-export function getStoredFloorPassCount(
+export async function getStoredFloorPassCount(
   location: FloorProgressLocation,
   maxStars: number = DEFAULT_FLOOR_MAX_STARS,
-): number {
-  const floorProgress = getStoredFloorProgress(location, maxStars);
+): Promise<number> {
+  const floorProgress = await getStoredFloorProgress(location, maxStars);
   if (!floorProgress) return 0;
-  return floorProgress.passCount ?? 0;
+  return toIntegerInRange(floorProgress.passCount ?? 0, 0, maxStars);
 }
 
-export function saveFloorProgress({
+export async function saveFloorProgress({
   worldId,
   world1BookPage,
   towerId,
@@ -241,21 +217,16 @@ export function saveFloorProgress({
   lessonPasses,
   completed = true,
   maxStars = DEFAULT_FLOOR_MAX_STARS,
-}: SaveFloorProgressInput): StoredFloorProgress {
-  const progressData = readProgressData();
+}: SaveFloorProgressInput): Promise<StoredFloorProgress> {
   const location: FloorProgressLocation = {
     worldId,
     world1BookPage,
     towerId,
     floorId,
   };
-  const { key: floorKey, progress: storedProgress } = resolveStoredFloorProgress(
-    progressData.floors,
-    location,
-    maxStars,
-  );
+
   const current =
-    storedProgress ??
+    (await getStoredFloorProgress(location, maxStars)) ??
     ({
       stars: 0,
       completed: false,
@@ -265,11 +236,9 @@ export function saveFloorProgress({
   const mergedLessonStars: Record<string, number> = { ...current.lessonStars };
   for (const [lessonId, stars] of Object.entries(lessonStars)) {
     const normalizedStars = toIntegerInRange(stars, 0, DEFAULT_FLOOR_MAX_STARS);
-    mergedLessonStars[lessonId] = Math.max(
-      mergedLessonStars[lessonId] ?? 0,
-      normalizedStars,
-    );
+    mergedLessonStars[lessonId] = Math.max(mergedLessonStars[lessonId] ?? 0, normalizedStars);
   }
+
   const mergedLessonPasses: Record<string, boolean> = {
     ...(current.lessonPasses ?? {}),
   };
@@ -278,9 +247,11 @@ export function saveFloorProgress({
       mergedLessonPasses[lessonId] = true;
     }
   }
-  const mergedPassCountFromLessonPasses = Object.values(mergedLessonPasses).filter(
-    Boolean,
-  ).length;
+
+  const mergedPassCountFromLessonPasses = Object.values(mergedLessonPasses).filter(Boolean)
+    .length;
+
+  // Ưu tiên dữ liệu passCount lớn nhất để không mất thành tích khi user chơi lại nhiều lần.
   const resolvedPassCount =
     passCount === undefined && mergedPassCountFromLessonPasses === 0
       ? current.passCount
@@ -300,17 +271,161 @@ export function saveFloorProgress({
     lessonStars: mergedLessonStars,
     passCount: resolvedPassCount,
     lessonPasses:
-      Object.keys(mergedLessonPasses).length > 0
-        ? mergedLessonPasses
-        : undefined,
+      Object.keys(mergedLessonPasses).length > 0 ? mergedLessonPasses : undefined,
   };
 
-  progressData.floors[floorKey] = updated;
-  writeProgressData(progressData);
+  const floorProgressId = getFloorProgressLessonId(location);
+  const floorLessonPassesKey = getFloorLessonPassesKey(location);
+  const now = Date.now();
+
+  await upsertProgress({
+    lessonId: floorProgressId,
+    stars: updated.stars,
+    completed: updated.completed,
+    passCountOverride: updated.passCount,
+    lastPlayed: now,
+  });
+
+  await Promise.all(
+    Object.entries(updated.lessonStars).map(([lessonId, stars]) =>
+      upsertProgress({
+        lessonId: getFloorLessonProgressLessonId(location, lessonId),
+        stars,
+        completed: stars > 0,
+        lastPlayed: now,
+      }),
+    ),
+  );
+
+  await setAppState(
+    floorLessonPassesKey,
+    (updated.lessonPasses ?? {}) as Record<string, JsonValue>,
+  );
+
   return updated;
 }
 
-export function hydrateFloorsWithStoredProgress({
+export async function hydrateFloorsWithStoredProgress({
+  worldId,
+  world1BookPage,
+  towerId,
+  floors,
+}: {
+  worldId: number;
+  world1BookPage?: number;
+  towerId: number;
+  floors: Floor[];
+}): Promise<Floor[]> {
+  const hydratedFloors = await Promise.all(
+    floors.map(async (floor) => {
+      const stored = await getStoredFloorProgress(
+        {
+          worldId,
+          world1BookPage,
+          towerId,
+          floorId: floor.id,
+        },
+        floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS,
+      );
+
+      if (!stored) return floor;
+
+      return {
+        ...floor,
+        stars: typeof stored.passCount === "number" ? stored.passCount : stored.stars,
+        completed: floor.completed || stored.completed,
+      };
+    }),
+  );
+
+  return hydratedFloors;
+}
+
+export async function hydrateTowersWithStoredProgress({
+  worldId,
+  world1BookPage,
+  towers,
+}: {
+  worldId: number;
+  world1BookPage?: number;
+  towers: Tower[];
+}): Promise<Tower[]> {
+  const hydratedTowers = await Promise.all(
+    towers.map(async (tower) => {
+      if (tower.isBoss || !tower.floors?.length) {
+        return tower;
+      }
+
+      const floorCount = tower.floors.length;
+      let completedFloorsAtMaxStars = 0;
+
+      await Promise.all(
+        tower.floors.map(async (floor) => {
+          const floorMaxStars = floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS;
+          const stored = await getStoredFloorProgress(
+            {
+              worldId,
+              world1BookPage,
+              towerId: tower.id,
+              floorId: floor.id,
+            },
+            floorMaxStars,
+          );
+          const floorStars = stored?.stars ?? floor.stars ?? 0;
+
+          if (floorStars >= floorMaxStars) {
+            completedFloorsAtMaxStars += 1;
+          }
+        }),
+      );
+
+      return {
+        ...tower,
+        stars: completedFloorsAtMaxStars,
+        maxStars: floorCount,
+      };
+    }),
+  );
+
+  return hydratedTowers;
+}
+
+export function useStoredFloorProgress(
+  location: FloorProgressLocation,
+  maxStars: number = DEFAULT_FLOOR_MAX_STARS,
+): StoredFloorProgress | null {
+  const storedProgress = useLiveQuery(
+    () => getStoredFloorProgress(location, maxStars),
+    [
+      location.worldId,
+      location.world1BookPage,
+      location.towerId,
+      location.floorId,
+      maxStars,
+    ],
+  );
+
+  return storedProgress ?? null;
+}
+
+export function useStoredLessonStars(
+  location: FloorProgressLocation & { lessonId: string },
+): number {
+  const stars = useLiveQuery(
+    () => getStoredLessonStars(location),
+    [
+      location.worldId,
+      location.world1BookPage,
+      location.towerId,
+      location.floorId,
+      location.lessonId,
+    ],
+  );
+
+  return stars ?? 0;
+}
+
+export function useHydratedFloorsWithStoredProgress({
   worldId,
   world1BookPage,
   towerId,
@@ -321,34 +436,29 @@ export function hydrateFloorsWithStoredProgress({
   towerId: number;
   floors: Floor[];
 }): Floor[] {
-  const progressData = readProgressData();
+  const floorSignature = floors
+    .map(
+      (floor) =>
+        `${floor.id}:${floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS}:${floor.stars ?? 0}:${floor.completed ? 1 : 0}`,
+    )
+    .join("|");
 
-  return floors.map((floor) => {
-    const stored = resolveStoredFloorProgress(
-      progressData.floors,
-      {
+  const hydratedFloors = useLiveQuery(
+    () =>
+      hydrateFloorsWithStoredProgress({
         worldId,
         world1BookPage,
         towerId,
-        floorId: floor.id,
-      },
-      floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS,
-    ).progress;
+        floors,
+      }),
+    [worldId, world1BookPage, towerId, floorSignature],
+  );
 
-    if (!stored) return floor;
-
-    return {
-      ...floor,
-      stars:
-        typeof stored.passCount === "number"
-          ? stored.passCount
-          : stored.stars,
-      completed: floor.completed || stored.completed,
-    };
-  });
+  // Fallback an toàn khi live query chưa có dữ liệu lần đầu.
+  return hydratedFloors ?? floors;
 }
 
-export function hydrateTowersWithStoredProgress({
+export function useHydratedTowersWithStoredProgress({
   worldId,
   world1BookPage,
   towers,
@@ -357,39 +467,25 @@ export function hydrateTowersWithStoredProgress({
   world1BookPage?: number;
   towers: Tower[];
 }): Tower[] {
-  const progressData = readProgressData();
+  const towerSignature = towers
+    .map((tower) => {
+      const floorSignature = (tower.floors ?? [])
+        .map((floor) => `${floor.id}:${floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS}`)
+        .join(",");
+      return `${tower.id}:${tower.isBoss ? 1 : 0}:${floorSignature}`;
+    })
+    .join("|");
 
-  return towers.map((tower) => {
-    if (tower.isBoss || !tower.floors?.length) {
-      return tower;
-    }
+  const hydratedTowers = useLiveQuery(
+    () =>
+      hydrateTowersWithStoredProgress({
+        worldId,
+        world1BookPage,
+        towers,
+      }),
+    [worldId, world1BookPage, towerSignature],
+  );
 
-    const floorCount = tower.floors.length;
-    let completedFloorsAtMaxStars = 0;
-
-    for (const floor of tower.floors) {
-      const floorMaxStars = floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS;
-      const stored = resolveStoredFloorProgress(
-        progressData.floors,
-        {
-          worldId,
-          world1BookPage,
-          towerId: tower.id,
-          floorId: floor.id,
-        },
-        floorMaxStars,
-      ).progress;
-      const floorStars = stored?.stars ?? floor.stars ?? 0;
-
-      if (floorStars >= floorMaxStars) {
-        completedFloorsAtMaxStars += 1;
-      }
-    }
-
-    return {
-      ...tower,
-      stars: completedFloorsAtMaxStars,
-      maxStars: floorCount,
-    };
-  });
+  // Fallback an toàn khi live query chưa hoàn tất.
+  return hydratedTowers ?? towers;
 }

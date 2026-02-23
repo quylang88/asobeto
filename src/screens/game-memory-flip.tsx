@@ -17,6 +17,7 @@ import {
   getStoredFloorProgress,
   saveFloorProgress,
 } from "@/lib/floor-progress";
+import { getAppState, setAppState } from "@/services/dbService";
 import {
   BrokenHeartCelebration,
   StarCelebration,
@@ -174,30 +175,21 @@ function getEasyFailStreakStorageKey(lessonId: string): string {
   return `${lessonId}:memory-flip:easy-fail-streak`;
 }
 
-function readStoredTutorialSeen(lessonId: string): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(getTutorialSeenStorageKey(lessonId)) === "1";
+async function readStoredTutorialSeen(lessonId: string): Promise<boolean> {
+  const value = await getAppState<boolean>(getTutorialSeenStorageKey(lessonId));
+  return value === true;
 }
 
-function readStoredEasyFailStreak(lessonId: string): number {
-  if (typeof window === "undefined") return 0;
-  const raw = window.localStorage.getItem(getEasyFailStreakStorageKey(lessonId));
-  return clampInteger(Number(raw ?? 0), 0, MAX_FAIL_STREAK);
+async function readStoredEasyFailStreak(lessonId: string): Promise<number> {
+  const value = await getAppState<number>(getEasyFailStreakStorageKey(lessonId));
+  return clampInteger(Number(value ?? 0), 0, MAX_FAIL_STREAK);
 }
 
-function getInitialLevelStars({
-  worldId,
-  world1BookPage,
-  towerId,
-  floorId,
-  floorMaxStars,
+function getInitialLevelStarsFromStoredProgress({
+  stored,
   lessonId,
 }: {
-  worldId: number;
-  world1BookPage?: number;
-  towerId: number;
-  floorId: number;
-  floorMaxStars: number;
+  stored: Awaited<ReturnType<typeof getStoredFloorProgress>>;
   lessonId: string;
 }): Record<MemoryFlipLevelId, number> {
   const emptyStars: Record<MemoryFlipLevelId, number> = {
@@ -205,17 +197,6 @@ function getInitialLevelStars({
     normal: 0,
     hard: 0,
   };
-  if (typeof window === "undefined") return emptyStars;
-
-  const stored = getStoredFloorProgress(
-    {
-      worldId,
-      world1BookPage,
-      towerId,
-      floorId,
-    },
-    floorMaxStars,
-  );
   if (!stored) return emptyStars;
 
   const easyStored =
@@ -368,22 +349,14 @@ export function GameMemoryFlip({
   const [tutorialPairIds, setTutorialPairIds] = useState<[string, string] | null>(
     null,
   );
-  const [hasSeenEasyTutorial, setHasSeenEasyTutorial] = useState(() =>
-    readStoredTutorialSeen(lesson.id),
-  );
-  const [easyFailStreak, setEasyFailStreak] = useState(() =>
-    readStoredEasyFailStreak(lesson.id),
-  );
+  const [hasSeenEasyTutorial, setHasSeenEasyTutorial] = useState(false);
+  const [easyFailStreak, setEasyFailStreak] = useState(0);
   const [levelStars, setLevelStars] = useState<Record<MemoryFlipLevelId, number>>(
-    () =>
-      getInitialLevelStars({
-        worldId,
-        world1BookPage,
-        towerId,
-        floorId,
-        floorMaxStars,
-        lessonId: lesson.id,
-      }),
+    {
+      easy: 0,
+      normal: 0,
+      hard: 0,
+    },
   );
 
   const currentLevelRef = useRef<MemoryFlipLevelConfig | null>(null);
@@ -420,15 +393,6 @@ export function GameMemoryFlip({
     1,
     12,
   );
-  const tutorialSeenStorageKey = useMemo(
-    () => getTutorialSeenStorageKey(lesson.id),
-    [lesson.id],
-  );
-  const easyFailStreakStorageKey = useMemo(
-    () => getEasyFailStreakStorageKey(lesson.id),
-    [lesson.id],
-  );
-
   useEffect(() => {
     if (!memoryConfig?.audio) return;
     preloadAppAudioList([
@@ -437,6 +401,43 @@ export function GameMemoryFlip({
       memoryConfig.audio.mismatch,
     ]);
   }, [memoryConfig]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const [storedFloorProgress, storedTutorialSeen, storedFailStreak] =
+        await Promise.all([
+          getStoredFloorProgress(
+            {
+              worldId,
+              world1BookPage,
+              towerId,
+              floorId,
+            },
+            floorMaxStars,
+          ),
+          readStoredTutorialSeen(lesson.id),
+          readStoredEasyFailStreak(lesson.id),
+        ]);
+
+      if (cancelled) return;
+
+      setLevelStars(
+        getInitialLevelStarsFromStoredProgress({
+          stored: storedFloorProgress,
+          lessonId: lesson.id,
+        }),
+      );
+      setHasSeenEasyTutorial(storedTutorialSeen);
+      setEasyFailStreak(storedFailStreak);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId]);
 
   const clearScheduledAction = useCallback((actionId: number | null) => {
     if (actionId === null) return;
@@ -551,7 +552,7 @@ export function GameMemoryFlip({
         hard: clampInteger(nextLevelStars.hard, 0, 3),
       };
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
-      saveFloorProgress({
+      void saveFloorProgress({
         worldId,
         world1BookPage,
         towerId,
@@ -571,26 +572,19 @@ export function GameMemoryFlip({
 
   const persistEasyTutorialSeen = useCallback(
     (seen: boolean) => {
-      if (typeof window === "undefined") return;
-      if (seen) {
-        window.localStorage.setItem(tutorialSeenStorageKey, "1");
-      } else {
-        window.localStorage.removeItem(tutorialSeenStorageKey);
-      }
+      void setAppState(getTutorialSeenStorageKey(lesson.id), seen);
       setHasSeenEasyTutorial(seen);
     },
-    [tutorialSeenStorageKey],
+    [lesson.id],
   );
 
   const persistEasyFailStreak = useCallback(
     (streak: number) => {
       const normalized = clampInteger(streak, 0, MAX_FAIL_STREAK);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(easyFailStreakStorageKey, String(normalized));
-      }
+      void setAppState(getEasyFailStreakStorageKey(lesson.id), normalized);
       setEasyFailStreak(normalized);
     },
-    [easyFailStreakStorageKey],
+    [lesson.id],
   );
 
   const getEarnedStarsOnPass = useCallback((level: MemoryFlipLevelConfig) => {

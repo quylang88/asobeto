@@ -2282,3 +2282,50 @@ Validation
 - `pnpm lint -- src/screens/lesson-interface/scoring/tracing-scoring.ts src/screens/lesson-interface/components/letter-tracing-canvas.tsx` pass
 - `pnpm exec tsc --noEmit` pass
 - `pnpm lint` pass
+
+Update (Remove spelling flow in world-1 listen-look lesson)
+
+Scope
+- [x] Remove world-1 vocab spelling logic usage.
+- [x] Convert vocab listen-look lesson from spelling audio to pronunciation audio.
+- [x] Rename lesson title to "Nghe phát âm và nhìn".
+
+Implementation
+- `src/data/lesson-templates/vocab/create-vocab-listen-look-lesson.ts`
+  - `title`: `Nghe phát âm và nhìn`
+  - `mainAudio`: switched from `buildVocabSpellingAudio(...)` to `buildVocabWordAudio(...)`.
+- `src/data/lesson-templates/vocab/shared.ts`
+  - removed import/export of `buildVocabSpellingAudio`.
+- `src/data/audio/catalog.ts`
+  - removed `AUDIO_TEMPLATES.VOCAB_SPELLING`.
+  - removed `buildVocabSpellingAudio(...)` helper.
+- `src/data/audio/index.ts`
+  - removed re-export `buildVocabSpellingAudio`.
+- `src/data/audio/registry.ts`
+  - removed `templates.vocabSpelling` metadata entry.
+
+Validation
+- `pnpm lint -- src/data/lesson-templates/vocab/create-vocab-listen-look-lesson.ts src/data/lesson-templates/vocab/shared.ts src/data/audio/catalog.ts src/data/audio/index.ts src/data/audio/registry.ts` pass
+- `pnpm exec tsc --noEmit` pass
+- `pnpm lint` pass
+- grep check in `src`: no remaining `spelling` / `đánh vần` / `buildVocabSpellingAudio` / `VOCAB_SPELLING` references.
+
+Update (Force all world-1 vocabulary floors to 5 stars)
+
+Scope
+- [x] Fix vocab floors (including page-2/page-3) being limited to 3 stars.
+- [x] Standardize all `vocabulary_learning` floors to 5-star cap.
+
+Implementation
+- Updated `src/data/world-1-alphabet/floor-templates.ts`:
+  - added `VOCABULARY_FLOOR_MAX_STARS = 5`.
+  - `createVocabularyLearningFloor(...)` now always sets `maxStars` to this constant, overriding per-tower misconfig values.
+
+Impact
+- All vocab floors across page-1/page-2/page-3 now share the same 5-star cap behavior.
+- Existing tower config entries that still pass `maxStars: 3` no longer force 3 stars.
+
+Validation
+- `pnpm lint -- src/data/world-1-alphabet/floor-templates.ts` pass
+- `pnpm exec tsc --noEmit` pass
+- `pnpm lint` pass

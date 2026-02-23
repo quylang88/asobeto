@@ -14,6 +14,7 @@ import {
   getStoredFloorProgress,
   saveFloorProgress,
 } from "@/lib/floor-progress";
+import { getAppState, setAppState } from "@/services/dbService";
 import { LessonCompletionView } from "@/components/completion";
 import { PrimaryButton } from "@/components/common/primary-button";
 import { SuccessCelebrationOverlay } from "@/components/celebrations";
@@ -158,44 +159,34 @@ function getTutorialStorageKey(lessonId: string): string {
   return `${lessonId}:cow-grass-tutorial`;
 }
 
-function readTutorialState(lessonId: string): TutorialStorageState {
-  if (typeof window === "undefined") {
-    return {
-      hasSeen: false,
-      failedAttemptsSinceTutorial: 0,
-    };
-  }
-  const raw = window.localStorage.getItem(getTutorialStorageKey(lessonId));
-  if (!raw) {
-    return {
-      hasSeen: false,
-      failedAttemptsSinceTutorial: 0,
-    };
-  }
-  try {
-    const parsed = JSON.parse(raw) as Partial<TutorialStorageState>;
-    return {
-      hasSeen: parsed.hasSeen === true,
-      failedAttemptsSinceTutorial: clampInteger(
-        Number(parsed.failedAttemptsSinceTutorial ?? 0),
-        0,
-        MAX_FAIL_STREAK,
-      ),
-    };
-  } catch {
-    return {
-      hasSeen: false,
-      failedAttemptsSinceTutorial: 0,
-    };
-  }
+function getDefaultTutorialState(): TutorialStorageState {
+  return {
+    hasSeen: false,
+    failedAttemptsSinceTutorial: 0,
+  };
 }
 
-function writeTutorialState(
+async function readTutorialState(lessonId: string): Promise<TutorialStorageState> {
+  const stored = await getAppState<TutorialStorageState>(getTutorialStorageKey(lessonId));
+  if (!stored) {
+    return getDefaultTutorialState();
+  }
+
+  return {
+    hasSeen: stored.hasSeen === true,
+    failedAttemptsSinceTutorial: clampInteger(
+      Number(stored.failedAttemptsSinceTutorial ?? 0),
+      0,
+      MAX_FAIL_STREAK,
+    ),
+  };
+}
+
+async function writeTutorialState(
   lessonId: string,
   state: TutorialStorageState,
-): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(getTutorialStorageKey(lessonId), JSON.stringify(state));
+): Promise<void> {
+  await setAppState(getTutorialStorageKey(lessonId), state);
 }
 
 function pickRandomItem<T>(list: readonly T[]): T {
@@ -206,19 +197,11 @@ function pickRandomItem<T>(list: readonly T[]): T {
   return list[index] ?? list[0];
 }
 
-function getInitialLevelStars({
-  worldId,
-  world1BookPage,
-  towerId,
-  floorId,
-  floorMaxStars,
+function getInitialLevelStarsFromStoredProgress({
+  stored,
   lessonId,
 }: {
-  worldId: number;
-  world1BookPage?: number;
-  towerId: number;
-  floorId: number;
-  floorMaxStars: number;
+  stored: Awaited<ReturnType<typeof getStoredFloorProgress>>;
   lessonId: string;
 }): Record<AnimalFeedLevelId, number> {
   const emptyStars: Record<AnimalFeedLevelId, number> = {
@@ -226,17 +209,6 @@ function getInitialLevelStars({
     normal: 0,
     hard: 0,
   };
-  if (typeof window === "undefined") return emptyStars;
-
-  const stored = getStoredFloorProgress(
-    {
-      worldId,
-      world1BookPage,
-      towerId,
-      floorId,
-    },
-    floorMaxStars,
-  );
   if (!stored) return emptyStars;
 
   const easyStored = stored.lessonStars[getLevelStorageKey(lessonId, "easy")] ?? 0;
@@ -302,15 +274,11 @@ export function GameAnimalFeed({
   const [pendingUnlockLevelId, setPendingUnlockLevelId] =
     useState<AnimalFeedLevelId | null>(null);
   const [levelStars, setLevelStars] = useState<Record<AnimalFeedLevelId, number>>(
-    () =>
-      getInitialLevelStars({
-        worldId,
-        world1BookPage,
-        towerId,
-        floorId,
-        floorMaxStars,
-        lessonId: lesson.id,
-      }),
+    {
+      easy: 0,
+      normal: 0,
+      hard: 0,
+    },
   );
 
   useEffect(() => {
@@ -322,6 +290,35 @@ export function GameAnimalFeed({
       cowGrassConfig.audio.eatingGrass,
     ]);
   }, [cowGrassConfig]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const stored = await getStoredFloorProgress(
+        {
+          worldId,
+          world1BookPage,
+          towerId,
+          floorId,
+        },
+        floorMaxStars,
+      );
+      if (cancelled) return;
+
+      setLevelStars(
+        getInitialLevelStarsFromStoredProgress({
+          stored,
+          lessonId: lesson.id,
+        }),
+      );
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId]);
 
   const [tutorialElapsedMs, setTutorialElapsedMs] = useState(0);
   const [tutorialDurationMs, setTutorialDurationMs] = useState(0);
@@ -477,7 +474,7 @@ export function GameAnimalFeed({
         hard: clampInteger(nextLevelStars.hard, 0, 3),
       };
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
-      saveFloorProgress({
+      void saveFloorProgress({
         worldId,
         world1BookPage,
         towerId,
@@ -615,32 +612,40 @@ export function GameAnimalFeed({
 
   const maybeMarkTutorialSeen = useCallback(() => {
     if (!cowGrassConfig) return;
-    const state = readTutorialState(lesson.id);
-    writeTutorialState(lesson.id, {
-      hasSeen: true,
-      failedAttemptsSinceTutorial:
-        state.failedAttemptsSinceTutorial >=
-        cowGrassConfig.tutorial.replayAfterFailCount
-          ? 0
-          : state.failedAttemptsSinceTutorial,
-    });
+    const run = async () => {
+      const state = await readTutorialState(lesson.id);
+      await writeTutorialState(lesson.id, {
+        hasSeen: true,
+        failedAttemptsSinceTutorial:
+          state.failedAttemptsSinceTutorial >=
+          cowGrassConfig.tutorial.replayAfterFailCount
+            ? 0
+            : state.failedAttemptsSinceTutorial,
+      });
+    };
+
+    void run();
   }, [cowGrassConfig, lesson.id]);
 
   const updateTutorialAttemptState = useCallback(
     (levelId: AnimalFeedLevelId, passed: boolean) => {
       if (!cowGrassConfig?.tutorial) return;
       if (levelId !== cowGrassConfig.tutorial.enabledLevelId) return;
-      const current = readTutorialState(lesson.id);
-      writeTutorialState(lesson.id, {
-        hasSeen: current.hasSeen || passed,
-        failedAttemptsSinceTutorial: passed
-          ? 0
-          : clampInteger(
-              current.failedAttemptsSinceTutorial + 1,
-              0,
-              MAX_FAIL_STREAK,
-            ),
-      });
+      const run = async () => {
+        const current = await readTutorialState(lesson.id);
+        await writeTutorialState(lesson.id, {
+          hasSeen: current.hasSeen || passed,
+          failedAttemptsSinceTutorial: passed
+            ? 0
+            : clampInteger(
+                current.failedAttemptsSinceTutorial + 1,
+                0,
+                MAX_FAIL_STREAK,
+              ),
+        });
+      };
+
+      void run();
     },
     [cowGrassConfig, lesson.id],
   );
@@ -1053,10 +1058,10 @@ export function GameAnimalFeed({
   }, [frameLoop]);
 
   const shouldShowTutorialForLevel = useCallback(
-    (levelId: AnimalFeedLevelId): boolean => {
+    async (levelId: AnimalFeedLevelId): Promise<boolean> => {
       if (!cowGrassConfig?.tutorial) return false;
       if (levelId !== cowGrassConfig.tutorial.enabledLevelId) return false;
-      const tutorialState = readTutorialState(lesson.id);
+      const tutorialState = await readTutorialState(lesson.id);
       if (!tutorialState.hasSeen) return true;
       return (
         tutorialState.failedAttemptsSinceTutorial >=
@@ -1167,7 +1172,7 @@ export function GameAnimalFeed({
   }, [startGameplay]);
 
   const startLevelFlow = useCallback(
-    (levelId: AnimalFeedLevelId) => {
+    async (levelId: AnimalFeedLevelId) => {
       if (!isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
@@ -1176,7 +1181,7 @@ export function GameAnimalFeed({
       setDidPass(null);
       setLastEarnedStars(0);
       setShowRulesModal(false);
-      const shouldRunTutorial = shouldShowTutorialForLevel(levelId);
+      const shouldRunTutorial = await shouldShowTutorialForLevel(levelId);
       pendingTutorialRef.current = shouldRunTutorial;
       setPendingTutorial(shouldRunTutorial);
       clearRoundVisuals();
@@ -1539,7 +1544,9 @@ export function GameAnimalFeed({
               description={cowGrassConfig.instruction ?? ""}
               levels={levelSelectCards}
               recentlyUnlockedLevelId={recentlyUnlockedLevelId}
-              onSelectLevel={(levelId) => startLevelFlow(levelId as AnimalFeedLevelId)}
+              onSelectLevel={(levelId) =>
+                void startLevelFlow(levelId as AnimalFeedLevelId)
+              }
               onUnlockLevel={(levelId) =>
                 handleUnlockLevel(levelId as AnimalFeedLevelId)
               }

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, Star, Lock, Crown, Sparkles } from "lucide-react";
 import { Mascot } from "../../components/beto-mascot";
 import { getWorldData, getWorldTheme } from "../../data/game-config";
 import type { Floor, World1BookPage } from "../../data/game-config";
-import { hydrateFloorsWithStoredProgress } from "@/lib/floor-progress";
+import { useHydratedFloorsWithStoredProgress } from "@/lib/floor-progress";
 import { TowerBadgeAwardOverlay } from "@/components/badges";
 import {
   createTowerBadgeRecord,
@@ -534,18 +534,15 @@ export function FloorSelection({
   const floorTheme = getWorldTheme(worldId, world1BookPage).floorMap;
   const currentTower = worldData.towers.find((t) => t.id === towerId);
   const [earnedBadge, setEarnedBadge] = useState<TowerBadgeRecord | null>(null);
-  const floors = useMemo(
-    () =>
-      hydrateFloorsWithStoredProgress({
-        worldId,
-        world1BookPage,
-        towerId,
-        floors: currentTower?.floors ?? [],
-      }),
-    [currentTower?.floors, towerId, world1BookPage, worldId],
-  );
+  const floors = useHydratedFloorsWithStoredProgress({
+    worldId,
+    world1BookPage,
+    towerId,
+    floors: currentTower?.floors ?? [],
+  });
 
   useEffect(() => {
+    let cancelled = false;
     if (!currentTower || currentTower.isBoss || floors.length === 0) {
       return;
     }
@@ -558,20 +555,28 @@ export function FloorSelection({
       return;
     }
 
-    const unlockResult = unlockTowerBadge({ worldId, towerId });
-    if (!unlockResult.newlyUnlocked) {
-      return;
-    }
+    const run = async () => {
+      const unlockResult = await unlockTowerBadge({ worldId, towerId });
+      if (cancelled || !unlockResult.newlyUnlocked) {
+        return;
+      }
 
-    queueMicrotask(() => {
-      setEarnedBadge(
-        createTowerBadgeRecord({
-          worldId,
-          tower: currentTower,
-          unlockedAt: unlockResult.unlockedAt,
-        }),
-      );
-    });
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setEarnedBadge(
+          createTowerBadgeRecord({
+            worldId,
+            tower: currentTower,
+            unlockedAt: unlockResult.unlockedAt,
+          }),
+        );
+      });
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [currentTower, floors, towerId, worldId]);
 
   return (

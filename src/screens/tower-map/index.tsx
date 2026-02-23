@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Mascot } from "@/components/beto-mascot";
@@ -12,7 +12,7 @@ import {
   getWorldTheme,
   type World1BookPage,
 } from "@/data/game-config";
-import { hydrateTowersWithStoredProgress } from "@/lib/floor-progress";
+import { useHydratedTowersWithStoredProgress } from "@/lib/floor-progress";
 import { ConnectionLinesSVG, FlyingStar, TowerNode } from "./components";
 import type { FlyingStarData, TowerSelectionProps } from "./types";
 
@@ -56,15 +56,11 @@ export function TowerSelection({
     currentPage === 2 || currentPage === 3 ? currentPage : 1;
   const worldData = getWorldData(worldId, { world1BookPage });
   const worldTheme = getWorldTheme(worldId, world1BookPage).towerMap;
-  const towerState = useMemo(
-    () =>
-      hydrateTowersWithStoredProgress({
-        worldId,
-        world1BookPage,
-        towers: worldData.towers,
-      }),
-    [world1BookPage, worldId, worldData.towers],
-  );
+  const towerState = useHydratedTowersWithStoredProgress({
+    worldId,
+    world1BookPage,
+    towers: worldData.towers,
+  });
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [flyingStars, setFlyingStars] = useState<FlyingStarData[]>([]);
   const [showFlash, setShowFlash] = useState(false);

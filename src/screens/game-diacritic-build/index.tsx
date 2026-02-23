@@ -15,6 +15,7 @@ import {
   getStoredFloorProgress,
   saveFloorProgress,
 } from "@/lib/floor-progress";
+import { getAppState, setAppState } from "@/services/dbService";
 import {
   BrokenHeartCelebration,
   StarCelebration,
@@ -171,61 +172,39 @@ function isLevelUnlockedByStars(
   return stars.normal > 0;
 }
 
-function readTutorialState(lessonId: string): TutorialState {
-  if (typeof window === "undefined") {
-    return {
-      hasSeen: false,
-      failedAttemptsSinceTutorial: 0,
-    };
-  }
-
-  const raw = window.localStorage.getItem(getTutorialStorageKey(lessonId));
-  if (!raw) {
-    return {
-      hasSeen: false,
-      failedAttemptsSinceTutorial: 0,
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<TutorialState>;
-    return {
-      hasSeen: Boolean(parsed.hasSeen),
-      failedAttemptsSinceTutorial: clampInteger(
-        parsed.failedAttemptsSinceTutorial ?? 0,
-        0,
-        1000,
-      ),
-    };
-  } catch {
-    return {
-      hasSeen: false,
-      failedAttemptsSinceTutorial: 0,
-    };
-  }
+function getDefaultTutorialState(): TutorialState {
+  return {
+    hasSeen: false,
+    failedAttemptsSinceTutorial: 0,
+  };
 }
 
-function writeTutorialState(lessonId: string, state: TutorialState): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    getTutorialStorageKey(lessonId),
-    JSON.stringify(state),
-  );
+async function readTutorialState(lessonId: string): Promise<TutorialState> {
+  const stored = await getAppState<TutorialState>(getTutorialStorageKey(lessonId));
+  if (!stored) return getDefaultTutorialState();
+
+  return {
+    hasSeen: Boolean(stored.hasSeen),
+    failedAttemptsSinceTutorial: clampInteger(
+      stored.failedAttemptsSinceTutorial ?? 0,
+      0,
+      1000,
+    ),
+  };
 }
 
-function getInitialLevelStars({
-  worldId,
-  world1BookPage,
-  towerId,
-  floorId,
-  floorMaxStars,
+async function writeTutorialState(
+  lessonId: string,
+  state: TutorialState,
+): Promise<void> {
+  await setAppState(getTutorialStorageKey(lessonId), state);
+}
+
+function getInitialLevelStarsFromStoredProgress({
+  stored,
   lessonId,
 }: {
-  worldId: number;
-  world1BookPage?: number;
-  towerId: number;
-  floorId: number;
-  floorMaxStars: number;
+  stored: Awaited<ReturnType<typeof getStoredFloorProgress>>;
   lessonId: string;
 }): Record<DiacriticBuildLevelId, number> {
   const emptyStars: Record<DiacriticBuildLevelId, number> = {
@@ -233,17 +212,6 @@ function getInitialLevelStars({
     normal: 0,
     hard: 0,
   };
-  if (typeof window === "undefined") return emptyStars;
-
-  const stored = getStoredFloorProgress(
-    {
-      worldId,
-      world1BookPage,
-      towerId,
-      floorId,
-    },
-    floorMaxStars,
-  );
   if (!stored) return emptyStars;
 
   const easyStored =
@@ -342,16 +310,11 @@ export function GameDiacriticBuild({
     useState<DiacriticBuildLevelId | null>(null);
   const [levelStars, setLevelStars] = useState<
     Record<DiacriticBuildLevelId, number>
-  >(() =>
-    getInitialLevelStars({
-      worldId,
-      world1BookPage,
-      towerId,
-      floorId,
-      floorMaxStars,
-      lessonId: lesson.id,
-    }),
-  );
+  >({
+    easy: 0,
+    normal: 0,
+    hard: 0,
+  });
 
   useEffect(() => {
     if (!diacriticConfig) return;
@@ -362,6 +325,35 @@ export function GameDiacriticBuild({
       diacriticConfig.audio.fail,
     ]);
   }, [diacriticConfig]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const stored = await getStoredFloorProgress(
+        {
+          worldId,
+          world1BookPage,
+          towerId,
+          floorId,
+        },
+        floorMaxStars,
+      );
+      if (cancelled) return;
+
+      setLevelStars(
+        getInitialLevelStarsFromStoredProgress({
+          stored,
+          lessonId: lesson.id,
+        }),
+      );
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId]);
 
   const selectedLevel = selectedLevelId
     ? (levelMap.get(selectedLevelId) ?? null)
@@ -491,7 +483,7 @@ export function GameDiacriticBuild({
         hard: clampInteger(nextLevelStars.hard, 0, 3),
       };
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
-      saveFloorProgress({
+      void saveFloorProgress({
         worldId,
         world1BookPage,
         towerId,
@@ -514,13 +506,17 @@ export function GameDiacriticBuild({
       if (!diacriticConfig?.tutorial) return;
       if (levelId !== diacriticConfig.tutorial.enabledLevelId) return;
 
-      const current = readTutorialState(lesson.id);
-      writeTutorialState(lesson.id, {
-        hasSeen: true,
-        failedAttemptsSinceTutorial: passed
-          ? 0
-          : current.failedAttemptsSinceTutorial + 1,
-      });
+      const run = async () => {
+        const current = await readTutorialState(lesson.id);
+        await writeTutorialState(lesson.id, {
+          hasSeen: true,
+          failedAttemptsSinceTutorial: passed
+            ? 0
+            : current.failedAttemptsSinceTutorial + 1,
+        });
+      };
+
+      void run();
     },
     [diacriticConfig, lesson.id],
   );
@@ -1111,10 +1107,10 @@ export function GameDiacriticBuild({
   );
 
   const shouldShowTutorialForLevel = useCallback(
-    (levelId: DiacriticBuildLevelId): boolean => {
+    async (levelId: DiacriticBuildLevelId): Promise<boolean> => {
       if (!diacriticConfig?.tutorial) return false;
       if (levelId !== diacriticConfig.tutorial.enabledLevelId) return false;
-      const tutorialState = readTutorialState(lesson.id);
+      const tutorialState = await readTutorialState(lesson.id);
       if (!tutorialState.hasSeen) return true;
       return (
         tutorialState.failedAttemptsSinceTutorial >=
@@ -1125,15 +1121,20 @@ export function GameDiacriticBuild({
   );
 
   const markTutorialShown = useCallback(() => {
-    if (!diacriticConfig?.tutorial) return;
-    const current = readTutorialState(lesson.id);
-    writeTutorialState(lesson.id, {
-      hasSeen: true,
-      failedAttemptsSinceTutorial: current.failedAttemptsSinceTutorial >=
-        diacriticConfig.tutorial.replayAfterFailCount
-        ? 0
-        : current.failedAttemptsSinceTutorial,
-    });
+    const tutorialConfig = diacriticConfig?.tutorial;
+    if (!tutorialConfig) return;
+    const run = async () => {
+      const current = await readTutorialState(lesson.id);
+      await writeTutorialState(lesson.id, {
+        hasSeen: true,
+        failedAttemptsSinceTutorial: current.failedAttemptsSinceTutorial >=
+          tutorialConfig.replayAfterFailCount
+          ? 0
+          : current.failedAttemptsSinceTutorial,
+      });
+    };
+
+    void run();
   }, [diacriticConfig, lesson.id]);
 
   const runTutorialSequence = useCallback(
@@ -1215,7 +1216,7 @@ export function GameDiacriticBuild({
   );
 
   const startLevel = useCallback(
-    (levelId: DiacriticBuildLevelId) => {
+    async (levelId: DiacriticBuildLevelId) => {
       if (!isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level || !diacriticConfig) return;
@@ -1251,7 +1252,7 @@ export function GameDiacriticBuild({
       syncCatcherPosition(playfieldSizeRef.current.width / 2);
       activeCatcherPointerIdRef.current = null;
 
-      if (shouldShowTutorialForLevel(level.id)) {
+      if (await shouldShowTutorialForLevel(level.id)) {
         runTutorialSequence(level);
       } else {
         beginLiveRound(level);
@@ -1333,7 +1334,7 @@ export function GameDiacriticBuild({
 
     const timeout = window.setTimeout(() => {
       if (countdownValue <= 1) {
-        startLevel(selectedLevelId);
+        void startLevel(selectedLevelId);
         return;
       }
       setCountdownValue((current) => current - 1);
