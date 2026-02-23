@@ -55,6 +55,7 @@ function resolveBossEntryFloorId(
 
   const hydratedFloors = hydrateFloorsWithStoredProgress({
     worldId,
+    world1BookPage,
     towerId,
     floors: bossTower.floors,
   });
@@ -304,6 +305,7 @@ export default function AsobetoApp() {
         return (
           <GameDiacriticBuild
             worldId={selectedWorldId}
+            world1BookPage={selectedWorldPage}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -319,6 +321,7 @@ export default function AsobetoApp() {
         return (
           <GameBubblePop
             worldId={selectedWorldId}
+            world1BookPage={selectedWorldPage}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -334,6 +337,7 @@ export default function AsobetoApp() {
         return (
           <GameMemoryFlip
             worldId={selectedWorldId}
+            world1BookPage={selectedWorldPage}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -349,6 +353,7 @@ export default function AsobetoApp() {
         return (
           <GameAnimalFeed
             worldId={selectedWorldId}
+            world1BookPage={selectedWorldPage}
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}
@@ -364,6 +369,7 @@ export default function AsobetoApp() {
         <LessonInterface
           key={`${selectedWorldId}-${selectedWorldPage}-${gameState.selectedTower}-${gameState.selectedFloor}`}
           worldId={selectedWorldId}
+          world1BookPage={selectedWorldPage}
           towerId={gameState.selectedTower!}
           floorId={gameState.selectedFloor!}
           floorName={selectedFloor?.nameUnlocked || "Unknown Floor"}

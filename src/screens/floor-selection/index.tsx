@@ -538,10 +538,11 @@ export function FloorSelection({
     () =>
       hydrateFloorsWithStoredProgress({
         worldId,
+        world1BookPage,
         towerId,
         floors: currentTower?.floors ?? [],
       }),
-    [currentTower?.floors, towerId, worldId],
+    [currentTower?.floors, towerId, world1BookPage, worldId],
   );
 
   useEffect(() => {

@@ -11,6 +11,7 @@ import type {
   MemoryFlipLevelConfig,
   MemoryFlipLevelId,
   MemoryFlipMoveStarRule,
+  World1BookPage,
 } from "@/data/game-config";
 import {
   getStoredFloorProgress,
@@ -65,6 +66,7 @@ interface MemoryCard {
 
 interface GameMemoryFlipProps {
   worldId: number;
+  world1BookPage?: World1BookPage;
   towerId: number;
   floorId: number;
   floorName: string;
@@ -185,12 +187,14 @@ function readStoredEasyFailStreak(lessonId: string): number {
 
 function getInitialLevelStars({
   worldId,
+  world1BookPage,
   towerId,
   floorId,
   floorMaxStars,
   lessonId,
 }: {
   worldId: number;
+  world1BookPage?: number;
   towerId: number;
   floorId: number;
   floorMaxStars: number;
@@ -206,6 +210,7 @@ function getInitialLevelStars({
   const stored = getStoredFloorProgress(
     {
       worldId,
+      world1BookPage,
       towerId,
       floorId,
     },
@@ -320,6 +325,7 @@ function CardBackIcon({
 
 export function GameMemoryFlip({
   worldId,
+  world1BookPage = 1,
   towerId,
   floorId,
   floorName,
@@ -372,6 +378,7 @@ export function GameMemoryFlip({
     () =>
       getInitialLevelStars({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         floorMaxStars,
@@ -546,6 +553,7 @@ export function GameMemoryFlip({
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
       saveFloorProgress({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         floorStars: mergedStars,
@@ -558,7 +566,7 @@ export function GameMemoryFlip({
         },
       });
     },
-    [floorId, floorMaxStars, lesson.id, towerId, worldId],
+    [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId],
   );
 
   const persistEasyTutorialSeen = useCallback(

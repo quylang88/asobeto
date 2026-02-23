@@ -8,6 +8,7 @@ import type {
   BubblePopLevelConfig,
   BubblePopLevelId,
   LessonContent,
+  World1BookPage,
 } from "@/data/game-config";
 import {
   getStoredFloorProgress,
@@ -75,6 +76,7 @@ interface BubbleBurst {
 
 interface GameBubblePopProps {
   worldId: number;
+  world1BookPage?: World1BookPage;
   towerId: number;
   floorId: number;
   floorName: string;
@@ -158,12 +160,14 @@ function getLevelStorageKey(
 
 function getInitialLevelStars({
   worldId,
+  world1BookPage,
   towerId,
   floorId,
   floorMaxStars,
   lessonId,
 }: {
   worldId: number;
+  world1BookPage?: number;
   towerId: number;
   floorId: number;
   floorMaxStars: number;
@@ -179,6 +183,7 @@ function getInitialLevelStars({
   const stored = getStoredFloorProgress(
     {
       worldId,
+      world1BookPage,
       towerId,
       floorId,
     },
@@ -212,6 +217,7 @@ function getInitialLevelStars({
 
 export function GameBubblePop({
   worldId,
+  world1BookPage = 1,
   towerId,
   floorId,
   floorName,
@@ -265,6 +271,7 @@ export function GameBubblePop({
   >(() =>
     getInitialLevelStars({
       worldId,
+      world1BookPage,
       towerId,
       floorId,
       floorMaxStars,
@@ -453,6 +460,7 @@ export function GameBubblePop({
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
       saveFloorProgress({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         floorStars: mergedStars,
@@ -465,7 +473,7 @@ export function GameBubblePop({
         },
       });
     },
-    [floorId, floorMaxStars, lesson.id, towerId, worldId],
+    [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId],
   );
 
   const getEarnedStarsOnPass = useCallback(

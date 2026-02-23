@@ -3,6 +3,9 @@ import type { Floor, Tower } from "@/data/game-config";
 const FLOOR_PROGRESS_STORAGE_KEY = "asobeto-floor-progress-v1";
 const DEFAULT_FLOOR_MAX_STARS = 3;
 const MAX_FLOOR_STARS_STORAGE_CAP = 99;
+const WORLD1_ID = 1;
+const DEFAULT_WORLD1_BOOK_PAGE = 1;
+const MAX_WORLD1_BOOK_PAGE = 99;
 
 export interface StoredFloorProgress {
   stars: number;
@@ -18,6 +21,7 @@ interface StoredProgressData {
 
 interface FloorProgressLocation {
   worldId: number;
+  world1BookPage?: number;
   towerId: number;
   floorId: number;
 }
@@ -48,10 +52,61 @@ function toIntegerInRange(
 
 function getFloorStorageKey({
   worldId,
+  world1BookPage,
+  towerId,
+  floorId,
+}: FloorProgressLocation): string {
+  const resolvedPage = resolveWorld1BookPage(worldId, world1BookPage);
+  return `${worldId}:p${resolvedPage}:${towerId}:${floorId}`;
+}
+
+function getLegacyFloorStorageKey({
+  worldId,
   towerId,
   floorId,
 }: FloorProgressLocation): string {
   return `${worldId}:${towerId}:${floorId}`;
+}
+
+function resolveWorld1BookPage(
+  worldId: number,
+  world1BookPage: number | undefined,
+): number {
+  if (worldId !== WORLD1_ID) return DEFAULT_WORLD1_BOOK_PAGE;
+  const rawPage =
+    typeof world1BookPage === "number" ? world1BookPage : DEFAULT_WORLD1_BOOK_PAGE;
+  return toIntegerInRange(rawPage, DEFAULT_WORLD1_BOOK_PAGE, MAX_WORLD1_BOOK_PAGE);
+}
+
+function shouldReadLegacyWorld1Page(location: FloorProgressLocation): boolean {
+  return (
+    location.worldId === WORLD1_ID &&
+    resolveWorld1BookPage(location.worldId, location.world1BookPage) ===
+      DEFAULT_WORLD1_BOOK_PAGE
+  );
+}
+
+function resolveStoredFloorProgress(
+  floors: Record<string, StoredFloorProgress>,
+  location: FloorProgressLocation,
+  maxStars: number,
+): {
+  key: string;
+  progress: StoredFloorProgress | null;
+} {
+  const currentKey = getFloorStorageKey(location);
+  const currentProgress = normalizeFloorProgress(floors[currentKey], maxStars);
+  if (currentProgress) {
+    return { key: currentKey, progress: currentProgress };
+  }
+
+  if (!shouldReadLegacyWorld1Page(location)) {
+    return { key: currentKey, progress: null };
+  }
+
+  const legacyKey = getLegacyFloorStorageKey(location);
+  const legacyProgress = normalizeFloorProgress(floors[legacyKey], maxStars);
+  return { key: currentKey, progress: legacyProgress };
 }
 
 function normalizeFloorProgress(
@@ -155,8 +210,7 @@ export function getStoredFloorProgress(
   maxStars: number = DEFAULT_FLOOR_MAX_STARS,
 ): StoredFloorProgress | null {
   const progressData = readProgressData();
-  const floorKey = getFloorStorageKey(location);
-  return normalizeFloorProgress(progressData.floors[floorKey], maxStars);
+  return resolveStoredFloorProgress(progressData.floors, location, maxStars).progress;
 }
 
 export function getStoredLessonStars(
@@ -178,6 +232,7 @@ export function getStoredFloorPassCount(
 
 export function saveFloorProgress({
   worldId,
+  world1BookPage,
   towerId,
   floorId,
   floorStars,
@@ -188,9 +243,19 @@ export function saveFloorProgress({
   maxStars = DEFAULT_FLOOR_MAX_STARS,
 }: SaveFloorProgressInput): StoredFloorProgress {
   const progressData = readProgressData();
-  const floorKey = getFloorStorageKey({ worldId, towerId, floorId });
+  const location: FloorProgressLocation = {
+    worldId,
+    world1BookPage,
+    towerId,
+    floorId,
+  };
+  const { key: floorKey, progress: storedProgress } = resolveStoredFloorProgress(
+    progressData.floors,
+    location,
+    maxStars,
+  );
   const current =
-    progressData.floors[floorKey] ??
+    storedProgress ??
     ({
       stars: 0,
       completed: false,
@@ -247,21 +312,28 @@ export function saveFloorProgress({
 
 export function hydrateFloorsWithStoredProgress({
   worldId,
+  world1BookPage,
   towerId,
   floors,
 }: {
   worldId: number;
+  world1BookPage?: number;
   towerId: number;
   floors: Floor[];
 }): Floor[] {
   const progressData = readProgressData();
 
   return floors.map((floor) => {
-    const floorKey = getFloorStorageKey({ worldId, towerId, floorId: floor.id });
-    const stored = normalizeFloorProgress(
-      progressData.floors[floorKey],
+    const stored = resolveStoredFloorProgress(
+      progressData.floors,
+      {
+        worldId,
+        world1BookPage,
+        towerId,
+        floorId: floor.id,
+      },
       floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS,
-    );
+    ).progress;
 
     if (!stored) return floor;
 
@@ -278,9 +350,11 @@ export function hydrateFloorsWithStoredProgress({
 
 export function hydrateTowersWithStoredProgress({
   worldId,
+  world1BookPage,
   towers,
 }: {
   worldId: number;
+  world1BookPage?: number;
   towers: Tower[];
 }): Tower[] {
   const progressData = readProgressData();
@@ -295,15 +369,16 @@ export function hydrateTowersWithStoredProgress({
 
     for (const floor of tower.floors) {
       const floorMaxStars = floor.maxStars ?? DEFAULT_FLOOR_MAX_STARS;
-      const floorKey = getFloorStorageKey({
-        worldId,
-        towerId: tower.id,
-        floorId: floor.id,
-      });
-      const stored = normalizeFloorProgress(
-        progressData.floors[floorKey],
+      const stored = resolveStoredFloorProgress(
+        progressData.floors,
+        {
+          worldId,
+          world1BookPage,
+          towerId: tower.id,
+          floorId: floor.id,
+        },
         floorMaxStars,
-      );
+      ).progress;
       const floorStars = stored?.stars ?? floor.stars ?? 0;
 
       if (floorStars >= floorMaxStars) {

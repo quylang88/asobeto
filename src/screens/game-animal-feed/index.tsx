@@ -8,6 +8,7 @@ import type {
   AnimalFeedLevelId,
   AnimalFeedRoundSide,
   LessonContent,
+  World1BookPage,
 } from "@/data/game-config";
 import {
   getStoredFloorProgress,
@@ -105,6 +106,7 @@ interface PendingResult {
 
 interface GameAnimalFeedProps {
   worldId: number;
+  world1BookPage?: World1BookPage;
   towerId: number;
   floorId: number;
   floorName: string;
@@ -206,12 +208,14 @@ function pickRandomItem<T>(list: readonly T[]): T {
 
 function getInitialLevelStars({
   worldId,
+  world1BookPage,
   towerId,
   floorId,
   floorMaxStars,
   lessonId,
 }: {
   worldId: number;
+  world1BookPage?: number;
   towerId: number;
   floorId: number;
   floorMaxStars: number;
@@ -227,6 +231,7 @@ function getInitialLevelStars({
   const stored = getStoredFloorProgress(
     {
       worldId,
+      world1BookPage,
       towerId,
       floorId,
     },
@@ -262,6 +267,7 @@ function formatRoundTime(value: number): string {
 
 export function GameAnimalFeed({
   worldId,
+  world1BookPage = 1,
   towerId,
   floorId,
   floorName,
@@ -299,6 +305,7 @@ export function GameAnimalFeed({
     () =>
       getInitialLevelStars({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         floorMaxStars,
@@ -472,6 +479,7 @@ export function GameAnimalFeed({
       const mergedStars = Math.min(floorMaxStars, sumStars(normalized));
       saveFloorProgress({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         floorStars: mergedStars,
@@ -484,7 +492,7 @@ export function GameAnimalFeed({
         },
       });
     },
-    [floorId, floorMaxStars, lesson.id, towerId, worldId],
+    [floorId, floorMaxStars, lesson.id, towerId, world1BookPage, worldId],
   );
 
   const isLevelUnlocked = useCallback(

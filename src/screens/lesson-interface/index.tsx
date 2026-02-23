@@ -20,6 +20,7 @@ import {
 import {
   type LessonAnswer,
   type LessonContent,
+  type World1BookPage,
   getBossReviewRequiredPassCount,
   getWorldData,
 } from "@/data/game-config";
@@ -59,6 +60,7 @@ import {
 
 interface LessonInterfaceProps {
   worldId: number;
+  world1BookPage?: World1BookPage;
   towerId: number;
   floorId: number;
   floorName: string;
@@ -90,6 +92,7 @@ function getDisplayAnswersForLesson(
 
 export function LessonInterface({
   worldId,
+  world1BookPage = 1,
   towerId,
   floorId,
   floorMaxStars,
@@ -139,7 +142,7 @@ export function LessonInterface({
   ).length;
   const bossReviewRequiredPassCount =
     getBossReviewRequiredPassCount(activeLessonsCount);
-  const currentTower = getWorldData(worldId).towers.find(
+  const currentTower = getWorldData(worldId, { world1BookPage }).towers.find(
     (tower) => tower.id === towerId,
   );
   const isBossReviewFloor = Boolean(
@@ -235,6 +238,7 @@ export function LessonInterface({
     const storedBossReviewProgress = getStoredFloorProgress(
       {
         worldId,
+        world1BookPage,
         towerId,
         floorId,
       },
@@ -257,6 +261,7 @@ export function LessonInterface({
     floorMaxStars,
     isBossReviewFloor,
     towerId,
+    world1BookPage,
     worldId,
   ]);
 
@@ -406,6 +411,7 @@ export function LessonInterface({
       pairedTracePracticeLessonId &&
       getStoredLessonStars({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         lessonId: pairedTracePracticeLessonId,
@@ -431,6 +437,7 @@ export function LessonInterface({
     handleNext,
   } = useLessonFlow({
     worldId,
+    world1BookPage,
     towerId,
     floorId,
     floorMaxStars,

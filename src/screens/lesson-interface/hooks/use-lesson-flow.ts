@@ -23,6 +23,7 @@ import {
 
 interface UseLessonFlowParams {
   worldId: number;
+  world1BookPage?: number;
   towerId: number;
   floorId: number;
   floorMaxStars: number;
@@ -61,6 +62,7 @@ interface UseLessonFlowParams {
 
 export function useLessonFlow({
   worldId,
+  world1BookPage = 1,
   towerId,
   floorId,
   floorMaxStars,
@@ -319,6 +321,7 @@ export function useLessonFlow({
       setCompletionStars(attemptPassCount);
       saveFloorProgress({
         worldId,
+        world1BookPage,
         towerId,
         floorId,
         floorStars: 0,
@@ -340,6 +343,7 @@ export function useLessonFlow({
     setCompletionStars(attemptFloorStars);
     saveFloorProgress({
       worldId,
+      world1BookPage,
       towerId,
       floorId,
       floorStars: attemptFloorStars,
@@ -352,6 +356,7 @@ export function useLessonFlow({
     currentStep,
     floorId,
     floorMaxStars,
+    world1BookPage,
     hasLessons,
     isBossReviewFloor,
     lessonPassesThisAttemptRef,

@@ -60,9 +60,10 @@ export function TowerSelection({
     () =>
       hydrateTowersWithStoredProgress({
         worldId,
+        world1BookPage,
         towers: worldData.towers,
       }),
-    [worldId, worldData.towers],
+    [world1BookPage, worldId, worldData.towers],
   );
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [flyingStars, setFlyingStars] = useState<FlyingStarData[]>([]);
