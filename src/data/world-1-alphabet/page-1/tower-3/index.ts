@@ -1,0 +1,59 @@
+import type { Floor } from "../../types";
+import type { TowerSeed } from "../../page-seed-types";
+import {
+  createGameFloor,
+  createLetterLearningFloor,
+  createVocabularyLearningFloor,
+} from "../../floor-templates";
+import { floor1Lessons } from "./floor-1";
+import { floor2Lessons } from "./floor-2";
+import { floor3Lessons } from "./floor-3";
+import { floor4Lessons } from "./floor-4";
+
+export const tower3Floors: Floor[] = [
+  createLetterLearningFloor({
+    variant: "primary",
+    id: 1,
+    nameUnlocked: "Chữ ô",
+    descriptionUnlocked: "Giới thiệu chữ cái ô",
+    letter: "ô",
+    maxStars: 3,
+    content: floor2Lessons,
+  }),
+  createLetterLearningFloor({
+    variant: "secondary",
+    id: 2,
+    nameUnlocked: "Chữ b",
+    descriptionUnlocked: "Giới thiệu chữ cái b",
+    letter: "b",
+    maxStars: 3,
+    content: floor1Lessons,
+  }),
+  createVocabularyLearningFloor({
+    id: 3,
+    nameUnlocked: "Từ vựng",
+    descriptionUnlocked: "Ghép từ, luyện nói và viết",
+    letter: "b",
+    selectionIcon: "boos-svg",
+    maxStars: 3,
+    content: floor3Lessons,
+  }),
+  createGameFloor({
+    id: 4,
+    nameUnlocked: "Hứng dấu",
+    descriptionUnlocked: "Mini game",
+    letter: "?",
+    maxStars: 6,
+    content: floor4Lessons,
+  }),
+];
+
+export const page1Tower3Seed: TowerSeed = {
+  id: 3,
+  name: "ô",
+  letters: "ô, b",
+  stars: 3,
+  completed: true,
+  unlocked: true,
+  floors: tower3Floors,
+};

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 interface MascotProps {
   size?: "sm" | "md" | "lg";
-  emotion?: "happy" | "excited" | "thinking";
+  emotion?: "happy" | "excited" | "thinking" | "sad";
   className?: string;
 }
 
@@ -67,7 +67,9 @@ export function Mascot({
         <circle cx="40" cy="28" r="8" fill="white" />
         <circle cx="60" cy="28" r="8" fill="white" />
         <motion.circle
-          cx={emotion === "thinking" ? "38" : "42"}
+          cx={
+            emotion === "thinking" ? "38" : emotion === "sad" ? "41" : "42"
+          }
           cy="28"
           r="5"
           fill="#1E293B"
@@ -75,7 +77,9 @@ export function Mascot({
           transition={{ duration: 0.5, repeat: Infinity }}
         />
         <motion.circle
-          cx={emotion === "thinking" ? "58" : "62"}
+          cx={
+            emotion === "thinking" ? "58" : emotion === "sad" ? "59" : "62"
+          }
           cy="28"
           r="5"
           fill="#1E293B"
@@ -106,6 +110,15 @@ export function Mascot({
         )}
         {emotion === "thinking" && (
           <circle cx="55" cy="42" r="3" fill="#1E293B" />
+        )}
+        {emotion === "sad" && (
+          <path
+            d="M 42 46 Q 50 38 58 46"
+            stroke="#1E293B"
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+          />
         )}
 
         {/* Tiny wings */}

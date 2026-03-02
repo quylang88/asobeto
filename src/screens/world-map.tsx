@@ -1,9 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Lock, ChevronLeft } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Lock, ChevronLeft, Medal } from "lucide-react";
 import { Mascot } from "../components/beto-mascot";
 import { worlds } from "../data/game-config";
+import { PrimaryButton } from "@/components/common/primary-button";
+import { TowerBadgeCollectionModal } from "@/components/badges";
+import { getLetterBadgeCollection } from "@/lib/tower-badges";
 
 interface WorldMapProps {
   onSelectWorld: (worldId: number) => void;
@@ -11,22 +15,42 @@ interface WorldMapProps {
 }
 
 export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
+  const [isBadgeCollectionOpen, setIsBadgeCollectionOpen] = useState(false);
+  const letterBadges = useMemo(() => getLetterBadgeCollection(), []);
+  const unlockedBadgeCount = letterBadges.filter(
+    (badge) => badge.unlocked,
+  ).length;
+
   return (
     <div className="relative w-full h-dvh flex flex-col bg-linear-to-b from-blue-soft/30 via-background to-green-bright/20 overflow-hidden">
       {/* Header - vùng an toàn iOS */}
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm shadow-md pt-safe">
         <div className="p-4 flex items-center gap-4">
-          <motion.button
-            onClick={onBack}
-            className="p-3 bg-green-bright text-white rounded-2xl shadow-lg ios-button"
-            whileTap={{ scale: 0.95 }}
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </motion.button>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <PrimaryButton
+              onClick={onBack}
+              className="rounded-2xl shadow-lg"
+              frontClassName="p-3"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </PrimaryButton>
+          </motion.div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             Thế Giới Diệu Kỳ
           </h1>
-          <div className="ml-auto">
+          <motion.button
+            type="button"
+            onClick={() => setIsBadgeCollectionOpen(true)}
+            className="ml-auto flex items-center gap-2 rounded-2xl bg-emerald-100/80 px-3 py-2 text-emerald-700 ios-button"
+            whileTap={{ scale: 0.95 }}
+            aria-label="Xem bộ sưu tập huy hiệu"
+          >
+            <Medal className="h-5 w-5 text-emerald-600" />
+            <span className="font-bold text-foreground">
+              {unlockedBadgeCount}
+            </span>
+          </motion.button>
+          <div>
             <Mascot size="sm" emotion="happy" />
           </div>
         </div>
@@ -198,6 +222,15 @@ export function WorldMap({ onSelectWorld, onBack }: WorldMapProps) {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {isBadgeCollectionOpen && (
+          <TowerBadgeCollectionModal
+            badges={letterBadges}
+            onClose={() => setIsBadgeCollectionOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

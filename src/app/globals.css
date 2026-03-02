@@ -3,6 +3,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: "HP001_4_hang_normal";
+  src: url("/fonts/HP001_4_hang_normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "HP001_4_hang_bold";
+  src: url("/fonts/HP001_4_hang_bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   --background: oklch(0.98 0.01 85);
   --foreground: oklch(0.25 0.05 260);
@@ -94,6 +110,12 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@layer utilities {
+  .font-hp-special {
+    font-family: "HP001_4_hang_bold", var(--font-mali), sans-serif;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -121,9 +143,6 @@ body {
   -webkit-tap-highlight-color: transparent;
   /* Faster taps */
   touch-action: manipulation;
-  /* Smooth fonts */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Allow scrolling inside app container */
