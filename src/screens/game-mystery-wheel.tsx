@@ -60,7 +60,49 @@ interface WheelState {
   shieldHeart: boolean;
   shieldStar: boolean;
   x2Next: boolean;
-  extraSpin: number;
+}
+
+type MysteryRewardKind =
+  | "SHIELD_STAR"
+  | "SHIELD_HEART"
+  | "STAR_PLUS_1"
+  | "STAR_PLUS_2"
+  | "X2_NEXT";
+
+type MysteryGiftStage = "closed" | "opening";
+
+type RewardFlightVisual = "star" | "heart" | "shieldHeart" | "shieldStar" | "x2";
+type RewardFlightTarget =
+  | "starBar"
+  | "heartBar"
+  | "heartShield"
+  | "starShield"
+  | "x2Badge";
+
+interface RewardFlightToken {
+  id: number;
+  visual: RewardFlightVisual;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  delayMs: number;
+  durationMs: number;
+}
+
+interface Point2D {
+  x: number;
+  y: number;
+}
+
+interface MysteryGiftState {
+  reward: MysteryRewardKind;
+  stage: MysteryGiftStage;
+}
+
+interface SegmentSettleOptions {
+  skipRewardFlights?: boolean;
+  skipMysteryPopup?: boolean;
 }
 
 interface ScheduledAction {
@@ -113,6 +155,8 @@ const START_HEARTS = 3;
 const TARGET_STARS = 10;
 const HOLD_TO_MAX_MS = 1500;
 const SEGMENT_ANGLE = 360 / 16;
+const RESULT_NOTICE_MS = 1300;
+const MYSTERY_GIFT_POPUP_MS = 260;
 
 const INITIAL_WHEEL_STATE: WheelState = {
   hearts: START_HEARTS,
@@ -120,7 +164,6 @@ const INITIAL_WHEEL_STATE: WheelState = {
   shieldHeart: false,
   shieldStar: false,
   x2Next: false,
-  extraSpin: 0,
 };
 
 const GAME_PASS_RATE_FALLBACK: Record<GameDifficulty, number> = {
@@ -228,6 +271,166 @@ const WHEEL_SEGMENTS: WheelSegment[] = [
   },
 ];
 
+const SEGMENT_RESULT_TEXT: Record<
+  WheelSegmentKind,
+  {
+    title: string;
+    subtitle: string;
+  }
+> = {
+  MYSTERY: {
+    title: "Ô bí ẩn",
+    subtitle: "Chạm hộp quà để mở thưởng",
+  },
+  GAME_EASY: {
+    title: "Thử thách dễ",
+    subtitle: "Vượt mini game để nhận sao",
+  },
+  HEART_PLUS_1: {
+    title: "+1 tim",
+    subtitle: "Thêm 1 mạng cho bé",
+  },
+  STAR_MINUS_1: {
+    title: "-1 sao",
+    subtitle: "Mất 1 sao nếu không có khiên",
+  },
+  TRACING_ALPHA: {
+    title: "Nét chữ cái",
+    subtitle: "Hoàn thành thử thách viết",
+  },
+  STAR_PLUS_2: {
+    title: "+2 sao",
+    subtitle: "Nhận thêm 2 sao",
+  },
+  GAME_MEDIUM: {
+    title: "Thử thách vừa",
+    subtitle: "Mini game mức trung bình",
+  },
+  STAR_X2_NEXT: {
+    title: "x2 lượt kế",
+    subtitle: "Lần nhận sao kế tiếp sẽ nhân đôi",
+  },
+  STAR_PLUS_1: {
+    title: "+1 sao",
+    subtitle: "Nhận thêm 1 sao",
+  },
+  TRACING_VOCAB: {
+    title: "Nét từ vựng",
+    subtitle: "Viết từ để nhận thưởng",
+  },
+  GAME_HARD: {
+    title: "Thử thách khó",
+    subtitle: "Mini game khó, thưởng cao",
+  },
+  STAR_PLUS_3: {
+    title: "+3 sao",
+    subtitle: "Nhận thêm 3 sao",
+  },
+};
+
+const MYSTERY_REWARD_TEXT: Record<
+  MysteryRewardKind,
+  {
+    icon: string;
+    title: string;
+    subtitle: string;
+    visual: RewardFlightVisual;
+    target: RewardFlightTarget;
+  }
+> = {
+  SHIELD_STAR: {
+    icon: "🛡️⭐",
+    title: "Khiên sao",
+    subtitle: "Chặn 1 lần trừ sao",
+    visual: "shieldStar",
+    target: "starShield",
+  },
+  SHIELD_HEART: {
+    icon: "🛡️❤️",
+    title: "Khiên tim",
+    subtitle: "Chặn 1 lần mất tim",
+    visual: "shieldHeart",
+    target: "heartShield",
+  },
+  STAR_PLUS_1: {
+    icon: "⭐",
+    title: "+1 sao",
+    subtitle: "Bé nhận thêm 1 sao",
+    visual: "star",
+    target: "starBar",
+  },
+  STAR_PLUS_2: {
+    icon: "✨",
+    title: "+2 sao",
+    subtitle: "Bé nhận thêm 2 sao",
+    visual: "star",
+    target: "starBar",
+  },
+  X2_NEXT: {
+    icon: "x2",
+    title: "Thưởng x2",
+    subtitle: "Lượt sao kế tiếp được nhân đôi",
+    visual: "x2",
+    target: "x2Badge",
+  },
+};
+
+function pickMysteryReward(): MysteryRewardKind {
+  const randomValue = Math.random() * 100;
+  if (randomValue < 30) return "X2_NEXT";
+  if (randomValue < 55) return "SHIELD_HEART";
+  if (randomValue < 80) return "SHIELD_STAR";
+  if (randomValue < 94) return "STAR_PLUS_1";
+  return "STAR_PLUS_2";
+}
+
+function getElementCenter(
+  element: HTMLElement | null,
+  fallback: Point2D,
+): Point2D {
+  if (!element) return fallback;
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+}
+
+function RewardFlightIcon({ visual }: { visual: RewardFlightVisual }) {
+  if (visual === "star") {
+    return (
+      <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-amber-300/25 shadow-[0_0_24px_rgba(251,191,36,0.65)]">
+        <span className="text-3xl">⭐</span>
+      </div>
+    );
+  }
+
+  if (visual === "heart") {
+    return (
+      <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-rose-300/25 shadow-[0_0_24px_rgba(244,63,94,0.6)]">
+        <span className="text-3xl">❤️</span>
+      </div>
+    );
+  }
+
+  if (visual === "x2") {
+    return (
+      <div className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-amber-100/90 bg-amber-400 px-2 text-base font-black text-violet-950 shadow-[0_0_20px_rgba(251,191,36,0.55)]">
+        x2
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-cyan-300/25 shadow-[0_0_24px_rgba(34,211,238,0.55)]">
+      <Shield className="h-8 w-8 fill-cyan-200 text-cyan-100" />
+      <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-violet-950/85 px-1 text-[11px]">
+        {visual === "shieldHeart" ? "❤️" : "⭐"}
+      </span>
+    </div>
+  );
+}
+
 function clampNumber(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
@@ -299,6 +502,10 @@ function pickRandomItem<T>(items: T[]): T | null {
   return items[randomIndex] ?? items[0] ?? null;
 }
 
+function buildChallengeSourceKey(source: ChallengeLessonSource): string {
+  return `${source.towerId}:${source.floorId}:${source.lesson.id}:${source.kind}`;
+}
+
 function toForcedLevelId(difficulty: GameDifficulty): ForcedLevelId {
   if (difficulty === "medium") return "normal";
   return difficulty;
@@ -336,15 +543,20 @@ export function GameMysteryWheel({
   const [activeSegmentIndex, setActiveSegmentIndex] = useState<number | null>(
     null,
   );
-  const [landedIcon, setLandedIcon] = useState<string | null>(null);
+  const [mysteryGift, setMysteryGift] = useState<MysteryGiftState | null>(null);
   const [embeddedChallenge, setEmbeddedChallenge] =
     useState<EmbeddedChallenge | null>(null);
-  const [starFlyTokens, setStarFlyTokens] = useState<number[]>([]);
+  const [rewardFlights, setRewardFlights] = useState<RewardFlightToken[]>([]);
   const [heartLossPulseTick, setHeartLossPulseTick] = useState(0);
   const [shieldHeartPulseTick, setShieldHeartPulseTick] = useState(0);
   const [shieldStarPulseTick, setShieldStarPulseTick] = useState(0);
-  const [spinAgainPulseTick, setSpinAgainPulseTick] = useState(0);
+  const [spinResultPulseTick, setSpinResultPulseTick] = useState(0);
   const [confettiTick, setConfettiTick] = useState(0);
+  const [pendingStarReveal, setPendingStarReveal] = useState(0);
+  const [pendingHeartReveal, setPendingHeartReveal] = useState(0);
+  const [pendingShieldHeartReveal, setPendingShieldHeartReveal] = useState(0);
+  const [pendingShieldStarReveal, setPendingShieldStarReveal] = useState(0);
+  const [pendingX2Reveal, setPendingX2Reveal] = useState(0);
 
   const wheelStateRef = useRef(wheelState);
   const wheelRotationRef = useRef(wheelRotation);
@@ -355,8 +567,19 @@ export function GameMysteryWheel({
   const scheduledActionIdRef = useRef(1);
   const spinResolveActionIdRef = useRef<number | null>(null);
   const spinSettleActionIdRef = useRef<number | null>(null);
-  const starFlyIdRef = useRef(1);
+  const pendingSettleSegmentRef = useRef<number | null>(null);
+  const mysteryResolveActionIdRef = useRef<number | null>(null);
+  const rewardFlightIdRef = useRef(1);
   const challengeRunIdRef = useRef(0);
+  const lastTracingAlphaSourceKeyRef = useRef<string | null>(null);
+  const lastTracingVocabSourceKeyRef = useRef<string | null>(null);
+  const wheelCenterRef = useRef<HTMLDivElement | null>(null);
+  const starBarTargetRef = useRef<HTMLDivElement | null>(null);
+  const heartBarTargetRef = useRef<HTMLDivElement | null>(null);
+  const shieldHeartTargetRef = useRef<HTMLDivElement | null>(null);
+  const shieldStarTargetRef = useRef<HTMLDivElement | null>(null);
+  const x2TargetRef = useRef<HTMLDivElement | null>(null);
+  const mysteryGiftBoxRef = useRef<HTMLButtonElement | null>(null);
   const [learnedFloorKeys, setLearnedFloorKeys] = useState<Set<string>>(
     () => new Set(),
   );
@@ -499,17 +722,9 @@ export function GameMysteryWheel({
           ? miniGameUnlocked
           : miniGameAll;
     const tracingAlpha =
-      tracingAlphaLearned.length > 0
-        ? tracingAlphaLearned
-        : tracingAlphaUnlocked.length > 0
-          ? tracingAlphaUnlocked
-          : tracingAlphaAll;
+      tracingAlphaUnlocked.length > 0 ? tracingAlphaUnlocked : tracingAlphaAll;
     const tracingVocab =
-      tracingVocabLearned.length > 0
-        ? tracingVocabLearned
-        : tracingVocabUnlocked.length > 0
-          ? tracingVocabUnlocked
-          : tracingVocabAll;
+      tracingVocabUnlocked.length > 0 ? tracingVocabUnlocked : tracingVocabAll;
 
     return {
       miniGames,
@@ -522,7 +737,14 @@ export function GameMysteryWheel({
   const powerRatio = clampNumber(holdMs / HOLD_TO_MAX_MS, 0, 1);
   const powerPercent = Math.round(powerRatio * 100);
   const powerTierLabel = getPowerTierLabel(powerRatio);
-  const starsProgressRatio = clampNumber(wheelState.stars / TARGET_STARS, 0, 1);
+  const displayedHearts = Math.max(0, wheelState.hearts - pendingHeartReveal);
+  const displayedStars = Math.max(0, wheelState.stars - pendingStarReveal);
+  const showShieldHeartBadge =
+    wheelState.shieldHeart && pendingShieldHeartReveal === 0;
+  const showShieldStarBadge = wheelState.shieldStar && pendingShieldStarReveal === 0;
+  const showX2Badge = wheelState.x2Next && pendingX2Reveal === 0;
+  const hasRewardFlightActive = rewardFlights.length > 0;
+  const starsProgressRatio = clampNumber(displayedStars / TARGET_STARS, 0, 1);
   const reduceAmbientMotion = isSpinning || isHolding;
 
   const updateWheelState = useCallback(
@@ -594,8 +816,11 @@ export function GameMysteryWheel({
   const clearVisualEffectQueue = useCallback(() => {
     clearScheduledAction(spinResolveActionIdRef.current);
     clearScheduledAction(spinSettleActionIdRef.current);
+    clearScheduledAction(mysteryResolveActionIdRef.current);
     spinResolveActionIdRef.current = null;
     spinSettleActionIdRef.current = null;
+    pendingSettleSegmentRef.current = null;
+    mysteryResolveActionIdRef.current = null;
   }, [clearScheduledAction]);
 
   const playSuccessAnswer = useCallback(() => {
@@ -614,23 +839,89 @@ export function GameMysteryWheel({
     });
   }, []);
 
-  const pushFlyingStars = useCallback(
-    (count: number) => {
-      const nextTokens = Array.from({ length: Math.max(1, count) }, () => {
-        const nextId = starFlyIdRef.current;
-        starFlyIdRef.current += 1;
-        return nextId;
+  const getScreenCenterPoint = useCallback((): Point2D => {
+    if (typeof window === "undefined") {
+      return { x: 0, y: 0 };
+    }
+    return {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    };
+  }, []);
+
+  const getWheelCenterPoint = useCallback((): Point2D => {
+    return getElementCenter(wheelCenterRef.current, getScreenCenterPoint());
+  }, [getScreenCenterPoint]);
+
+  const getRewardTargetPoint = useCallback(
+    (target: RewardFlightTarget): Point2D => {
+      const fallback = getWheelCenterPoint();
+      if (target === "starBar") {
+        return getElementCenter(starBarTargetRef.current, fallback);
+      }
+      if (target === "heartBar") {
+        return getElementCenter(heartBarTargetRef.current, fallback);
+      }
+      if (target === "heartShield") {
+        return getElementCenter(shieldHeartTargetRef.current, fallback);
+      }
+      if (target === "starShield") {
+        return getElementCenter(shieldStarTargetRef.current, fallback);
+      }
+      return getElementCenter(x2TargetRef.current, fallback);
+    },
+    [getWheelCenterPoint],
+  );
+
+  const spawnRewardFlights = useCallback(
+    ({
+      visual,
+      target,
+      count = 1,
+      origin,
+    }: {
+      visual: RewardFlightVisual;
+      target: RewardFlightTarget;
+      count?: number;
+      origin?: Point2D;
+    }): number => {
+      const safeCount = Math.max(1, count);
+      const startPoint = origin ?? getWheelCenterPoint();
+      const endPoint = getRewardTargetPoint(target);
+      const nextFlights = Array.from({ length: safeCount }, (_, index) => {
+        const id = rewardFlightIdRef.current;
+        rewardFlightIdRef.current += 1;
+        const spreadX = (index - (safeCount - 1) / 2) * 8;
+        const spreadY = index % 2 === 0 ? -4 : 2;
+        const distanceX = Math.abs(startPoint.x - endPoint.x);
+        const distanceY = Math.abs(startPoint.y - endPoint.y);
+        const travelDistance = Math.hypot(distanceX, distanceY);
+        return {
+          id,
+          visual,
+          startX: startPoint.x + spreadX,
+          startY: startPoint.y + spreadY,
+          endX: endPoint.x,
+          endY: endPoint.y,
+          delayMs: index * 42,
+          durationMs: Math.round(620 + Math.min(280, travelDistance * 0.26)),
+        } satisfies RewardFlightToken;
       });
-      setStarFlyTokens((previous) => [...previous, ...nextTokens]);
-      nextTokens.forEach((tokenId) => {
-        scheduleAction(900, () => {
-          setStarFlyTokens((previous) =>
-            previous.filter((item) => item !== tokenId),
+
+      setRewardFlights((previous) => [...previous, ...nextFlights]);
+      let maxFlightEndMs = 0;
+      nextFlights.forEach((flight) => {
+        const flightEndMs = flight.delayMs + flight.durationMs + 120;
+        maxFlightEndMs = Math.max(maxFlightEndMs, flightEndMs);
+        scheduleAction(flightEndMs, () => {
+          setRewardFlights((previous) =>
+            previous.filter((item) => item.id !== flight.id),
           );
         });
       });
+      return maxFlightEndMs;
     },
-    [scheduleAction],
+    [getRewardTargetPoint, getWheelCenterPoint, scheduleAction],
   );
 
   const finalizeTurn = useCallback(() => {
@@ -646,7 +937,10 @@ export function GameMysteryWheel({
   }, []);
 
   const awardStars = useCallback(
-    (baseStars: number) => {
+    (
+      baseStars: number,
+      options?: { origin?: Point2D; skipFlight?: boolean },
+    ) => {
       if (baseStars <= 0) return;
       let gainedStars = 0;
       updateWheelState((previous) => {
@@ -666,11 +960,24 @@ export function GameMysteryWheel({
       });
 
       if (gainedStars > 0) {
-        pushFlyingStars(Math.min(3, gainedStars));
+        if (!options?.skipFlight) {
+          setPendingStarReveal((previous) => previous + gainedStars);
+          const revealDelayMs = spawnRewardFlights({
+            visual: "star",
+            target: "starBar",
+            count: Math.min(3, gainedStars),
+            origin: options?.origin,
+          });
+          scheduleAction(revealDelayMs, () => {
+            setPendingStarReveal((previous) =>
+              Math.max(0, previous - gainedStars),
+            );
+          });
+        }
         playSuccessAnswer();
       }
     },
-    [playSuccessAnswer, pushFlyingStars, updateWheelState],
+    [playSuccessAnswer, scheduleAction, spawnRewardFlights, updateWheelState],
   );
 
   const applyHeartLoss = useCallback(() => {
@@ -725,13 +1032,67 @@ export function GameMysteryWheel({
     }
   }, [updateWheelState]);
 
+  const grantX2Reward = useCallback(
+    (options?: { origin?: Point2D; skipFlight?: boolean }) => {
+      let granted = false;
+      updateWheelState((previous) => {
+        if (previous.x2Next) {
+          return previous;
+        }
+        granted = true;
+        return {
+          ...previous,
+          x2Next: true,
+        };
+      });
+
+      if (granted) {
+        if (!options?.skipFlight) {
+          setPendingX2Reveal((previous) => previous + 1);
+          const revealDelayMs = spawnRewardFlights({
+            visual: "x2",
+            target: "x2Badge",
+            origin: options?.origin,
+          });
+          scheduleAction(revealDelayMs, () => {
+            setPendingX2Reveal((previous) => Math.max(0, previous - 1));
+          });
+        }
+        playSuccessAnswer();
+        return;
+      }
+
+      awardStars(1, {
+        origin: options?.origin,
+        skipFlight: options?.skipFlight,
+      });
+    },
+    [
+      awardStars,
+      playSuccessAnswer,
+      scheduleAction,
+      spawnRewardFlights,
+      updateWheelState,
+    ],
+  );
+
   const grantShieldReward = useCallback(
-    (shieldType: "heart" | "star") => {
+    (
+      shieldType: "heart" | "star",
+      options?: {
+        origin?: Point2D;
+        alwaysShowVisual?: boolean;
+        skipFlight?: boolean;
+      },
+    ) => {
       let fallbackStars = 0;
+      let grantedShield = false;
+      let gainedHeart = false;
       updateWheelState((previous) => {
         const hasSameShield =
           shieldType === "heart" ? previous.shieldHeart : previous.shieldStar;
         if (!hasSameShield) {
+          grantedShield = true;
           return {
             ...previous,
             shieldHeart: shieldType === "heart" ? true : previous.shieldHeart,
@@ -740,6 +1101,7 @@ export function GameMysteryWheel({
         }
 
         if (previous.hearts < MAX_HEARTS && Math.random() < 0.7) {
+          gainedHeart = true;
           return {
             ...previous,
             hearts: Math.min(MAX_HEARTS, previous.hearts + 1),
@@ -750,17 +1112,60 @@ export function GameMysteryWheel({
         return previous;
       });
 
+      if (grantedShield) {
+        if (!options?.skipFlight) {
+          const setPendingReveal =
+            shieldType === "heart"
+              ? setPendingShieldHeartReveal
+              : setPendingShieldStarReveal;
+          setPendingReveal((previous) => previous + 1);
+          const revealDelayMs = spawnRewardFlights({
+            visual: shieldType === "heart" ? "shieldHeart" : "shieldStar",
+            target: shieldType === "heart" ? "heartShield" : "starShield",
+            origin: options?.origin,
+          });
+          scheduleAction(revealDelayMs, () => {
+            setPendingReveal((previous) => Math.max(0, previous - 1));
+          });
+        }
+        playSuccessAnswer();
+        return;
+      }
+
+      if (options?.alwaysShowVisual && !options.skipFlight) {
+        spawnRewardFlights({
+          visual: shieldType === "heart" ? "shieldHeart" : "shieldStar",
+          target: shieldType === "heart" ? "heartShield" : "starShield",
+          origin: options.origin,
+        });
+      }
+
+      if (gainedHeart) {
+        playSuccessAnswer();
+      }
+
       if (fallbackStars > 0) {
-        awardStars(fallbackStars);
+        awardStars(fallbackStars, {
+          origin: options?.origin,
+          skipFlight: options?.skipFlight,
+        });
       }
     },
-    [awardStars, updateWheelState],
+    [
+      awardStars,
+      playSuccessAnswer,
+      scheduleAction,
+      spawnRewardFlights,
+      updateWheelState,
+    ],
   );
 
   const resolveChallengeRun = useCallback((runId: number): boolean => {
     if (runId !== challengeRunIdRef.current) return false;
     challengeRunIdRef.current += 1;
     setEmbeddedChallenge(null);
+    setActiveSegmentIndex(null);
+    setMysteryGift(null);
     return true;
   }, []);
 
@@ -819,11 +1224,20 @@ export function GameMysteryWheel({
 
   const launchTracingChallenge = useCallback(
     (mode: "alpha" | "vocab") => {
-      const source = pickRandomItem(
+      const pool =
+        mode === "alpha" ? challengePools.tracingAlpha : challengePools.tracingVocab;
+      const lastSourceKeyRef =
         mode === "alpha"
-          ? challengePools.tracingAlpha
-          : challengePools.tracingVocab,
-      );
+          ? lastTracingAlphaSourceKeyRef
+          : lastTracingVocabSourceKeyRef;
+      const previousSourceKey = lastSourceKeyRef.current;
+      const eligiblePool =
+        previousSourceKey && pool.length > 1
+          ? pool.filter(
+              (candidate) => buildChallengeSourceKey(candidate) !== previousSourceKey,
+            )
+          : pool;
+      const source = pickRandomItem(eligiblePool.length > 0 ? eligiblePool : pool);
 
       if (!source) {
         const fallbackPass = Math.random() < 0.68;
@@ -838,6 +1252,7 @@ export function GameMysteryWheel({
 
       challengeRunIdRef.current += 1;
       const runId = challengeRunIdRef.current;
+      lastSourceKeyRef.current = buildChallengeSourceKey(source);
       setEmbeddedChallenge({
         runId,
         type: "tracing",
@@ -854,54 +1269,93 @@ export function GameMysteryWheel({
     ],
   );
 
+  const applyMysteryReward = useCallback(
+    (
+      rewardKind: MysteryRewardKind,
+      origin: Point2D,
+      options?: { skipFlight?: boolean },
+    ) => {
+      if (rewardKind === "SHIELD_HEART") {
+        grantShieldReward("heart", {
+          origin,
+          alwaysShowVisual: true,
+          skipFlight: options?.skipFlight,
+        });
+        return;
+      }
+      if (rewardKind === "SHIELD_STAR") {
+        grantShieldReward("star", {
+          origin,
+          alwaysShowVisual: true,
+          skipFlight: options?.skipFlight,
+        });
+        return;
+      }
+      if (rewardKind === "STAR_PLUS_1") {
+        awardStars(1, { origin, skipFlight: options?.skipFlight });
+        return;
+      }
+      if (rewardKind === "STAR_PLUS_2") {
+        awardStars(2, { origin, skipFlight: options?.skipFlight });
+        return;
+      }
+      grantX2Reward({ origin, skipFlight: options?.skipFlight });
+    },
+    [awardStars, grantShieldReward, grantX2Reward],
+  );
+
   const resolveMystery = useCallback(() => {
-    const randomValue = Math.random() * 100;
-    if (randomValue < 35) {
-      updateWheelState((previous) => ({
+    setMysteryGift({
+      reward: pickMysteryReward(),
+      stage: "closed",
+    });
+  }, []);
+
+  const openMysteryGift = useCallback(() => {
+    if (!mysteryGift || mysteryGift.stage !== "closed") return;
+    const rewardKind = mysteryGift.reward;
+    const rewardOrigin = getElementCenter(
+      mysteryGiftBoxRef.current,
+      getWheelCenterPoint(),
+    );
+    setMysteryGift((previous) => {
+      if (!previous) return previous;
+      return {
         ...previous,
-        extraSpin: previous.extraSpin + 1,
-      }));
-      setSpinAgainPulseTick((tick) => tick + 1);
-      finalizeTurn();
-      return;
-    }
+        stage: "opening",
+      };
+    });
 
-    if (randomValue < 60) {
-      grantShieldReward("heart");
+    clearScheduledAction(mysteryResolveActionIdRef.current);
+    mysteryResolveActionIdRef.current = scheduleAction(620, () => {
+      mysteryResolveActionIdRef.current = null;
+      applyMysteryReward(rewardKind, rewardOrigin);
+      setMysteryGift(null);
       finalizeTurn();
-      return;
-    }
-
-    if (randomValue < 85) {
-      grantShieldReward("star");
-      finalizeTurn();
-      return;
-    }
-
-    if (randomValue < 95) {
-      awardStars(1);
-      finalizeTurn();
-      return;
-    }
-
-    awardStars(2);
-    finalizeTurn();
-  }, [awardStars, finalizeTurn, grantShieldReward, updateWheelState]);
+    });
+  }, [
+    applyMysteryReward,
+    clearScheduledAction,
+    finalizeTurn,
+    getWheelCenterPoint,
+    mysteryGift,
+    scheduleAction,
+  ]);
 
   const settleSegment = useCallback(
-    (segmentIndex: number) => {
+    (segmentIndex: number, options?: SegmentSettleOptions) => {
       const segment = WHEEL_SEGMENTS[segmentIndex];
       switch (segment.kind) {
         case "STAR_PLUS_1":
-          awardStars(1);
+          awardStars(1, { skipFlight: options?.skipRewardFlights });
           finalizeTurn();
           break;
         case "STAR_PLUS_2":
-          awardStars(2);
+          awardStars(2, { skipFlight: options?.skipRewardFlights });
           finalizeTurn();
           break;
         case "STAR_PLUS_3":
-          awardStars(3);
+          awardStars(3, { skipFlight: options?.skipRewardFlights });
           finalizeTurn();
           break;
         case "STAR_MINUS_1":
@@ -909,17 +1363,37 @@ export function GameMysteryWheel({
           finalizeTurn();
           break;
         case "HEART_PLUS_1":
-          updateWheelState((previous) => ({
-            ...previous,
-            hearts: Math.min(MAX_HEARTS, previous.hearts + 1),
-          }));
+          let gainedHearts = 0;
+          updateWheelState((previous) => {
+            const nextHearts = Math.min(MAX_HEARTS, previous.hearts + 1);
+            gainedHearts = nextHearts - previous.hearts;
+            return {
+              ...previous,
+              hearts: nextHearts,
+            };
+          });
+          if (gainedHearts > 0) {
+            if (options?.skipRewardFlights) {
+              playSuccessAnswer();
+            } else {
+              setPendingHeartReveal((previous) => previous + gainedHearts);
+              const revealDelayMs = spawnRewardFlights({
+                visual: "heart",
+                target: "heartBar",
+                count: gainedHearts,
+              });
+              scheduleAction(revealDelayMs, () => {
+                setPendingHeartReveal((previous) =>
+                  Math.max(0, previous - gainedHearts),
+                );
+              });
+              playSuccessAnswer();
+            }
+          }
           finalizeTurn();
           break;
         case "STAR_X2_NEXT":
-          updateWheelState((previous) => ({
-            ...previous,
-            x2Next: true,
-          }));
+          grantX2Reward({ skipFlight: options?.skipRewardFlights });
           finalizeTurn();
           break;
         case "GAME_EASY":
@@ -938,6 +1412,14 @@ export function GameMysteryWheel({
           launchTracingChallenge("vocab");
           break;
         case "MYSTERY":
+          if (options?.skipMysteryPopup) {
+            const mysteryReward = pickMysteryReward();
+            applyMysteryReward(mysteryReward, getWheelCenterPoint(), {
+              skipFlight: options.skipRewardFlights,
+            });
+            finalizeTurn();
+            break;
+          }
           resolveMystery();
           break;
         default:
@@ -946,12 +1428,18 @@ export function GameMysteryWheel({
       }
     },
     [
+      applyMysteryReward,
       applyStarMinus,
       awardStars,
       finalizeTurn,
+      grantX2Reward,
+      getWheelCenterPoint,
       launchGameChallenge,
       launchTracingChallenge,
+      playSuccessAnswer,
       resolveMystery,
+      scheduleAction,
+      spawnRewardFlights,
       updateWheelState,
     ],
   );
@@ -959,13 +1447,34 @@ export function GameMysteryWheel({
   const triggerSpin = useCallback(
     (power: number) => {
       if (gameStatus !== "playing") return;
-      if (isSpinning || embeddedChallenge) return;
+      if (isSpinning || embeddedChallenge || mysteryGift || hasRewardFlightActive)
+        return;
 
-      updateWheelState((previous) => ({
-        ...previous,
-        extraSpin: previous.extraSpin > 0 ? previous.extraSpin - 1 : 0,
-      }));
-      setLandedIcon(null);
+      if (
+        spinSettleActionIdRef.current !== null &&
+        pendingSettleSegmentRef.current !== null
+      ) {
+        const pendingSegment = pendingSettleSegmentRef.current;
+        clearScheduledAction(spinSettleActionIdRef.current);
+        spinSettleActionIdRef.current = null;
+        pendingSettleSegmentRef.current = null;
+        settleSegment(pendingSegment, {
+          skipRewardFlights: true,
+          skipMysteryPopup: true,
+        });
+        const pendingKind = WHEEL_SEGMENTS[pendingSegment]?.kind;
+        if (
+          pendingKind === "GAME_EASY" ||
+          pendingKind === "GAME_MEDIUM" ||
+          pendingKind === "GAME_HARD" ||
+          pendingKind === "TRACING_ALPHA" ||
+          pendingKind === "TRACING_VOCAB"
+        ) {
+          return;
+        }
+      }
+
+      setMysteryGift(null);
       setActiveSegmentIndex(null);
       clearVisualEffectQueue();
 
@@ -993,22 +1502,29 @@ export function GameMysteryWheel({
         const landedSegment = spinTargetIndexRef.current;
         if (landedSegment === null) return;
         setActiveSegmentIndex(landedSegment);
-        setLandedIcon(WHEEL_SEGMENTS[landedSegment]?.icon ?? null);
+        setSpinResultPulseTick((tick) => tick + 1);
+        const landedKind = WHEEL_SEGMENTS[landedSegment]?.kind;
+        const settleDelayMs =
+          landedKind === "MYSTERY" ? MYSTERY_GIFT_POPUP_MS : RESULT_NOTICE_MS;
+        pendingSettleSegmentRef.current = landedSegment;
 
-        spinSettleActionIdRef.current = scheduleAction(280, () => {
+        spinSettleActionIdRef.current = scheduleAction(settleDelayMs, () => {
           spinSettleActionIdRef.current = null;
+          pendingSettleSegmentRef.current = null;
           settleSegment(landedSegment);
         });
       });
     },
     [
+      clearScheduledAction,
       clearVisualEffectQueue,
       embeddedChallenge,
       gameStatus,
+      hasRewardFlightActive,
       isSpinning,
+      mysteryGift,
       scheduleAction,
       settleSegment,
-      updateWheelState,
     ],
   );
 
@@ -1030,7 +1546,14 @@ export function GameMysteryWheel({
   }, [holdMs, isHolding, triggerSpin]);
 
   const beginHolding = useCallback(() => {
-    if (gameStatus !== "playing" || isSpinning || embeddedChallenge) return;
+    if (
+      gameStatus !== "playing" ||
+      isSpinning ||
+      embeddedChallenge ||
+      mysteryGift ||
+      hasRewardFlightActive
+    )
+      return;
     if (isHolding) return;
 
     if (holdRafRef.current !== null) {
@@ -1057,7 +1580,14 @@ export function GameMysteryWheel({
     };
 
     holdRafRef.current = window.requestAnimationFrame(tick);
-  }, [embeddedChallenge, gameStatus, isHolding, isSpinning]);
+  }, [
+    embeddedChallenge,
+    gameStatus,
+    hasRewardFlightActive,
+    isHolding,
+    isSpinning,
+    mysteryGift,
+  ]);
 
   const handleWheelPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -1082,9 +1612,14 @@ export function GameMysteryWheel({
     setIsSpinning(false);
     setSpinHintDismissed(false);
     setActiveSegmentIndex(null);
-    setLandedIcon(null);
+    setMysteryGift(null);
     setEmbeddedChallenge(null);
-    setStarFlyTokens([]);
+    setRewardFlights([]);
+    setPendingStarReveal(0);
+    setPendingHeartReveal(0);
+    setPendingShieldHeartReveal(0);
+    setPendingShieldStarReveal(0);
+    setPendingX2Reveal(0);
   }, [clearVisualEffectQueue]);
 
   useEffect(() => {
@@ -1144,7 +1679,12 @@ export function GameMysteryWheel({
         shieldHeart: wheelStateRef.current.shieldHeart,
         shieldStar: wheelStateRef.current.shieldStar,
         x2Next: wheelStateRef.current.x2Next,
-        extraSpin: wheelStateRef.current.extraSpin,
+        mysteryGift: mysteryGift
+          ? {
+              stage: mysteryGift.stage,
+              reward: mysteryGift.reward,
+            }
+          : null,
         activeMission: embeddedChallenge
           ? {
               type: embeddedChallenge.type,
@@ -1174,6 +1714,7 @@ export function GameMysteryWheel({
     gameStatus,
     isHolding,
     isSpinning,
+    mysteryGift,
     powerRatio,
   ]);
 
@@ -1317,10 +1858,29 @@ export function GameMysteryWheel({
   }
 
   const wheelSize = "min(72vw, 400px)";
+  const activeSegment =
+    activeSegmentIndex !== null ? (WHEEL_SEGMENTS[activeSegmentIndex] ?? null) : null;
+  const activeSegmentText = activeSegment
+    ? SEGMENT_RESULT_TEXT[activeSegment.kind]
+    : null;
+  const mysteryRewardText = mysteryGift
+    ? MYSTERY_REWARD_TEXT[mysteryGift.reward]
+    : null;
+  const showSpinResultCard =
+    !!activeSegment &&
+    activeSegment.kind !== "MYSTERY" &&
+    !isSpinning &&
+    !mysteryGift;
 
   const canSpin =
-    gameStatus === "playing" && !isSpinning && !isHolding && !embeddedChallenge;
-  const showHoldHint = canSpin && !activeSegmentIndex && !spinHintDismissed;
+    gameStatus === "playing" &&
+    !isSpinning &&
+    !isHolding &&
+    !embeddedChallenge &&
+    !mysteryGift &&
+    !hasRewardFlightActive;
+  const showHoldHint =
+    canSpin && activeSegmentIndex === null && !spinHintDismissed;
 
   return (
     <div className="relative h-dvh w-full overflow-hidden text-white">
@@ -1419,8 +1979,16 @@ export function GameMysteryWheel({
               <div className="flex items-center gap-3 px-3.5 py-2.5">
               {/* Hearts */}
               <div className="relative flex items-center gap-0.5 rounded-xl bg-violet-900/50 px-2 py-1.5">
+                <span
+                  ref={shieldHeartTargetRef}
+                  className="pointer-events-none absolute -right-1.5 -top-1.5 h-4 w-4 opacity-0"
+                />
+                <span
+                  ref={heartBarTargetRef}
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 opacity-0"
+                />
                 {Array.from({ length: MAX_HEARTS }, (_, index) => {
-                  const filled = index < wheelState.hearts;
+                  const filled = index < displayedHearts;
                   return (
                     <motion.span
                       key={index}
@@ -1437,7 +2005,7 @@ export function GameMysteryWheel({
                     </motion.span>
                   );
                 })}
-                {wheelState.shieldHeart && (
+                {showShieldHeartBadge && (
                   <motion.div
                     key={shieldHeartPulseTick}
                     initial={{ scale: 0.7, opacity: 0 }}
@@ -1453,6 +2021,10 @@ export function GameMysteryWheel({
               {/* Star progress bar */}
               <div className="flex-1">
                 <div className="relative h-6 overflow-hidden rounded-full border border-amber-300/30 bg-violet-900/60">
+                  <span
+                    ref={starBarTargetRef}
+                    className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-0"
+                  />
                   <motion.div
                     className="absolute inset-y-0 left-0 rounded-full"
                     style={{
@@ -1470,7 +2042,7 @@ export function GameMysteryWheel({
                   <div className="absolute inset-0 flex items-center justify-center gap-1">
                     <Star className="h-3.5 w-3.5 fill-white text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" />
                     <span className="text-xs font-black tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                      {wheelState.stars}/{TARGET_STARS}
+                      {displayedStars}/{TARGET_STARS}
                     </span>
                   </div>
                 </div>
@@ -1479,17 +2051,28 @@ export function GameMysteryWheel({
             </div>
             </div>
 
+            <div className="pointer-events-none absolute -top-2 right-3 z-10 h-6 w-[3.6rem]">
+              <span
+                ref={shieldStarTargetRef}
+                className="absolute left-0 top-0 h-6 w-6 opacity-0"
+              />
+              <span
+                ref={x2TargetRef}
+                className="absolute right-0 top-0 h-6 w-6 opacity-0"
+              />
+            </div>
+
             {/* Floating x2 / shield indicators (no layout shift) */}
             <AnimatePresence>
-              {(wheelState.x2Next || wheelState.shieldStar) && (
+              {(showX2Badge || showShieldStarBadge) && (
                 <motion.div
                   initial={{ opacity: 0, y: -6, scale: 0.92 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.95 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="pointer-events-none absolute -top-2 right-3 z-20 flex items-center gap-1.5"
+                  className="pointer-events-none absolute -top-2 right-3 z-20 flex h-6 w-[3.6rem] items-center justify-between"
                 >
-                  {wheelState.shieldStar && (
+                  {showShieldStarBadge && (
                     <motion.div
                       key={`shield-star-${shieldStarPulseTick}`}
                       animate={{ scale: [1, 1.08, 1] }}
@@ -1499,7 +2082,7 @@ export function GameMysteryWheel({
                       <Shield className="h-3.5 w-3.5 fill-violet-950 text-violet-950" />
                     </motion.div>
                   )}
-                  {wheelState.x2Next && (
+                  {showX2Badge && (
                     <motion.div
                       animate={{ scale: [1, 1.08, 1] }}
                       transition={{ duration: 0.85, repeat: Infinity }}
@@ -1512,37 +2095,13 @@ export function GameMysteryWheel({
               )}
             </AnimatePresence>
 
-            {/* Floating extra-spin badge (no layout shift) */}
-            <AnimatePresence>
-              {wheelState.extraSpin > 0 && (
-                <motion.div
-                  key={spinAgainPulseTick}
-                  initial={{ opacity: 0, scale: 0.88, y: -8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: -6 }}
-                  transition={{ duration: 0.26, ease: "easeOut" }}
-                  className="pointer-events-none absolute right-3 top-full z-20 mt-1"
-                >
-                  <motion.div
-                    animate={{ y: [0, -1.5, 0] }}
-                    transition={{ duration: 1.25, repeat: Infinity, ease: "easeInOut" }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/45 bg-[linear-gradient(120deg,rgba(6,95,70,0.88),rgba(5,150,105,0.84),rgba(16,185,129,0.9))] px-2.5 py-1 text-[11px] font-black text-emerald-50 shadow-[0_0_16px_rgba(16,185,129,0.42)]"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <span>{"Quay thêm"}</span>
-                    <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] leading-none tabular-nums">
-                      +{wheelState.extraSpin}
-                    </span>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
 
         {/* --- Wheel Area --- */}
         <div className="relative flex flex-1 items-center justify-center">
           <div
+            ref={wheelCenterRef}
             className="relative"
             style={{ width: wheelSize, height: wheelSize }}
           >
@@ -1864,34 +2423,101 @@ export function GameMysteryWheel({
               )}
             </AnimatePresence>
 
-            {/* Landed icon popup */}
+            {/* Selected segment feedback */}
             <AnimatePresence>
-              {landedIcon && !isSpinning && (
+              {showSpinResultCard && activeSegment && activeSegmentText && (
                 <motion.div
-                  key={`${landedIcon}-${activeSegmentIndex}`}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: [1, 1.2, 1] }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.5, ease: "backOut" }}
-                  className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-violet-300/30 bg-violet-900/70 px-6 py-4 text-5xl shadow-[0_0_40px_rgba(168,85,247,0.4)] backdrop-blur-md"
+                  key={`${activeSegment.kind}-${spinResultPulseTick}`}
+                  initial={{ opacity: 0, y: 10, scale: 0.88 }}
+                  animate={{ opacity: 1, y: 0, scale: [1, 1.04, 1] }}
+                  exit={{ opacity: 0, y: 8, scale: 0.9 }}
+                  transition={{ duration: 0.42, ease: "easeOut" }}
+                  className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[78%] max-w-[19rem] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-violet-200/45 bg-[radial-gradient(circle_at_25%_15%,rgba(251,191,36,0.22),rgba(76,29,149,0.9)_70%)] px-4 py-3 text-white shadow-[0_0_36px_rgba(168,85,247,0.4)] backdrop-blur-md"
                 >
-                  {landedIcon}
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-4xl">{activeSegment.icon}</span>
+                    <div className="min-w-0">
+                      <div className="font-hp-special text-xl leading-none text-amber-200">
+                        {activeSegmentText.title}
+                      </div>
+                      <div className="mt-1 text-xs text-violet-100/90">
+                        {activeSegmentText.subtitle}
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Flying stars */}
-            {starFlyTokens.map((token) => (
-              <motion.div
-                key={token}
-                initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
-                animate={{ x: "30vw", y: "-40vh", scale: 0.3, opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="pointer-events-none absolute left-1/2 top-1/2 text-3xl drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]"
-              >
-                ⭐
-              </motion.div>
-            ))}
+            {/* Mystery gift popup */}
+            <AnimatePresence>
+              {mysteryGift && mysteryRewardText && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-30 flex items-center justify-center bg-violet-950/45 backdrop-blur-[1.5px]"
+                >
+                  <motion.div
+                    initial={{ scale: 0.78, opacity: 0, y: 16 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ duration: 0.26, ease: "easeOut" }}
+                    className="mx-4 w-full max-w-[19rem] rounded-3xl border border-violet-200/35 bg-[radial-gradient(circle_at_30%_12%,rgba(251,191,36,0.26),rgba(59,7,100,0.95)_74%)] px-4 py-5 text-center shadow-[0_0_36px_rgba(139,92,246,0.45)]"
+                  >
+                    <p className="font-hp-special text-2xl text-amber-200">
+                      Ô bí ẩn!
+                    </p>
+                    <p className="mt-1 text-sm text-violet-100/90">
+                      Chạm hộp quà để mở phần thưởng
+                    </p>
+                    <motion.button
+                      ref={mysteryGiftBoxRef}
+                      type="button"
+                      onClick={openMysteryGift}
+                      disabled={mysteryGift.stage !== "closed"}
+                      whileTap={
+                        mysteryGift.stage === "closed"
+                          ? { scale: 0.92 }
+                          : undefined
+                      }
+                      animate={
+                        mysteryGift.stage === "closed"
+                          ? { y: [0, -4, 0], rotate: [0, -3, 3, 0] }
+                          : { scale: [1, 1.16, 0.98], rotate: [0, -6, 8, 0] }
+                      }
+                      transition={{
+                        duration: mysteryGift.stage === "closed" ? 1.15 : 0.55,
+                        repeat: mysteryGift.stage === "closed" ? Infinity : 0,
+                        ease: "easeInOut",
+                      }}
+                      className="mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-2xl border border-amber-200/60 bg-[radial-gradient(circle_at_30%_20%,rgba(254,240,138,0.9),rgba(234,179,8,0.85)_45%,rgba(180,83,9,0.9)_100%)] text-5xl shadow-[0_12px_28px_rgba(120,53,15,0.45)]"
+                    >
+                      {mysteryGift.stage === "opening" ? "🎉" : "🎁"}
+                    </motion.button>
+
+                    <AnimatePresence>
+                      {mysteryGift.stage === "opening" && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 12, scale: 0.82 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="mt-3 rounded-2xl border border-violet-100/30 bg-violet-900/60 px-3 py-2"
+                        >
+                          <div className="text-3xl">{mysteryRewardText.icon}</div>
+                          <p className="mt-1 font-hp-special text-xl text-amber-200">
+                            {mysteryRewardText.title}
+                          </p>
+                          <p className="text-xs text-violet-100/90">
+                            {mysteryRewardText.subtitle}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Heart loss effect */}
             <AnimatePresence>
@@ -1911,6 +2537,57 @@ export function GameMysteryWheel({
           </div>
         </div>
       </div>
+
+      {rewardFlights.map((flight) => (
+        <motion.div
+          key={flight.id}
+          className="pointer-events-none fixed left-0 top-0 z-30 -translate-x-1/2 -translate-y-1/2"
+          initial={{
+            x: flight.startX,
+            y: flight.startY,
+            scale: 0.9,
+            opacity: 0,
+            rotate: -6,
+          }}
+          animate={{
+            x: flight.endX,
+            y: flight.endY,
+            scale: 0.96,
+            rotate: 0,
+            opacity: [0, 1, 0.98],
+          }}
+          transition={{
+            x: {
+              delay: flight.delayMs / 1000,
+              duration: flight.durationMs / 1000,
+              ease: [0.22, 1, 0.36, 1],
+            },
+            y: {
+              delay: flight.delayMs / 1000,
+              duration: flight.durationMs / 1000,
+              ease: [0.22, 1, 0.36, 1],
+            },
+            scale: {
+              delay: flight.delayMs / 1000,
+              duration: flight.durationMs / 1000,
+              ease: "easeOut",
+            },
+            rotate: {
+              delay: flight.delayMs / 1000,
+              duration: flight.durationMs / 1000,
+              ease: "easeOut",
+            },
+            opacity: {
+              delay: flight.delayMs / 1000,
+              duration: flight.durationMs / 1000,
+              ease: "linear",
+              times: [0, 0.2, 1],
+            },
+          }}
+        >
+          <RewardFlightIcon visual={flight.visual} />
+        </motion.div>
+      ))}
 
       {/* ===== Win / Lose Overlay ===== */}
       <AnimatePresence>

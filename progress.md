@@ -2426,3 +2426,84 @@ Notes
 - Validation:
   - `pnpm lint` pass
   - `pnpm exec tsc --noEmit` pass
+
+---
+
+Update (Mystery wheel reward UX polish)
+
+TODO
+- [x] Make spin result feedback clearer so kids can read what segment was hit.
+- [x] Replace mystery `?` immediate resolution with tap-to-open gift popup flow.
+- [x] Add reward flight animation from reward source to exact HUD destinations (star bar / heart shield / star shield / x2 badge).
+- [x] Replace mystery `quay thêm` reward by `x2` and remove extra-spin badge/state from HUD + game state.
+- [x] Re-run static checks and a Playwright automation run.
+
+Notes
+- Added segment-level feedback card in center (`Bé vừa trúng ...`) with title + subtitle per segment kind.
+- `MYSTERY` now opens a gift modal (`🎁`): user must tap the box; then reward reveal animates and applies after delay.
+- New mystery reward table:
+  - `X2_NEXT`
+  - `SHIELD_HEART`
+  - `SHIELD_STAR`
+  - `STAR_PLUS_1`
+  - `STAR_PLUS_2`
+- Removed `extraSpin` from `WheelState`, resolver logic, HUD, and `render_game_to_text` payload.
+- Added precise reward flight system using viewport coordinates from refs:
+  - `starBarTargetRef`
+  - `shieldHeartTargetRef`
+  - `shieldStarTargetRef`
+  - `x2TargetRef`
+  - origin from wheel center or gift box center.
+
+Validation
+- `pnpm exec tsc --noEmit` pass
+- `pnpm lint` pass
+- Ran skill Playwright client:
+  - `node "$WEB_GAME_CLIENT" --url http://127.0.0.1:3000 --click-selector "text=BẮT ĐẦU" --actions-json '{"steps":[{"buttons":[],"frames":6}]}' --iterations 2 --pause-ms 300 --screenshot-dir output/web-game`
+  - produced screenshots under `output/web-game/`
+- Limitation in this run: automated navigation reached world/tower/lesson screens but did not deterministically reach boss floor 2 mystery wheel from the current scripted click path.
+- Follow-up tweak: mystery shield rewards now always animate the shield icon flight when revealed from gift (even if the same shield was already active).
+- Re-ran checks after follow-up tweak:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass
+  - skill Playwright client rerun pass (same navigation limitation as above)
+- UX follow-up (user feedback):
+  - removed text label `Bé vừa trúng` from segment result card.
+  - added settle delay before action/scene transition (`RESULT_NOTICE_MS = 1300`) so kids can read result.
+  - mystery `?` now skips segment result card and pops gift directly (quick popup delay only).
+  - improved reward flight smoothness + accuracy:
+    - center-anchored fixed flight layer (`-translate-x-1/2 -translate-y-1/2`)
+    - softer two-phase arc timing per axis
+    - tuned arc lift + duration for less stiff motion and better target lock.
+- Re-validated after follow-up:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass
+- UX bugfix follow-up:
+  - fixed stale result card after returning from tracing/game by clearing active segment state when mystery challenge run resolves.
+  - fixed lost-turn bug when user spins again before settle delay: now pending segment is force-settled immediately (skip popup/flight visuals) before processing next spin input.
+  - improved reward flight path to be lower/smoother (midpoint arc instead of high arc), with center-anchor positioning and tuned timing.
+- Re-validated:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass
+- Tracing randomness update:
+  - tracing alpha/vocab now picks from unlocked pools (not only learned subset).
+  - added immediate-repeat prevention per tracing mode (`alpha` and `vocab`) using last-picked source key memory.
+- Validation after update:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass
+- Reward flight smoothness pass (user feedback):
+  - removed curved waypoint flight; now uses straight-line motion from start to target.
+  - reduced spread and rotation noise.
+  - tuned moderate duration by travel distance: `620ms .. 900ms` with smooth ease-out curve.
+- Re-validated:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass
+- Reward reveal sequencing update (user feedback):
+  - star bar, x2 badge, and shield badges now reveal only after corresponding flight icon finishes (visual delayed reveal counters).
+  - if user forces quick-spin before effect starts, existing skip path still applies reward instantly (no flight, no delay).
+  - when effect flight has started, spin is blocked until flights finish to keep animation and reveal order stable.
+  - added heart flight when landing `HEART_PLUS_1`, with delayed heart reveal synchronized to flight end.
+  - reward flights now use straight-line motion only (`start -> end`) with moderate duration.
+- Re-validated:
+  - `pnpm exec tsc --noEmit` pass
+  - `pnpm lint` pass
