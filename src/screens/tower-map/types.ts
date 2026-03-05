@@ -29,6 +29,7 @@ export interface FlyingStarData {
 
 export interface FlyingStarProps extends Omit<FlyingStarData, "id"> {
   delay: number;
+  onArrive?: () => void;
 }
 
 export interface TowerNodeProps {
