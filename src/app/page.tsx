@@ -292,6 +292,17 @@ export default function AsobetoApp() {
       const lessonBackScreen: Screen = shouldSkipFloorSelection
         ? "towerSelection"
         : "floorSelection";
+      const handleBackToBossFloorChoice = () => {
+        if (!selectedTower?.isBoss) {
+          handleBack(lessonBackScreen);
+          return;
+        }
+        setGameState((previous) => ({
+          ...previous,
+          currentScreen: "lesson",
+          selectedFloor: 1,
+        }));
+      };
       const diacriticChallengeLesson = currentLessons.find(
         (lesson) => lesson.lessonKind === "diacritic_build_challenge",
       );
@@ -313,7 +324,7 @@ export default function AsobetoApp() {
             towerId={gameState.selectedTower!}
             floorId={gameState.selectedFloor!}
             floorMaxStars={selectedFloor?.maxStars ?? 10}
-            onBack={() => handleBack(lessonBackScreen)}
+            onBack={handleBackToBossFloorChoice}
           />
         );
       }

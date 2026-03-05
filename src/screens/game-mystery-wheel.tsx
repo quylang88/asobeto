@@ -18,7 +18,8 @@ import {
   preloadAppAudioList,
   stopAllAppAudio,
 } from "@/lib/app-audio";
-import { PrimaryButton } from "@/components/common/primary-button";
+import { getAppState, setAppState } from "@/services/dbService";
+import { Mascot } from "@/components/beto-mascot";
 import { GameBubblePop } from "./game-bubble-pop";
 import { GameMemoryFlip } from "./game-memory-flip";
 import { GameAnimalFeed } from "./game-animal-feed";
@@ -134,6 +135,26 @@ type EmbeddedChallenge =
       tracingMode: "alpha" | "vocab";
     };
 
+type PersistedEmbeddedChallenge =
+  | {
+      type: "game";
+      source: ChallengeLessonSource;
+      difficulty: GameDifficulty;
+    }
+  | {
+      type: "tracing";
+      source: ChallengeLessonSource;
+      tracingMode: "alpha" | "vocab";
+    };
+
+interface MysteryWheelProgressState {
+  version: number;
+  status: "playing";
+  wheelState: WheelState;
+  spinHintDismissed: boolean;
+  embeddedChallenge: PersistedEmbeddedChallenge | null;
+}
+
 interface GameMysteryWheelProps {
   worldId: number;
   world1BookPage?: World1BookPage;
@@ -157,6 +178,8 @@ const HOLD_TO_MAX_MS = 1500;
 const SEGMENT_ANGLE = 360 / 16;
 const RESULT_NOTICE_MS = 1300;
 const MYSTERY_GIFT_POPUP_MS = 260;
+const MYSTERY_WHEEL_PROGRESS_VERSION = 1;
+const MYSTERY_WHEEL_PROGRESS_KEY_PREFIX = "mystery-wheel:progress";
 
 const INITIAL_WHEEL_STATE: WheelState = {
   hearts: START_HEARTS,
@@ -522,6 +545,156 @@ function isMiniGameLessonKind(
   );
 }
 
+function getMysteryWheelProgressStorageKey({
+  worldId,
+  world1BookPage,
+  towerId,
+  floorId,
+}: {
+  worldId: number;
+  world1BookPage: number;
+  towerId: number;
+  floorId: number;
+}): string {
+  return `${MYSTERY_WHEEL_PROGRESS_KEY_PREFIX}:${worldId}:p${world1BookPage}:${towerId}:${floorId}`;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeWheelStateSnapshot(input: unknown): WheelState | null {
+  if (!isObjectRecord(input)) return null;
+  return {
+    hearts: Math.round(clampNumber(Number(input.hearts), 0, MAX_HEARTS)),
+    stars: Math.round(clampNumber(Number(input.stars), 0, TARGET_STARS)),
+    shieldHeart: input.shieldHeart === true,
+    shieldStar: input.shieldStar === true,
+    x2Next: input.x2Next === true,
+  };
+}
+
+function normalizeChallengeLessonSource(input: unknown): ChallengeLessonSource | null {
+  if (!isObjectRecord(input)) return null;
+  if (!isObjectRecord(input.lesson)) return null;
+  const lessonSource = input.lesson;
+  if (
+    typeof lessonSource.id !== "string" ||
+    (lessonSource.type !== "active" && lessonSource.type !== "passive")
+  ) {
+    return null;
+  }
+  const towerId = Number(input.towerId);
+  const floorId = Number(input.floorId);
+  const floorMaxStars = Number(input.floorMaxStars);
+  if (
+    !Number.isFinite(towerId) ||
+    !Number.isFinite(floorId) ||
+    !Number.isFinite(floorMaxStars)
+  ) {
+    return null;
+  }
+  const kind = input.kind;
+  if (
+    kind !== "bubble_pop_challenge" &&
+    kind !== "memory_flip_challenge" &&
+    kind !== "animal_feed_challenge" &&
+    kind !== "diacritic_build_challenge" &&
+    kind !== "letter_trace_practice" &&
+    kind !== "vocab_trace_practice"
+  ) {
+    return null;
+  }
+
+  return {
+    kind,
+    lesson: lessonSource as unknown as LessonContent,
+    towerId: Math.round(towerId),
+    floorId: Math.round(floorId),
+    floorName: String(input.floorName ?? ""),
+    floorMaxStars: Math.max(1, Math.round(floorMaxStars)),
+  };
+}
+
+function normalizePersistedEmbeddedChallenge(
+  input: unknown,
+): PersistedEmbeddedChallenge | null {
+  if (!isObjectRecord(input)) return null;
+  const source = normalizeChallengeLessonSource(input.source);
+  if (!source) return null;
+
+  if (
+    input.type === "game" &&
+    (input.difficulty === "easy" ||
+      input.difficulty === "medium" ||
+      input.difficulty === "hard")
+  ) {
+    return {
+      type: "game",
+      source,
+      difficulty: input.difficulty,
+    };
+  }
+
+  if (
+    input.type === "tracing" &&
+    (input.tracingMode === "alpha" || input.tracingMode === "vocab")
+  ) {
+    return {
+      type: "tracing",
+      source,
+      tracingMode: input.tracingMode,
+    };
+  }
+
+  return null;
+}
+
+function toPersistedEmbeddedChallenge(
+  challenge: EmbeddedChallenge | null,
+): PersistedEmbeddedChallenge | null {
+  if (!challenge) return null;
+  if (challenge.type === "game") {
+    return {
+      type: "game",
+      source: challenge.source,
+      difficulty: challenge.difficulty,
+    };
+  }
+  return {
+    type: "tracing",
+    source: challenge.source,
+    tracingMode: challenge.tracingMode,
+  };
+}
+
+function CrystalIconButton({
+  onClick,
+  ariaLabel,
+  children,
+}: {
+  onClick: () => void;
+  ariaLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ scale: 1.04, y: -1 }}
+      whileTap={{ scale: 0.92 }}
+      aria-label={ariaLabel}
+      className="group relative h-12 w-12 rounded-2xl p-px shadow-[0_8px_22px_rgba(15,23,42,0.55),0_0_22px_rgba(168,85,247,0.35)]"
+    >
+      <span className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_200deg_at_50%_50%,#fde68a,#a855f7,#1d4ed8,#fde68a)] opacity-90" />
+      <span className="absolute inset-px rounded-[15px] bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.6),rgba(30,27,75,0.96)_55%,rgba(9,6,30,0.98)_100%)]" />
+      <span className="relative z-10 flex h-full w-full items-center justify-center text-amber-200 transition-colors duration-150 group-hover:text-amber-100">
+        {children}
+      </span>
+    </motion.button>
+  );
+}
+
 export function GameMysteryWheel({
   worldId,
   world1BookPage = 1,
@@ -557,6 +730,7 @@ export function GameMysteryWheel({
   const [pendingShieldHeartReveal, setPendingShieldHeartReveal] = useState(0);
   const [pendingShieldStarReveal, setPendingShieldStarReveal] = useState(0);
   const [pendingX2Reveal, setPendingX2Reveal] = useState(0);
+  const [isProgressHydrated, setIsProgressHydrated] = useState(false);
 
   const wheelStateRef = useRef(wheelState);
   const wheelRotationRef = useRef(wheelRotation);
@@ -582,6 +756,16 @@ export function GameMysteryWheel({
   const mysteryGiftBoxRef = useRef<HTMLButtonElement | null>(null);
   const [learnedFloorKeys, setLearnedFloorKeys] = useState<Set<string>>(
     () => new Set(),
+  );
+  const progressStorageKey = useMemo(
+    () =>
+      getMysteryWheelProgressStorageKey({
+        worldId,
+        world1BookPage,
+        towerId,
+        floorId,
+      }),
+    [floorId, towerId, world1BookPage, worldId],
   );
 
   useEffect(() => {
@@ -822,6 +1006,36 @@ export function GameMysteryWheel({
     pendingSettleSegmentRef.current = null;
     mysteryResolveActionIdRef.current = null;
   }, [clearScheduledAction]);
+
+  const persistProgressSnapshot = useCallback(
+    (options?: {
+      status?: "playing" | "win" | "lose";
+      challenge?: EmbeddedChallenge | null;
+    }) => {
+      const resolvedStatus = options?.status ?? gameStatus;
+      if (resolvedStatus !== "playing") {
+        void setAppState<MysteryWheelProgressState | null>(progressStorageKey, null);
+        return;
+      }
+
+      const snapshot: MysteryWheelProgressState = {
+        version: MYSTERY_WHEEL_PROGRESS_VERSION,
+        status: "playing",
+        wheelState: { ...wheelStateRef.current },
+        spinHintDismissed,
+        embeddedChallenge: toPersistedEmbeddedChallenge(
+          options?.challenge ?? embeddedChallenge,
+        ),
+      };
+      void setAppState(progressStorageKey, snapshot);
+    },
+    [embeddedChallenge, gameStatus, progressStorageKey, spinHintDismissed],
+  );
+
+  const handleBackPress = useCallback(() => {
+    persistProgressSnapshot();
+    onBack();
+  }, [onBack, persistProgressSnapshot]);
 
   const playSuccessAnswer = useCallback(() => {
     playAppAudio(AUDIO.FEEDBACK.SUCCESS_ANSWER, {
@@ -1620,7 +1834,8 @@ export function GameMysteryWheel({
     setPendingShieldHeartReveal(0);
     setPendingShieldStarReveal(0);
     setPendingX2Reveal(0);
-  }, [clearVisualEffectQueue]);
+    void setAppState<MysteryWheelProgressState | null>(progressStorageKey, null);
+  }, [clearVisualEffectQueue, progressStorageKey]);
 
   useEffect(() => {
     wheelStateRef.current = wheelState;
@@ -1629,6 +1844,96 @@ export function GameMysteryWheel({
   useEffect(() => {
     wheelRotationRef.current = wheelRotation;
   }, [wheelRotation]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const stored = await getAppState<MysteryWheelProgressState | null>(
+        progressStorageKey,
+      );
+      if (cancelled) return;
+
+      if (
+        !stored ||
+        stored.version !== MYSTERY_WHEEL_PROGRESS_VERSION ||
+        stored.status !== "playing"
+      ) {
+        setIsProgressHydrated(true);
+        return;
+      }
+
+      const restoredWheelState = normalizeWheelStateSnapshot(stored.wheelState);
+      if (!restoredWheelState) {
+        setIsProgressHydrated(true);
+        return;
+      }
+
+      clearVisualEffectQueue();
+      setWheelState(restoredWheelState);
+      wheelStateRef.current = restoredWheelState;
+      setGameStatus("playing");
+      setWheelRotation(0);
+      wheelRotationRef.current = 0;
+      setSpinDurationMs(0);
+      setIsHolding(false);
+      holdStartRef.current = null;
+      setHoldMs(0);
+      setIsSpinning(false);
+      setSpinHintDismissed(stored.spinHintDismissed === true);
+      setActiveSegmentIndex(null);
+      setMysteryGift(null);
+      setRewardFlights([]);
+      setPendingStarReveal(0);
+      setPendingHeartReveal(0);
+      setPendingShieldHeartReveal(0);
+      setPendingShieldStarReveal(0);
+      setPendingX2Reveal(0);
+
+      const restoredChallenge = normalizePersistedEmbeddedChallenge(
+        stored.embeddedChallenge,
+      );
+      if (restoredChallenge) {
+        challengeRunIdRef.current += 1;
+        const restoredRunId = challengeRunIdRef.current;
+        if (restoredChallenge.type === "game") {
+          setEmbeddedChallenge({
+            runId: restoredRunId,
+            type: "game",
+            source: restoredChallenge.source,
+            difficulty: restoredChallenge.difficulty,
+          });
+        } else {
+          setEmbeddedChallenge({
+            runId: restoredRunId,
+            type: "tracing",
+            source: restoredChallenge.source,
+            tracingMode: restoredChallenge.tracingMode,
+          });
+        }
+      } else {
+        setEmbeddedChallenge(null);
+      }
+
+      setIsProgressHydrated(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clearVisualEffectQueue, progressStorageKey]);
+
+  useEffect(() => {
+    if (!isProgressHydrated) return;
+    persistProgressSnapshot();
+  }, [
+    embeddedChallenge,
+    gameStatus,
+    isProgressHydrated,
+    persistProgressSnapshot,
+    spinHintDismissed,
+    wheelState,
+  ]);
 
   useEffect(() => {
     preloadAppAudioList([
@@ -1943,20 +2248,9 @@ export function GameMysteryWheel({
         {/* --- Header --- */}
         <div className="pt-3">
           <div className="flex items-center gap-3">
-            <motion.button
-              type="button"
-              onClick={onBack}
-              whileHover={{ scale: 1.04, y: -1 }}
-              whileTap={{ scale: 0.92 }}
-              aria-label="Quay lại"
-              className="group relative h-12 w-12 rounded-2xl p-[1px] shadow-[0_8px_22px_rgba(15,23,42,0.55),0_0_22px_rgba(168,85,247,0.35)]"
-            >
-              <span className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_200deg_at_50%_50%,#fde68a,#a855f7,#1d4ed8,#fde68a)] opacity-90" />
-              <span className="absolute inset-[1px] rounded-[15px] bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.6),rgba(30,27,75,0.96)_55%,rgba(9,6,30,0.98)_100%)]" />
-              <span className="relative z-10 flex h-full w-full items-center justify-center text-amber-200 transition-colors duration-150 group-hover:text-amber-100">
-                <ChevronLeft className="h-6 w-6 drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]" />
-              </span>
-            </motion.button>
+            <CrystalIconButton onClick={handleBackPress} ariaLabel="Quay lại">
+              <ChevronLeft className="h-6 w-6 drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]" />
+            </CrystalIconButton>
             <h1 className="font-hp-special text-2xl text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.4)] md:text-3xl">
               Vòng quay bí ẩn
             </h1>
@@ -2107,7 +2401,7 @@ export function GameMysteryWheel({
           >
             {/* Outer glow ring - magical aura */}
             <motion.div
-              className="absolute inset-[-20px] rounded-full transform-gpu will-change-transform"
+              className="absolute -inset-5 rounded-full transform-gpu will-change-transform"
               animate={
                 isSpinning
                   ? { scale: 1, opacity: 0.9 }
@@ -2136,7 +2430,7 @@ export function GameMysteryWheel({
 
             {/* Decorative ring markers */}
             <div
-              className="absolute inset-[-8px] rounded-full border-2 border-violet-400/20"
+              className="absolute -inset-2 rounded-full border-2 border-violet-400/20"
               style={{
                 background:
                   "radial-gradient(circle, transparent 55%, rgba(88,28,135,0.2) 100%)",
@@ -2432,7 +2726,7 @@ export function GameMysteryWheel({
                   animate={{ opacity: 1, y: 0, scale: [1, 1.04, 1] }}
                   exit={{ opacity: 0, y: 8, scale: 0.9 }}
                   transition={{ duration: 0.42, ease: "easeOut" }}
-                  className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[78%] max-w-[19rem] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-violet-200/45 bg-[radial-gradient(circle_at_25%_15%,rgba(251,191,36,0.22),rgba(76,29,149,0.9)_70%)] px-4 py-3 text-white shadow-[0_0_36px_rgba(168,85,247,0.4)] backdrop-blur-md"
+                  className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[78%] max-w-76 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-violet-200/45 bg-[radial-gradient(circle_at_25%_15%,rgba(251,191,36,0.22),rgba(76,29,149,0.9)_70%)] px-4 py-3 text-white shadow-[0_0_36px_rgba(168,85,247,0.4)] backdrop-blur-md"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-4xl">{activeSegment.icon}</span>
@@ -2462,7 +2756,7 @@ export function GameMysteryWheel({
                     initial={{ scale: 0.78, opacity: 0, y: 16 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     transition={{ duration: 0.26, ease: "easeOut" }}
-                    className="mx-4 w-full max-w-[19rem] rounded-3xl border border-violet-200/35 bg-[radial-gradient(circle_at_30%_12%,rgba(251,191,36,0.26),rgba(59,7,100,0.95)_74%)] px-4 py-5 text-center shadow-[0_0_36px_rgba(139,92,246,0.45)]"
+                    className="mx-4 w-full max-w-76 rounded-3xl border border-violet-200/35 bg-[radial-gradient(circle_at_30%_12%,rgba(251,191,36,0.26),rgba(59,7,100,0.95)_74%)] px-4 py-5 text-center shadow-[0_0_36px_rgba(139,92,246,0.45)]"
                   >
                     <p className="font-hp-special text-2xl text-amber-200">
                       Ô bí ẩn!
@@ -2652,15 +2946,15 @@ export function GameMysteryWheel({
               {gameStatus === "win" ? (
                 <>
                   <motion.div
-                    animate={{ rotate: [0, -5, 5, 0], scale: [1, 1.05, 1] }}
+                    animate={{ rotate: [0, -5, 5, 0], scale: [1, 1.03, 1] }}
                     transition={{
                       duration: 2,
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
-                    className="text-7xl drop-shadow-[0_0_20px_rgba(250,204,21,0.6)]"
+                    className="drop-shadow-[0_0_20px_rgba(250,204,21,0.45)]"
                   >
-                    🏆
+                    <Mascot size="md" emotion="excited" />
                   </motion.div>
                   <h2 className="font-hp-special text-2xl text-amber-300">
                     Tuyệt vời!
@@ -2680,9 +2974,9 @@ export function GameMysteryWheel({
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
-                    className="text-7xl"
+                    className="drop-shadow-[0_0_16px_rgba(167,139,250,0.35)]"
                   >
-                    😢
+                    <Mascot size="md" emotion="sad" />
                   </motion.div>
                   <h2 className="font-hp-special text-2xl text-violet-300">
                     Hết mạng rồi!
@@ -2693,17 +2987,17 @@ export function GameMysteryWheel({
                 </>
               )}
 
-              <motion.div whileTap={{ scale: 0.92 }} className="mt-2">
-                <PrimaryButton
-                  onClick={restartGame}
-                  className="rounded-2xl"
-                  frontClassName="h-12 gap-2 px-6"
-                  aria-label="Chơi lại"
+              <div className="mt-2 flex items-center gap-3">
+                <CrystalIconButton
+                  onClick={handleBackPress}
+                  ariaLabel="Quay lại chọn màn boss"
                 >
-                  <RotateCcw className="h-5 w-5" />
-                  <span className="font-hp-special text-base">Chơi lại</span>
-                </PrimaryButton>
-              </motion.div>
+                  <ChevronLeft className="h-6 w-6 drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]" />
+                </CrystalIconButton>
+                <CrystalIconButton onClick={restartGame} ariaLabel="Chơi lại">
+                  <RotateCcw className="h-5 w-5 drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]" />
+                </CrystalIconButton>
+              </div>
             </motion.div>
           </motion.div>
         )}
