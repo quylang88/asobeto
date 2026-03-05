@@ -86,6 +86,12 @@ interface GameDiacriticBuildProps {
   floorName: string;
   floorMaxStars: number;
   lesson: LessonContent;
+  forcedLevelId?: DiacriticBuildLevelId;
+  onMysteryRoundResolved?: (result: {
+    passed: boolean;
+    earnedStars: number;
+    levelId: DiacriticBuildLevelId;
+  }) => void;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -254,6 +260,8 @@ export function GameDiacriticBuild({
   floorName,
   floorMaxStars,
   lesson,
+  forcedLevelId,
+  onMysteryRoundResolved,
   onBack,
 }: GameDiacriticBuildProps) {
   const diacriticConfig = lesson.diacriticBuildGame;
@@ -377,6 +385,8 @@ export function GameDiacriticBuild({
   const catcherCenterXRef = useRef(180);
   const catcherWidthRef = useRef(132);
   const activeCatcherPointerIdRef = useRef<number | null>(null);
+  const forcedLevelBootedRef = useRef(false);
+  const mysteryResultReportedRef = useRef(false);
   const fallZoneHeightRef = useRef(380);
   const animationFrameRef = useRef<number | null>(null);
   const frameLoopRef = useRef<(timestamp: number) => void>(() => {});
@@ -1275,8 +1285,13 @@ export function GameDiacriticBuild({
   );
 
   const startLevelCountdown = useCallback(
-    (levelId: DiacriticBuildLevelId) => {
-      if (!isLevelUnlocked(levelId)) return;
+    (
+      levelId: DiacriticBuildLevelId,
+      options: {
+        ignoreUnlock?: boolean;
+      } = {},
+    ) => {
+      if (!options.ignoreUnlock && !isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level || !diacriticConfig) return;
 
@@ -1285,6 +1300,7 @@ export function GameDiacriticBuild({
       clearTutorialSequence();
       resetVisualFeedback();
       clearTimeoutRef(morphResetTimeoutRef);
+      mysteryResultReportedRef.current = false;
 
       setSelectedLevelId(level.id);
       setDidPass(null);
@@ -1313,6 +1329,39 @@ export function GameDiacriticBuild({
       stopGameLoop,
     ],
   );
+
+  useEffect(() => {
+    if (!forcedLevelId || forcedLevelBootedRef.current) return;
+    if (!levelMap.has(forcedLevelId)) return;
+    forcedLevelBootedRef.current = true;
+    queueMicrotask(() => {
+      startLevelCountdown(forcedLevelId, { ignoreUnlock: true });
+    });
+  }, [forcedLevelId, levelMap, startLevelCountdown]);
+
+  useEffect(() => {
+    if (
+      !onMysteryRoundResolved ||
+      phase !== "result" ||
+      didPass === null ||
+      !selectedLevel ||
+      mysteryResultReportedRef.current
+    ) {
+      return;
+    }
+    mysteryResultReportedRef.current = true;
+    onMysteryRoundResolved({
+      passed: didPass,
+      earnedStars: lastEarnedStars,
+      levelId: selectedLevel.id,
+    });
+  }, [
+    didPass,
+    lastEarnedStars,
+    onMysteryRoundResolved,
+    phase,
+    selectedLevel,
+  ]);
 
   const handleUnlockLevel = useCallback(
     (levelId: DiacriticBuildLevelId) => {

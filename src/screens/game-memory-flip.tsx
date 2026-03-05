@@ -73,6 +73,12 @@ interface GameMemoryFlipProps {
   floorName: string;
   floorMaxStars: number;
   lesson: LessonContent;
+  forcedLevelId?: MemoryFlipLevelId;
+  onMysteryRoundResolved?: (result: {
+    passed: boolean;
+    earnedStars: number;
+    levelId: MemoryFlipLevelId;
+  }) => void;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -312,6 +318,8 @@ export function GameMemoryFlip({
   floorName,
   floorMaxStars,
   lesson,
+  forcedLevelId,
+  onMysteryRoundResolved,
   onBack,
 }: GameMemoryFlipProps) {
   const memoryConfig = lesson.memoryFlipGame;
@@ -375,6 +383,8 @@ export function GameMemoryFlip({
   const failActionIdRef = useRef<number | null>(null);
   const shakeActionIdRef = useRef<number | null>(null);
   const tutorialActionIdsRef = useRef<number[]>([]);
+  const forcedLevelBootedRef = useRef(false);
+  const mysteryResultReportedRef = useRef(false);
 
   const selectedLevel = selectedLevelId
     ? (levelMap.get(selectedLevelId) ?? null)
@@ -836,14 +846,20 @@ export function GameMemoryFlip({
   );
 
   const startLevelCountdown = useCallback(
-    (levelId: MemoryFlipLevelId) => {
+    (
+      levelId: MemoryFlipLevelId,
+      options: {
+        ignoreUnlock?: boolean;
+      } = {},
+    ) => {
       if (!memoryConfig) return;
-      if (!isLevelUnlocked(levelId)) return;
+      if (!options.ignoreUnlock && !isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
 
       const beginCountdown = () => {
         clearRoundActions();
+        mysteryResultReportedRef.current = false;
         setSelectedLevelId(levelId);
         setCountdownValue(3);
         setDidPass(null);
@@ -877,6 +893,37 @@ export function GameMemoryFlip({
     },
     [pendingUnlockLevelId, scheduleAction],
   );
+
+  useEffect(() => {
+    if (!forcedLevelId || forcedLevelBootedRef.current) return;
+    if (!levelMap.has(forcedLevelId)) return;
+    forcedLevelBootedRef.current = true;
+    startLevelCountdown(forcedLevelId, { ignoreUnlock: true });
+  }, [forcedLevelId, levelMap, startLevelCountdown]);
+
+  useEffect(() => {
+    if (
+      !onMysteryRoundResolved ||
+      phase !== "result" ||
+      didPass === null ||
+      !selectedLevel ||
+      mysteryResultReportedRef.current
+    ) {
+      return;
+    }
+    mysteryResultReportedRef.current = true;
+    onMysteryRoundResolved({
+      passed: didPass,
+      earnedStars: lastEarnedStars,
+      levelId: selectedLevel.id,
+    });
+  }, [
+    didPass,
+    lastEarnedStars,
+    onMysteryRoundResolved,
+    phase,
+    selectedLevel,
+  ]);
 
   const handleCardTap = useCallback(
     (cardId: string) => {

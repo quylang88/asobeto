@@ -82,6 +82,12 @@ interface GameBubblePopProps {
   floorName: string;
   floorMaxStars: number;
   lesson: LessonContent;
+  forcedLevelId?: BubblePopLevelId;
+  onMysteryRoundResolved?: (result: {
+    passed: boolean;
+    earnedStars: number;
+    levelId: BubblePopLevelId;
+  }) => void;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -204,6 +210,8 @@ export function GameBubblePop({
   floorName,
   floorMaxStars,
   lesson,
+  forcedLevelId,
+  onMysteryRoundResolved,
   onBack,
 }: GameBubblePopProps) {
   const bubbleConfig = lesson.bubblePopGame;
@@ -266,6 +274,8 @@ export function GameBubblePop({
   const spawnCooldownMsRef = useRef(0);
   const passCelebrationTimeoutRef = useRef<number | null>(null);
   const unlockAnimationTimeoutRef = useRef<number | null>(null);
+  const forcedLevelBootedRef = useRef(false);
+  const mysteryResultReportedRef = useRef(false);
   const damageFlashTimeoutRef = useRef<number | null>(null);
   const shakeTimeoutRef = useRef<number | null>(null);
   const passSequenceRef = useRef(false);
@@ -841,13 +851,19 @@ export function GameBubblePop({
   ]);
 
   const startLevelCountdown = useCallback(
-    (levelId: BubblePopLevelId) => {
-      if (!isLevelUnlocked(levelId)) return;
+    (
+      levelId: BubblePopLevelId,
+      options: {
+        ignoreUnlock?: boolean;
+      } = {},
+    ) => {
+      if (!options.ignoreUnlock && !isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
       stopGameLoop();
       clearCelebrations();
       resetVisualFeedback();
+      mysteryResultReportedRef.current = false;
       const nextTargetLetter = pickRandomTargetLetter();
       setSelectedLevelId(levelId);
       setTargetLetter(nextTargetLetter);
@@ -872,6 +888,39 @@ export function GameBubblePop({
       bubbleConfig,
     ],
   );
+
+  useEffect(() => {
+    if (!forcedLevelId || forcedLevelBootedRef.current) return;
+    if (!levelMap.has(forcedLevelId)) return;
+    forcedLevelBootedRef.current = true;
+    queueMicrotask(() => {
+      startLevelCountdown(forcedLevelId, { ignoreUnlock: true });
+    });
+  }, [forcedLevelId, levelMap, startLevelCountdown]);
+
+  useEffect(() => {
+    if (
+      !onMysteryRoundResolved ||
+      phase !== "result" ||
+      didPass === null ||
+      !selectedLevel ||
+      mysteryResultReportedRef.current
+    ) {
+      return;
+    }
+    mysteryResultReportedRef.current = true;
+    onMysteryRoundResolved({
+      passed: didPass,
+      earnedStars: lastEarnedStars,
+      levelId: selectedLevel.id,
+    });
+  }, [
+    didPass,
+    lastEarnedStars,
+    onMysteryRoundResolved,
+    phase,
+    selectedLevel,
+  ]);
 
   const handleUnlockLevel = useCallback(
     (levelId: BubblePopLevelId) => {

@@ -4,9 +4,9 @@ import { createMemoryFlipChallengeLesson } from "../../../lesson-templates/chall
 export const floor2Lessons: LessonContent[] = [
   createMemoryFlipChallengeLesson({
     lessonId: "boss-f2-memory-flip",
-    title: "Game bí ẩn",
+    title: "Vòng quay bí ẩn",
     headerTitle: "Boss",
-    instruction: "Vượt qua mini game bí ẩn của BOSS.",
+    instruction: "Vượt qua vòng quay bí ẩn của BOSS.",
     rules: [
       "Lật 2 thẻ mỗi lượt để tìm cặp giống nhau.",
       "Ghép đúng thì thẻ biến mất.",

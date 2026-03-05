@@ -113,6 +113,12 @@ interface GameAnimalFeedProps {
   floorName: string;
   floorMaxStars: number;
   lesson: LessonContent;
+  forcedLevelId?: AnimalFeedLevelId;
+  onMysteryRoundResolved?: (result: {
+    passed: boolean;
+    earnedStars: number;
+    levelId: AnimalFeedLevelId;
+  }) => void;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -245,6 +251,8 @@ export function GameAnimalFeed({
   floorName,
   floorMaxStars,
   lesson,
+  forcedLevelId,
+  onMysteryRoundResolved,
   onBack,
 }: GameAnimalFeedProps) {
   const cowGrassConfig = lesson.animalFeedGame;
@@ -377,6 +385,8 @@ export function GameAnimalFeed({
     count: 0,
   });
   const startGameplayRef = useRef<() => void>(() => {});
+  const forcedLevelBootedRef = useRef(false);
+  const mysteryResultReportedRef = useRef(false);
 
   const clearTimeoutRef = useCallback((ref: { current: number | null }) => {
     if (ref.current === null) return;
@@ -1172,14 +1182,20 @@ export function GameAnimalFeed({
   }, [startGameplay]);
 
   const startLevelFlow = useCallback(
-    async (levelId: AnimalFeedLevelId) => {
-      if (!isLevelUnlocked(levelId)) return;
+    async (
+      levelId: AnimalFeedLevelId,
+      options: {
+        ignoreUnlock?: boolean;
+      } = {},
+    ) => {
+      if (!options.ignoreUnlock && !isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level) return;
       setSelectedLevelId(levelId);
       currentLevelRef.current = level;
       setDidPass(null);
       setLastEarnedStars(0);
+      mysteryResultReportedRef.current = false;
       setShowRulesModal(false);
       const shouldRunTutorial = await shouldShowTutorialForLevel(levelId);
       pendingTutorialRef.current = shouldRunTutorial;
@@ -1200,6 +1216,39 @@ export function GameAnimalFeed({
       stopGameLoop,
     ],
   );
+
+  useEffect(() => {
+    if (!forcedLevelId || forcedLevelBootedRef.current) return;
+    if (!levelMap.has(forcedLevelId)) return;
+    forcedLevelBootedRef.current = true;
+    queueMicrotask(() => {
+      void startLevelFlow(forcedLevelId, { ignoreUnlock: true });
+    });
+  }, [forcedLevelId, levelMap, startLevelFlow]);
+
+  useEffect(() => {
+    if (
+      !onMysteryRoundResolved ||
+      phase !== "result" ||
+      didPass === null ||
+      !selectedLevel ||
+      mysteryResultReportedRef.current
+    ) {
+      return;
+    }
+    mysteryResultReportedRef.current = true;
+    onMysteryRoundResolved({
+      passed: didPass,
+      earnedStars: lastEarnedStars,
+      levelId: selectedLevel.id,
+    });
+  }, [
+    didPass,
+    lastEarnedStars,
+    onMysteryRoundResolved,
+    phase,
+    selectedLevel,
+  ]);
 
   const handleUnlockLevel = useCallback(
     (levelId: AnimalFeedLevelId) => {

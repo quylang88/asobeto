@@ -2329,3 +2329,100 @@ Validation
 - `pnpm lint -- src/data/world-1-alphabet/floor-templates.ts` pass
 - `pnpm exec tsc --noEmit` pass
 - `pnpm lint` pass
+
+Update (Fix floor-selection stars hydration)
+
+Scope
+- [x] Fix floor star display on `floor-selection` after completing a floor.
+- [x] Keep `pass_count` display only for floors that actually use `progressMode: pass_count`.
+
+Implementation
+- Updated `src/lib/floor-progress.ts`:
+  - Added `shouldDisplayPassCountAsFloorStars(floor)` helper.
+  - In `hydrateFloorsWithStoredProgress(...)`, replaced unconditional `passCount` preference with:
+    - use `stored.passCount ?? stored.stars` only when all active lessons on that floor use `progressMode: pass_count`.
+    - otherwise use `stored.stars`.
+
+Validation
+- `pnpm lint` pass.
+- `pnpm exec tsc --noEmit` pass.
+- Playwright skill client check blocked: missing `playwright` package for `$WEB_GAME_CLIENT` (`ERR_MODULE_NOT_FOUND`).
+
+---
+
+Update (Boss floor 2: Vòng quay bí ẩn)
+
+TODO
+- [x] Replace boss floor 2 placeholder experience with dedicated mystery wheel screen.
+- [x] Rename floor/title from `Game bí ẩn` to `Vòng quay bí ẩn` in boss flow UI/data.
+- [x] Add hold-to-charge spin interaction with visible power meter and top pointer resolution.
+- [x] Implement 16-segment wheel order and reward/penalty logic (stars/hearts/shields/x2/mystery/spin-again).
+- [x] Add icon-first HUD (hearts, stars progress 0/10, shield overlays, x2 indicator).
+- [x] Add minimal feedback effects (segment glow, star fly, heart loss pulse, shield pulse, win/lose overlays + restart icon).
+- [x] Wire success/wrong audio constraints:
+  - `success-answer` when stars are gained.
+  - `wrong-answer` when heart is lost from fail game/tracing (without heart shield).
+- [x] Expose deterministic hooks for testing:
+  - `window.render_game_to_text()`
+  - `window.advanceTime(ms)`
+- [x] Validate with lint + Playwright flows + console error checks.
+
+Notes
+- New screen component: `src/screens/game-mystery-wheel.tsx`.
+- Routing: boss floor 2 now renders `GameMysteryWheel` directly from `src/app/page.tsx`.
+- Boss floor 2 data updated to:
+  - name: `Vòng quay bí ẩn`
+  - maxStars: `10`
+- Boss choice card label updated to `Vòng quay bí ẩn`.
+- Persistence: floor stars are saved from wheel state via `saveFloorProgress`, bounded by floor max stars.
+
+Validation
+- `pnpm lint` passed.
+- `WEB_GAME_CLIENT` run artifacts:
+  - `output/web-game-mystery/shot-0.png`
+  - `output/web-game-mystery-postfix/shot-0.png`
+- Playwright manual flow (boss choice -> mystery wheel):
+  - verified hold/release spin and wheel settle states via `render_game_to_text`
+  - verified challenge pass/fail outcomes and state transitions
+  - verified shield consume behavior
+  - verified x2-next buff application/consumption
+  - verified win (`stars >= 10`) overlay + restart
+  - verified lose (`hearts <= 0`) overlay + restart
+  - console errors: none (`output/mystery-wheel-console-errors.txt`)
+- Key screenshots:
+  - `output/mystery-wheel-initial.png`
+  - `output/mystery-wheel-after-spin.png`
+  - `output/mystery-wheel-win.png`
+  - `output/mystery-wheel-lose.png`
+
+---
+
+Update (Mystery wheel: real GAME/TRACING integration)
+
+TODO
+- [x] Connect `GAME_EASY|MEDIUM|HARD` to real tower mini-games instead of fallback simulation.
+- [x] Enforce difficulty mapping for embedded mini-games: `easy -> easy`, `medium -> normal`, `hard -> hard`.
+- [x] Connect `TRACING_ALPHA|TRACING_VOCAB` to real tracing lessons (`letter_trace_practice` / `vocab_trace_practice`).
+- [x] Make mission source selection random from available pool.
+- [x] Prioritize mission pool from floors that already have learned progress; fallback to unlocked/all if needed.
+- [x] Fix forced-level boot race in embedded mini-games.
+- [x] Re-validate with lint/typecheck and Playwright forced-segment checks.
+
+Notes
+- Added learned-floor pool hydration in `game-mystery-wheel` using `getStoredFloorProgress`, then selection priority:
+  - learned pool > unlocked pool > full pool.
+- Root cause of wrong difficulty on `GAME_MEDIUM/HARD` was a `setTimeout + cleanup` pattern in forced-level effects that could cancel the boot call before execution.
+- Switched forced-level boot scheduling to `queueMicrotask(...)` in:
+  - `src/screens/game-bubble-pop.tsx`
+  - `src/screens/game-animal-feed/index.tsx`
+  - `src/screens/game-diacritic-build/index.tsx`
+- Playwright validation summary:
+  - Forced segment `GAME_EASY` opens real mini-game at level `easy`.
+  - Forced segment `GAME_MEDIUM` opens real mini-game at level `normal`.
+  - Forced segment `GAME_HARD` opens real mini-game at level `hard`.
+  - Forced segment `TRACING_ALPHA` reports active mission `letter_trace_practice` (`alpha`).
+  - Forced segment `TRACING_VOCAB` reports active mission `vocab_trace_practice` (`vocab`).
+  - Repeated `GAME_EASY` runs showed random mini-game source variation (multiple game types observed).
+- Validation:
+  - `pnpm lint` pass
+  - `pnpm exec tsc --noEmit` pass

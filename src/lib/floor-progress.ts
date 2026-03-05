@@ -144,6 +144,17 @@ function normalizeStoredFloorProgress(
   return normalized;
 }
 
+function shouldDisplayPassCountAsFloorStars(floor: Floor): boolean {
+  const activeLessons = (floor.content ?? []).filter(
+    (lesson) => lesson.type === "active",
+  );
+  if (activeLessons.length === 0) return false;
+
+  return activeLessons.every(
+    (lesson) => (lesson.scoring?.progressMode ?? "stars") === "pass_count",
+  );
+}
+
 export async function getStoredFloorProgress(
   location: FloorProgressLocation,
   maxStars: number = DEFAULT_FLOOR_MAX_STARS,
@@ -330,9 +341,13 @@ export async function hydrateFloorsWithStoredProgress({
 
       if (!stored) return floor;
 
+      const resolvedFloorStars = shouldDisplayPassCountAsFloorStars(floor)
+        ? (stored.passCount ?? stored.stars)
+        : stored.stars;
+
       return {
         ...floor,
-        stars: typeof stored.passCount === "number" ? stored.passCount : stored.stars,
+        stars: resolvedFloorStars,
         completed: floor.completed || stored.completed,
       };
     }),

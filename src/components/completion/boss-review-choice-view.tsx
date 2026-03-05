@@ -107,7 +107,7 @@ export function BossReviewChoiceView({
               </div>
               <div>
                 <h2 className="font-hp-special text-2xl text-white">
-                  Game bí ẩn
+                  Vòng quay bí ẩn
                 </h2>
                 <p className="text-sm text-white/90">
                   Bước vào thử thách huyền bí của Boss.

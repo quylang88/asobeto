@@ -68,6 +68,13 @@ interface LessonInterfaceProps {
   lessons: LessonContent[];
   onComplete: () => void;
   onBossFloorSelect?: (floorId: number) => void;
+  autoResolveCompletion?: boolean;
+  onMysteryLessonResolved?: (result: {
+    passed: boolean;
+    stars: number;
+    lessonId: string;
+    lessonKind?: LessonContent["lessonKind"];
+  }) => void;
   onBack: () => void;
 }
 
@@ -99,6 +106,8 @@ export function LessonInterface({
   lessons,
   onComplete,
   onBossFloorSelect,
+  autoResolveCompletion = false,
+  onMysteryLessonResolved,
   onBack,
 }: LessonInterfaceProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -127,6 +136,7 @@ export function LessonInterface({
   const [answerOptions, setAnswerOptions] = useState<LessonAnswer[]>(() =>
     getDisplayAnswersForLesson(lessons[0]),
   );
+  const autoResolveCompletionRef = useRef(false);
   const [passiveReady, setPassiveReady] = useState(() => {
     const firstLesson = lessons[0];
     return !(
@@ -566,6 +576,49 @@ export function LessonInterface({
     }
     onComplete();
   }, [onBossFloorSelect, onComplete, stopAudio]);
+
+  useEffect(() => {
+    if (!showCompletion) {
+      autoResolveCompletionRef.current = false;
+    }
+  }, [showCompletion]);
+
+  useEffect(() => {
+    if (
+      !autoResolveCompletion ||
+      !onMysteryLessonResolved ||
+      !showCompletion ||
+      autoResolveCompletionRef.current ||
+      isBossReviewFloor
+    ) {
+      return;
+    }
+
+    const stars =
+      completionStars ??
+      getAttemptFloorStars(lessons, lessonStarsThisAttempt, floorMaxStars);
+    const passed = stars > 0;
+    const lessonId = currentLesson?.id ?? lessons[0]?.id ?? "mystery-lesson";
+    autoResolveCompletionRef.current = true;
+    onMysteryLessonResolved({
+      passed,
+      stars,
+      lessonId,
+      lessonKind: currentLesson?.lessonKind,
+    });
+    onComplete();
+  }, [
+    autoResolveCompletion,
+    completionStars,
+    currentLesson,
+    floorMaxStars,
+    isBossReviewFloor,
+    lessonStarsThisAttempt,
+    lessons,
+    onComplete,
+    onMysteryLessonResolved,
+    showCompletion,
+  ]);
 
   // Phòng ngừa trường hợp không có bài học nào
   if (!hasLessons || !currentLesson) {

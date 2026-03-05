@@ -10,6 +10,7 @@ import { GameBubblePop } from "@/screens/game-bubble-pop";
 import { GameDiacriticBuild } from "@/screens/game-diacritic-build";
 import { GameMemoryFlip } from "@/screens/game-memory-flip";
 import { GameAnimalFeed } from "@/screens/game-animal-feed";
+import { GameMysteryWheel } from "@/screens/game-mystery-wheel";
 import {
   worlds,
   getWorldData,
@@ -281,6 +282,9 @@ export default function AsobetoApp() {
       const isBossReviewFloor = Boolean(
         selectedTower?.isBoss && selectedFloor?.id === 1,
       );
+      const isBossMysteryWheelFloor = Boolean(
+        selectedTower?.isBoss && selectedFloor?.id === 2,
+      );
       const currentLessons = isBossReviewFloor
         ? (bossReviewLessons ?? createBossFloor1Lessons())
         : (selectedFloor?.content ?? []);
@@ -300,6 +304,19 @@ export default function AsobetoApp() {
       const animalFeedChallengeLesson = currentLessons.find(
         (lesson) => lesson.lessonKind === "animal_feed_challenge",
       );
+
+      if (isBossMysteryWheelFloor) {
+        return (
+          <GameMysteryWheel
+            worldId={selectedWorldId}
+            world1BookPage={selectedWorldPage}
+            towerId={gameState.selectedTower!}
+            floorId={gameState.selectedFloor!}
+            floorMaxStars={selectedFloor?.maxStars ?? 10}
+            onBack={() => handleBack(lessonBackScreen)}
+          />
+        );
+      }
 
       if (diacriticChallengeLesson) {
         return (
