@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, RotateCcw, Shield, Sparkles, Star } from "lucide-react";
+import { ChevronLeft, RotateCcw, Shield, Star } from "lucide-react";
 import {
   AUDIO,
   getWorldData,
@@ -111,7 +111,7 @@ declare global {
 const MAX_HEARTS = 5;
 const START_HEARTS = 3;
 const TARGET_STARS = 10;
-const HOLD_TO_MAX_MS = 5000;
+const HOLD_TO_MAX_MS = 1500;
 const SEGMENT_ANGLE = 360 / 16;
 
 const INITIAL_WHEEL_STATE: WheelState = {
@@ -238,6 +238,29 @@ function normalizeDegree(value: number): number {
   return normalized < 0 ? normalized + 360 : normalized;
 }
 
+function buildSpinProfile(power: number): {
+  loops: number;
+  durationMs: number;
+} {
+  const clampedPower = clampNumber(power, 0, 1);
+  // Stronger holds spin faster and keep spinning longer.
+  const shapedPower = clampedPower ** 1.35;
+  // Must be an integer so the wheel lands exactly on the intended segment.
+  const loops = Math.round(1 + shapedPower * 11);
+  const durationMs = Math.round(2200 + shapedPower * 2300);
+
+  return { loops, durationMs };
+}
+
+function getPowerTierLabel(
+  powerRatio: number,
+): "Nhẹ" | "Vừa" | "Mạnh" | "Cực mạnh" {
+  if (powerRatio < 0.2) return "Nhẹ";
+  if (powerRatio < 0.5) return "Vừa";
+  if (powerRatio < 0.85) return "Mạnh";
+  return "Cực mạnh";
+}
+
 function polarToCartesian(cx: number, cy: number, radius: number, deg: number) {
   const radians = (deg * Math.PI) / 180;
   return {
@@ -309,6 +332,7 @@ export function GameMysteryWheel({
   const [isHolding, setIsHolding] = useState(false);
   const [holdMs, setHoldMs] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [spinHintDismissed, setSpinHintDismissed] = useState(false);
   const [activeSegmentIndex, setActiveSegmentIndex] = useState<number | null>(
     null,
   );
@@ -494,9 +518,12 @@ export function GameMysteryWheel({
     };
   }, [learnedFloorKeys, world1BookPage, worldId]);
 
-  const wheelScaleShake = isHolding && holdMs >= HOLD_TO_MAX_MS * 0.9;
+  const wheelScaleShake = isHolding && holdMs >= HOLD_TO_MAX_MS * 0.88;
   const powerRatio = clampNumber(holdMs / HOLD_TO_MAX_MS, 0, 1);
+  const powerPercent = Math.round(powerRatio * 100);
+  const powerTierLabel = getPowerTierLabel(powerRatio);
   const starsProgressRatio = clampNumber(wheelState.stars / TARGET_STARS, 0, 1);
+  const reduceAmbientMotion = isSpinning || isHolding;
 
   const updateWheelState = useCallback(
     (updater: (previous: WheelState) => WheelState): WheelState => {
@@ -948,18 +975,20 @@ export function GameMysteryWheel({
       const currentRotation = normalizeDegree(wheelRotationRef.current);
       const targetRotation = normalizeDegree(360 - randomIndex * SEGMENT_ANGLE);
       const delta = normalizeDegree(targetRotation - currentRotation);
-      const loops = Math.round(3 + power * 5 + Math.random() * 1.1);
-      const duration = Math.round(
-        2200 + (1 - power) * 1250 + Math.random() * 260,
-      );
+      const { loops, durationMs } = buildSpinProfile(power);
 
-      setSpinDurationMs(duration);
+      setSpinDurationMs(durationMs);
       setIsSpinning(true);
       setWheelRotation((previous) => previous + loops * 360 + delta);
 
-      spinResolveActionIdRef.current = scheduleAction(duration + 20, () => {
+      spinResolveActionIdRef.current = scheduleAction(durationMs + 20, () => {
         spinResolveActionIdRef.current = null;
         setIsSpinning(false);
+        setWheelRotation((previous) => {
+          const normalized = normalizeDegree(previous);
+          wheelRotationRef.current = normalized;
+          return normalized;
+        });
 
         const landedSegment = spinTargetIndexRef.current;
         if (landedSegment === null) return;
@@ -985,13 +1014,17 @@ export function GameMysteryWheel({
 
   const stopHolding = useCallback(() => {
     if (!isHolding) return;
+    const elapsedMs =
+      holdStartRef.current === null
+        ? holdMs
+        : Math.min(HOLD_TO_MAX_MS, performance.now() - holdStartRef.current);
     if (holdRafRef.current !== null) {
       window.cancelAnimationFrame(holdRafRef.current);
       holdRafRef.current = null;
     }
     holdStartRef.current = null;
     setIsHolding(false);
-    const capturedPower = clampNumber(holdMs / HOLD_TO_MAX_MS, 0, 1);
+    const capturedPower = clampNumber(elapsedMs / HOLD_TO_MAX_MS, 0, 1);
     setHoldMs(0);
     triggerSpin(capturedPower);
   }, [holdMs, isHolding, triggerSpin]);
@@ -1004,6 +1037,7 @@ export function GameMysteryWheel({
       window.cancelAnimationFrame(holdRafRef.current);
       holdRafRef.current = null;
     }
+    setSpinHintDismissed(true);
     setIsHolding(true);
     setHoldMs(0);
     holdStartRef.current = performance.now();
@@ -1015,6 +1049,10 @@ export function GameMysteryWheel({
         timestamp - holdStartRef.current,
       );
       setHoldMs(elapsedMs);
+      if (elapsedMs >= HOLD_TO_MAX_MS) {
+        holdRafRef.current = null;
+        return;
+      }
       holdRafRef.current = window.requestAnimationFrame(tick);
     };
 
@@ -1042,6 +1080,7 @@ export function GameMysteryWheel({
     setIsHolding(false);
     setHoldMs(0);
     setIsSpinning(false);
+    setSpinHintDismissed(false);
     setActiveSegmentIndex(null);
     setLandedIcon(null);
     setEmbeddedChallenge(null);
@@ -1281,6 +1320,7 @@ export function GameMysteryWheel({
 
   const canSpin =
     gameStatus === "playing" && !isSpinning && !isHolding && !embeddedChallenge;
+  const showHoldHint = canSpin && !activeSegmentIndex && !spinHintDismissed;
 
   return (
     <div className="relative h-dvh w-full overflow-hidden text-white">
@@ -1289,9 +1329,9 @@ export function GameMysteryWheel({
 
       {/* Animated floating particles */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 18 }, (_, i) => {
+        {Array.from({ length: 12 }, (_, i) => {
           const size = 2 + (i % 4) * 1.5;
-          const left = (i * 5.89) % 100;
+          const left = (i * 8.4) % 100;
           const animDuration = 6 + (i % 5) * 2;
           const delay = (i % 7) * 0.9;
           const opacity = 0.15 + (i % 3) * 0.15;
@@ -1311,17 +1351,25 @@ export function GameMysteryWheel({
                       ? "rgba(251,191,36,0.7)"
                       : "rgba(56,189,248,0.7)",
               }}
-              animate={{
-                y: [0, -60 - i * 4, 0],
-                opacity: [opacity, opacity * 1.8, opacity],
-                scale: [1, 1.3, 1],
-              }}
-              transition={{
-                duration: animDuration,
-                delay,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={
+                reduceAmbientMotion
+                  ? { y: 0, opacity: opacity * 0.85, scale: 1 }
+                  : {
+                      y: [0, -60 - i * 4, 0],
+                      opacity: [opacity, opacity * 1.8, opacity],
+                      scale: [1, 1.3, 1],
+                    }
+              }
+              transition={
+                reduceAmbientMotion
+                  ? { duration: 0.2, ease: "linear" }
+                  : {
+                      duration: animDuration,
+                      delay,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }
+              }
             />
           );
         })}
@@ -1335,37 +1383,40 @@ export function GameMysteryWheel({
         {/* --- Header --- */}
         <div className="pt-3">
           <div className="flex items-center gap-3">
-            <motion.div whileTap={{ scale: 0.94 }}>
-              <PrimaryButton
-                onClick={onBack}
-                className="rounded-2xl"
-                frontClassName="h-12 w-12"
-                aria-label="Quay lại"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </PrimaryButton>
-            </motion.div>
-            <div className="flex items-center gap-2">
-              <motion.span
-                animate={{ rotate: [0, -8, 8, -4, 0] }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="text-2xl"
-              >
-                🔮
-              </motion.span>
-              <h1 className="font-hp-special text-2xl text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.4)] md:text-3xl">
-                Vòng quay bí ẩn
-              </h1>
-            </div>
+            <motion.button
+              type="button"
+              onClick={onBack}
+              whileHover={{ scale: 1.04, y: -1 }}
+              whileTap={{ scale: 0.92 }}
+              aria-label="Quay lại"
+              className="group relative h-12 w-12 rounded-2xl p-[1px] shadow-[0_8px_22px_rgba(15,23,42,0.55),0_0_22px_rgba(168,85,247,0.35)]"
+            >
+              <span className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_200deg_at_50%_50%,#fde68a,#a855f7,#1d4ed8,#fde68a)] opacity-90" />
+              <span className="absolute inset-[1px] rounded-[15px] bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.6),rgba(30,27,75,0.96)_55%,rgba(9,6,30,0.98)_100%)]" />
+              <span className="relative z-10 flex h-full w-full items-center justify-center text-amber-200 transition-colors duration-150 group-hover:text-amber-100">
+                <ChevronLeft className="h-6 w-6 drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]" />
+              </span>
+            </motion.button>
+            <h1 className="font-hp-special text-2xl text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.4)] md:text-3xl">
+              Vòng quay bí ẩn
+            </h1>
+            <motion.span
+              animate={{ rotate: [0, -8, 8, -4, 0] }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="ml-auto text-2xl"
+            >
+              🔮
+            </motion.span>
           </div>
 
           {/* --- HUD Panel --- */}
-          <div className="mt-3 overflow-hidden rounded-2xl border border-violet-400/25 bg-violet-950/60 shadow-[0_8px_32px_rgba(88,28,135,0.35),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md">
-            <div className="flex items-center gap-3 px-3.5 py-2.5">
+          <div className="relative mt-3">
+            <div className="overflow-hidden rounded-2xl border border-violet-400/25 bg-violet-950/60 shadow-[0_8px_32px_rgba(88,28,135,0.35),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md">
+              <div className="flex items-center gap-3 px-3.5 py-2.5">
               {/* Hearts */}
               <div className="relative flex items-center gap-0.5 rounded-xl bg-violet-900/50 px-2 py-1.5">
                 {Array.from({ length: MAX_HEARTS }, (_, index) => {
@@ -1425,48 +1476,67 @@ export function GameMysteryWheel({
                 </div>
               </div>
 
-              {/* x2 & shield star badge */}
-              <div className="relative flex items-center gap-1 rounded-xl bg-violet-900/50 px-2 py-1.5">
-                <span className="text-base">⭐</span>
-                {wheelState.x2Next && (
-                  <motion.span
-                    initial={{ scale: 0.8, opacity: 0.7 }}
-                    animate={{ scale: [1, 1.2, 1], opacity: 1 }}
-                    transition={{ duration: 0.65, repeat: Infinity }}
-                    className="rounded-md bg-amber-400 px-1 text-[10px] font-black leading-tight text-violet-950 shadow-[0_0_6px_rgba(251,191,36,0.5)]"
-                  >
-                    x2
-                  </motion.span>
-                )}
-                {wheelState.shieldStar && (
-                  <motion.div
-                    key={shieldStarPulseTick}
-                    initial={{ scale: 0.7, opacity: 0 }}
-                    animate={{ scale: [1, 1.2, 1], opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="absolute -right-1.5 -top-1.5 rounded-full bg-violet-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.6)]"
-                  >
-                    <Shield className="h-3 w-3 fill-violet-950 text-violet-950" />
-                  </motion.div>
-                )}
-              </div>
+            </div>
             </div>
 
-            {/* Extra spin indicator */}
-            {wheelState.extraSpin > 0 && (
-              <motion.div
-                key={spinAgainPulseTick}
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="border-t border-violet-400/15 px-3.5 py-1.5"
-              >
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
-                  <Sparkles className="h-3 w-3" />
-                  <span>{"Quay thêm: "}</span>
-                  <span className="tabular-nums">{wheelState.extraSpin}</span>
-                </div>
-              </motion.div>
-            )}
+            {/* Floating x2 / shield indicators (no layout shift) */}
+            <AnimatePresence>
+              {(wheelState.x2Next || wheelState.shieldStar) && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.92 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="pointer-events-none absolute -top-2 right-3 z-20 flex items-center gap-1.5"
+                >
+                  {wheelState.shieldStar && (
+                    <motion.div
+                      key={`shield-star-${shieldStarPulseTick}`}
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 0.9, repeat: Infinity }}
+                      className="rounded-full bg-violet-400 p-1 shadow-[0_0_10px_rgba(168,85,247,0.55)]"
+                    >
+                      <Shield className="h-3.5 w-3.5 fill-violet-950 text-violet-950" />
+                    </motion.div>
+                  )}
+                  {wheelState.x2Next && (
+                    <motion.div
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 0.85, repeat: Infinity }}
+                      className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-amber-200/70 bg-amber-400 px-1.5 text-[10px] font-black leading-none text-violet-950 shadow-[0_0_10px_rgba(251,191,36,0.45)]"
+                    >
+                      x2
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Floating extra-spin badge (no layout shift) */}
+            <AnimatePresence>
+              {wheelState.extraSpin > 0 && (
+                <motion.div
+                  key={spinAgainPulseTick}
+                  initial={{ opacity: 0, scale: 0.88, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -6 }}
+                  transition={{ duration: 0.26, ease: "easeOut" }}
+                  className="pointer-events-none absolute right-3 top-full z-20 mt-1"
+                >
+                  <motion.div
+                    animate={{ y: [0, -1.5, 0] }}
+                    transition={{ duration: 1.25, repeat: Infinity, ease: "easeInOut" }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/45 bg-[linear-gradient(120deg,rgba(6,95,70,0.88),rgba(5,150,105,0.84),rgba(16,185,129,0.9))] px-2.5 py-1 text-[11px] font-black text-emerald-50 shadow-[0_0_16px_rgba(16,185,129,0.42)]"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>{"Quay thêm"}</span>
+                    <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] leading-none tabular-nums">
+                      +{wheelState.extraSpin}
+                    </span>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -1478,18 +1548,18 @@ export function GameMysteryWheel({
           >
             {/* Outer glow ring - magical aura */}
             <motion.div
-              className="absolute inset-[-20px] rounded-full"
+              className="absolute inset-[-20px] rounded-full transform-gpu will-change-transform"
               animate={
                 isSpinning
-                  ? { rotate: 360 }
+                  ? { scale: 1, opacity: 0.9 }
                   : wheelScaleShake
-                    ? { rotate: [-1.5, 1.5, -1, 1, 0] }
-                    : { rotate: 0 }
+                    ? { rotate: [-1.2, 1.2, -0.8, 0.8, 0], scale: [1, 1.01, 1] }
+                    : { rotate: 0, scale: 1, opacity: 1 }
               }
               transition={
                 isSpinning
-                  ? { duration: 2, repeat: Infinity, ease: "linear" }
-                  : { duration: 0.35, repeat: wheelScaleShake ? Infinity : 0 }
+                  ? { duration: 0.2, ease: "linear" }
+                  : { duration: 0.32, repeat: wheelScaleShake ? Infinity : 0 }
               }
               style={{
                 background: isHolding
@@ -1519,7 +1589,7 @@ export function GameMysteryWheel({
               role="button"
               tabIndex={0}
               aria-label="Vòng quay may mắn"
-              className="relative h-full w-full cursor-pointer rounded-full touch-none select-none"
+              className="relative h-full w-full cursor-pointer rounded-full touch-none select-none transform-gpu"
               onPointerDown={handleWheelPointerDown}
               onPointerUp={stopHolding}
               onPointerCancel={stopHolding}
@@ -1535,9 +1605,11 @@ export function GameMysteryWheel({
                 }
               }}
               style={{
-                transform: `rotate(${wheelRotation}deg)`,
+                transform: `translate3d(0,0,0) rotate(${wheelRotation}deg)`,
+                willChange: isSpinning ? "transform" : undefined,
+                backfaceVisibility: "hidden",
                 transition: isSpinning
-                  ? `transform ${spinDurationMs}ms cubic-bezier(0.12, 0.8, 0.18, 1)`
+                  ? `transform ${spinDurationMs}ms cubic-bezier(0.2, 0.68, 0.2, 1)`
                   : undefined,
               }}
             >
@@ -1545,8 +1617,9 @@ export function GameMysteryWheel({
                 viewBox="0 0 400 400"
                 className="h-full w-full"
                 style={{
-                  filter:
-                    "drop-shadow(0 12px 24px rgba(7,3,24,0.7)) drop-shadow(0 0 40px rgba(88,28,135,0.25))",
+                  filter: isSpinning
+                    ? "none"
+                    : "drop-shadow(0 12px 24px rgba(7,3,24,0.7)) drop-shadow(0 0 40px rgba(88,28,135,0.25))",
                 }}
               >
                 <defs>
@@ -1739,23 +1812,20 @@ export function GameMysteryWheel({
             </div>
 
             {/* "Hold to spin" hint */}
-            <AnimatePresence>
-              {canSpin && !activeSegmentIndex && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: [0.5, 1, 0.5], y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-violet-800/60 px-4 py-1.5 text-xs font-bold text-violet-200 shadow-lg backdrop-blur-sm"
-                >
-                  {"Nhấn giữ & thả để quay"}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {showHoldHint && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: [0.45, 1, 0.45], y: [0, -1, 0] }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="pointer-events-none absolute -bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-violet-800/60 px-4 py-1.5 text-xs font-bold text-violet-200 shadow-lg backdrop-blur-sm"
+              >
+                {"Nhấn giữ & thả để quay"}
+              </motion.div>
+            )}
 
             {/* Power bar indicator (below wheel when holding) */}
             <AnimatePresence>
@@ -1764,26 +1834,32 @@ export function GameMysteryWheel({
                   initial={{ opacity: 0, scaleX: 0.5 }}
                   animate={{ opacity: 1, scaleX: 1 }}
                   exit={{ opacity: 0, scaleX: 0.5 }}
-                  className="absolute -bottom-10 left-1/2 h-3 w-3/4 -translate-x-1/2 overflow-hidden rounded-full border border-violet-400/30 bg-violet-950/70"
+                  className="absolute -bottom-[3.35rem] left-1/2 w-3/4 -translate-x-1/2"
                 >
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${powerRatio * 100}%`,
-                      background:
-                        powerRatio > 0.9
-                          ? "linear-gradient(90deg, #a855f7, #f43f5e, #fbbf24)"
-                          : powerRatio > 0.5
-                            ? "linear-gradient(90deg, #a855f7, #c084fc)"
-                            : "linear-gradient(90deg, #7c3aed, #a855f7)",
-                      boxShadow:
-                        powerRatio > 0.9
-                          ? "0 0 12px rgba(168,85,247,0.8)"
-                          : `0 0 ${4 + powerRatio * 8}px rgba(168,85,247,${0.3 + powerRatio * 0.4})`,
-                    }}
-                    animate={powerRatio > 0.9 ? { opacity: [1, 0.8, 1] } : {}}
-                    transition={{ duration: 0.3, repeat: Infinity }}
-                  />
+                  <div className="pointer-events-none mb-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.08em] text-violet-200/90">
+                    <span>{"Lực quay"}</span>
+                    <span>{`${powerTierLabel} • ${powerPercent}%`}</span>
+                  </div>
+                  <motion.div className="h-3 overflow-hidden rounded-full border border-violet-400/30 bg-violet-950/70">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${powerRatio * 100}%`,
+                        background:
+                          powerRatio > 0.9
+                            ? "linear-gradient(90deg, #a855f7, #f43f5e, #fbbf24)"
+                            : powerRatio > 0.5
+                              ? "linear-gradient(90deg, #a855f7, #c084fc)"
+                              : "linear-gradient(90deg, #7c3aed, #a855f7)",
+                        boxShadow:
+                          powerRatio > 0.9
+                            ? "0 0 12px rgba(168,85,247,0.8)"
+                            : `0 0 ${4 + powerRatio * 8}px rgba(168,85,247,${0.3 + powerRatio * 0.4})`,
+                      }}
+                      animate={powerRatio > 0.9 ? { opacity: [1, 0.8, 1] } : {}}
+                      transition={{ duration: 0.3, repeat: Infinity }}
+                    />
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
