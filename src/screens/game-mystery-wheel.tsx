@@ -247,6 +247,8 @@ export function GameMysteryWheel({
   const [shieldStarPulseTick, setShieldStarPulseTick] = useState(0);
   const [spinAgainPulseTick, setSpinAgainPulseTick] = useState(0);
   const [confettiTick, setConfettiTick] = useState(0);
+  const [landingGlowTick, setLandingGlowTick] = useState(0);
+  const [burstParticleTick, setBurstParticleTick] = useState(0);
 
   const wheelStateRef = useRef(wheelState);
   const wheelRotationRef = useRef(wheelRotation);
@@ -699,6 +701,7 @@ export function GameMysteryWheel({
 
       challengeRunIdRef.current += 1;
       const runId = challengeRunIdRef.current;
+      setBurstParticleTick((tick) => tick + 1);
       setEmbeddedChallenge({
         runId,
         type: "game",
@@ -728,6 +731,7 @@ export function GameMysteryWheel({
 
       challengeRunIdRef.current += 1;
       const runId = challengeRunIdRef.current;
+      setBurstParticleTick((tick) => tick + 1);
       setEmbeddedChallenge({
         runId,
         type: "tracing",
@@ -880,8 +884,9 @@ export function GameMysteryWheel({
         if (landedSegment === null) return;
         setActiveSegmentIndex(landedSegment);
         setLandedIcon(WHEEL_SEGMENTS[landedSegment]?.icon ?? null);
+        setLandingGlowTick((tick) => tick + 1);
 
-        spinSettleActionIdRef.current = scheduleAction(280, () => {
+        spinSettleActionIdRef.current = scheduleAction(700, () => {
           spinSettleActionIdRef.current = null;
           settleSegment(landedSegment);
         });
@@ -1512,6 +1517,41 @@ export function GameMysteryWheel({
                   );
                 })}
 
+                {/* Landing glow ring animation on active segment */}
+                {activeSegmentIndex !== null && !isSpinning && (
+                  <g key={`landing-glow-${landingGlowTick}`}>
+                    <motion.circle
+                      cx="200"
+                      cy="200"
+                      r="120"
+                      fill="none"
+                      stroke={WHEEL_SEGMENTS[activeSegmentIndex].color}
+                      strokeWidth="2"
+                      opacity={0}
+                      initial={{ r: 80, opacity: 0.8 }}
+                      animate={{ r: 160, opacity: 0 }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                      style={{
+                        filter: `drop-shadow(0 0 8px ${WHEEL_SEGMENTS[activeSegmentIndex].glow})`,
+                      }}
+                    />
+                    <motion.circle
+                      cx="200"
+                      cy="200"
+                      r="100"
+                      fill="none"
+                      stroke={WHEEL_SEGMENTS[activeSegmentIndex].color}
+                      strokeWidth="1.5"
+                      opacity={0.6}
+                      animate={{ opacity: [0.6, 0.2, 0.6] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      style={{
+                        filter: `drop-shadow(0 0 6px ${WHEEL_SEGMENTS[activeSegmentIndex].glow})`,
+                      }}
+                    />
+                  </g>
+                )}
+
                 {/* Decorative dots on outer rim */}
                 {WHEEL_SEGMENTS.map((_, index) => {
                   const divAngle = -90 + index * SEGMENT_ANGLE - SEGMENT_ANGLE / 2;
@@ -1649,6 +1689,38 @@ export function GameMysteryWheel({
               </motion.div>
             ))}
 
+            {/* Particle burst when challenge launches */}
+            <AnimatePresence>
+              {embeddedChallenge && (
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+                  {Array.from({ length: 20 }, (_, index) => {
+                    const angle = (index / 20) * Math.PI * 2;
+                    const distance = 80 + Math.random() * 40;
+                    const endX = Math.cos(angle) * distance;
+                    const endY = Math.sin(angle) * distance;
+                    const duration = 0.6 + Math.random() * 0.2;
+                    const size = 8 + (index % 4) * 4;
+                    const colors = ["#c4b5fd", "#ddd6fe", "#ede9fe", "#a7f3d0"];
+                    return (
+                      <motion.div
+                        key={`burst-${burstParticleTick}-${index}`}
+                        initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+                        animate={{ x: endX, y: endY, scale: 0, opacity: 0 }}
+                        transition={{ duration, ease: "easeOut" }}
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                        style={{
+                          width: size,
+                          height: size,
+                          background: colors[index % colors.length],
+                          boxShadow: `0 0 ${size / 2}px ${colors[index % colors.length]}`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </AnimatePresence>
+
             {/* Heart loss effect */}
             <AnimatePresence>
               {heartLossPulseTick > 0 && (
@@ -1667,6 +1739,20 @@ export function GameMysteryWheel({
           </div>
         </div>
       </div>
+
+      {/* Challenge launch fade-out transition */}
+      <AnimatePresence>
+        {embeddedChallenge && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 z-20 bg-violet-950/40 backdrop-blur-sm"
+            style={{ pointerEvents: "none" }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ===== Win / Lose Overlay ===== */}
       <AnimatePresence>
