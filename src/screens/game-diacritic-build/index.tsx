@@ -1226,8 +1226,13 @@ export function GameDiacriticBuild({
   );
 
   const startLevel = useCallback(
-    async (levelId: DiacriticBuildLevelId) => {
-      if (!isLevelUnlocked(levelId)) return;
+    async (
+      levelId: DiacriticBuildLevelId,
+      options: {
+        ignoreUnlock?: boolean;
+      } = {},
+    ) => {
+      if (!options.ignoreUnlock && !isLevelUnlocked(levelId)) return;
       const level = levelMap.get(levelId);
       if (!level || !diacriticConfig) return;
 
@@ -1383,7 +1388,11 @@ export function GameDiacriticBuild({
 
     const timeout = window.setTimeout(() => {
       if (countdownValue <= 1) {
-        void startLevel(selectedLevelId);
+        const shouldIgnoreUnlock =
+          !!forcedLevelId && forcedLevelId === selectedLevelId;
+        void startLevel(selectedLevelId, {
+          ignoreUnlock: shouldIgnoreUnlock,
+        });
         return;
       }
       setCountdownValue((current) => current - 1);
@@ -1392,7 +1401,7 @@ export function GameDiacriticBuild({
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [countdownValue, phase, selectedLevelId, startLevel]);
+  }, [countdownValue, forcedLevelId, phase, selectedLevelId, startLevel]);
 
   useEffect(() => {
     const playfield = playfieldRef.current;

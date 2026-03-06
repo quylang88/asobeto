@@ -13,7 +13,12 @@ import {
   type World1BookPage,
 } from "@/data/game-config";
 import { useHydratedTowersWithStoredProgress } from "@/lib/floor-progress";
-import { ConnectionLinesSVG, FlyingStar, TowerNode } from "./components";
+import {
+  ConnectionLinesSVG,
+  FlyingStar,
+  BossUnlockBurst,
+  TowerNode,
+} from "./components";
 import type { FlyingStarData, TowerSelectionProps } from "./types";
 
 const pageFlipVariants = {
@@ -63,7 +68,12 @@ export function TowerSelection({
   });
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [flyingStars, setFlyingStars] = useState<FlyingStarData[]>([]);
-  const [showFlash, setShowFlash] = useState(false);
+  const [burstCenter, setBurstCenter] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const arrivedCountRef = useRef(0);
+  const totalStarCountRef = useRef(0);
   const [mapDimensions, setMapDimensions] = useState({
     width: 0,
     height: 0,
@@ -78,7 +88,8 @@ export function TowerSelection({
   const isBossUnlockable = canUnlockBoss(towerState, requiredStars);
   const canGoPreviousPage = currentPage > 1;
   const canGoNextPage = currentPage < totalPages;
-  const isPageSwitchDisabled = isUnlocking || showFlash || flyingStars.length > 0;
+  const isPageSwitchDisabled =
+    isUnlocking || burstCenter !== null || flyingStars.length > 0;
 
   useEffect(() => {
     const element = mapRef.current;
@@ -135,46 +146,68 @@ export function TowerSelection({
     const endCenterX = finalBossRect.left + finalBossRect.width / 2;
     const endCenterY = finalBossRect.top + finalBossRect.height / 2;
     const flightDistanceY = Math.abs(startCenterY - endCenterY);
-    const arcLift = Math.min(120, Math.max(34, flightDistanceY * 0.2));
+    const arcLift = Math.min(140, Math.max(40, flightDistanceY * 0.28));
 
-    const stars: FlyingStarData[] = Array.from({ length: 8 }, (_, i) => {
-      const startX = startCenterX + (Math.random() - 0.5) * 22;
-      const startY = startCenterY + (Math.random() - 0.5) * 16;
-      const endX = endCenterX + (Math.random() - 0.5) * 6;
-      const endY = endCenterY + (Math.random() - 0.5) * 6;
-      const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 20;
-      const midY =
-        startY + (endY - startY) * (0.44 + Math.random() * 0.06) - arcLift;
+    const STAR_COUNT = 6;
+    const stars: FlyingStarData[] = Array.from(
+      { length: STAR_COUNT },
+      (_, i) => {
+        const spread = 0.4 + (i / (STAR_COUNT - 1)) * 0.2; // stagger spread per star
+        const startX = startCenterX + (Math.random() - 0.5) * 18;
+        const startY = startCenterY + (Math.random() - 0.5) * 12;
+        const endX = endCenterX + (Math.random() - 0.5) * 8;
+        const endY = endCenterY + (Math.random() - 0.5) * 8;
+        const midX = (startX + endX) / 2 + (Math.random() - 0.5) * 36;
+        const midY = startY + (endY - startY) * spread - arcLift;
 
-      return {
-        id: i,
-        startX,
-        startY,
-        midX,
-        midY,
-        endX,
-        endY,
-        duration: 1.06 + Math.random() * 0.12,
-      };
-    });
+        return {
+          id: i,
+          startX,
+          startY,
+          midX,
+          midY,
+          endX,
+          endY,
+          duration: 0.85 + Math.random() * 0.2,
+        };
+      },
+    );
 
+    arrivedCountRef.current = 0;
+    totalStarCountRef.current = STAR_COUNT;
     setFlyingStars(stars);
-
-    const latestArrivalMs = stars.reduce((maxDelay, star, index) => {
-      const starEndMs = index * 70 + star.duration * 1000;
-      return Math.max(maxDelay, starEndMs);
-    }, 0);
-
-    setTimeout(() => {
-      setShowFlash(true);
-    }, Math.max(620, latestArrivalMs - 120));
-
-    setTimeout(() => {
-      setFlyingStars([]);
-      setIsUnlocking(false);
-      onSelectTower(6);
-    }, latestArrivalMs + 320);
   }, [isUnlocking, onSelectTower]);
+
+  const handleStarArrive = useCallback(() => {
+    arrivedCountRef.current += 1;
+    /* Trigger burst when >60% of stars have arrived for a snappy feel */
+    const threshold = Math.ceil(totalStarCountRef.current * 0.6);
+    if (arrivedCountRef.current === threshold) {
+      const bossTowerRect = document
+        .getElementById("boss-tower-target")
+        ?.getBoundingClientRect();
+      const fallbackBossTowerRect = document
+        .getElementById("boss-tower")
+        ?.getBoundingClientRect();
+      const rect = bossTowerRect ?? fallbackBossTowerRect;
+      if (rect) {
+        setBurstCenter({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        });
+      }
+    }
+    /* Once all stars arrive, clean up flying stars */
+    if (arrivedCountRef.current >= totalStarCountRef.current) {
+      setFlyingStars([]);
+    }
+  }, []);
+
+  const handleBurstComplete = useCallback(() => {
+    setBurstCenter(null);
+    setIsUnlocking(false);
+    onSelectTower(6);
+  }, [onSelectTower]);
 
   return (
     <div className="relative h-dvh w-full overflow-hidden">
@@ -297,19 +330,18 @@ export function TowerSelection({
             midX={star.midX}
             midY={star.midY}
             duration={star.duration}
-            delay={index * 0.06}
+            delay={index * 0.09}
+            onArrive={handleStarArrive}
           />
         ))}
       </AnimatePresence>
 
       <AnimatePresence>
-        {showFlash && (
-          <motion.div
-            className="pointer-events-none fixed inset-0 z-50 bg-yellow-bright/80"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.6 }}
-            onAnimationComplete={() => setShowFlash(false)}
+        {burstCenter && (
+          <BossUnlockBurst
+            centerX={burstCenter.x}
+            centerY={burstCenter.y}
+            onComplete={handleBurstComplete}
           />
         )}
       </AnimatePresence>

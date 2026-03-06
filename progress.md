@@ -2507,3 +2507,43 @@ Validation
 - Re-validated:
   - `pnpm exec tsc --noEmit` pass
   - `pnpm lint` pass
+
+---
+
+Update (Mystery wheel hard challenge countdown freeze)
+
+TODO
+- [x] Reproduce freeze path: mystery wheel -> hard mini-game -> diacritic (ă) stalls at countdown 1.
+- [x] Fix forced-level countdown transition in `GameDiacriticBuild` so mystery mode can start locked levels.
+- [x] Re-verify mystery hard flow end-to-end with automated run.
+
+Notes
+- Root cause: `startLevelCountdown(..., { ignoreUnlock: true })` was used for mystery forced difficulty, but countdown completion called `startLevel(selectedLevelId)` which still enforced unlock and returned early for locked hard level.
+- Fix: `startLevel` now accepts `ignoreUnlock`; countdown passes `ignoreUnlock: true` when `selectedLevelId === forcedLevelId`.
+
+Update (Mystery wheel random pool includes locked games)
+
+TODO
+- [x] Ensure mystery wheel game segments (`easy/medium/hard`) can pick mini-games regardless of floor unlock/learned state.
+- [x] Keep forced-level start path compatible with locked levels in embedded mini-games.
+- [x] Re-run regression checks for mystery wheel randomization + countdown transition.
+
+Notes
+- `GameMysteryWheel` now always uses `miniGameAll` for game challenge randomization. This makes locked and unlocked mini-games equally eligible when landing on game segments.
+- Previous fix in `GameDiacriticBuild` remains in place so forced `hard` challenge from mystery wheel can start even when the level is locked in normal progression.
+- Validation:
+  - `pnpm lint` pass.
+  - skill Playwright client run pass (`web_game_playwright_client.js` against `http://localhost:3000`).
+  - scripted mystery-wheel run forced `GAME_HARD` and observed timeline transition in embedded diacritic game: `countdown (hard) -> playing` (no freeze at `1`).
+
+Update (Mystery wheel page-scoped mini-game pool)
+
+TODO
+- [x] Restrict mystery wheel game randomization to mini-games on the current book page.
+- [x] Reject persisted embedded challenge if source does not belong to current page pool.
+- [x] Run lint after page-scope guard changes.
+
+Notes
+- `challengePools.miniGames` now explicitly represents all mini-games from towers on current `world1BookPage` only.
+- Added `currentPageChallengeSourceKeys` and used it during progress hydration to prevent restoring stale embedded challenges from other pages.
+- Validation: `pnpm lint` pass.

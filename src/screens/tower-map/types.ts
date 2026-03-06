@@ -1,8 +1,4 @@
-import type {
-  Tower,
-  TowerConnection,
-  TowerMapTheme,
-} from "@/data/game-config";
+import type { Tower, TowerConnection, TowerMapTheme } from "@/data/game-config";
 
 export interface TowerSelectionProps {
   worldId: number;
@@ -29,6 +25,7 @@ export interface FlyingStarData {
 
 export interface FlyingStarProps extends Omit<FlyingStarData, "id"> {
   delay: number;
+  onArrive?: () => void;
 }
 
 export interface TowerNodeProps {

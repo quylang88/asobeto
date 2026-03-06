@@ -830,8 +830,6 @@ export function GameMysteryWheel({
     const worldData = getWorldData(worldId, { world1BookPage });
 
     const miniGameAll: ChallengeLessonSource[] = [];
-    const miniGameUnlocked: ChallengeLessonSource[] = [];
-    const miniGameLearned: ChallengeLessonSource[] = [];
     const tracingAlphaAll: ChallengeLessonSource[] = [];
     const tracingAlphaUnlocked: ChallengeLessonSource[] = [];
     const tracingAlphaLearned: ChallengeLessonSource[] = [];
@@ -866,12 +864,6 @@ export function GameMysteryWheel({
 
           if (isMiniGameLessonKind(lesson.lessonKind)) {
             miniGameAll.push(source);
-            if (floorUnlocked) {
-              miniGameUnlocked.push(source);
-            }
-            if (floorLearned) {
-              miniGameLearned.push(source);
-            }
             return;
           }
 
@@ -899,12 +891,8 @@ export function GameMysteryWheel({
       });
     });
 
-    const miniGames =
-      miniGameLearned.length > 0
-        ? miniGameLearned
-        : miniGameUnlocked.length > 0
-          ? miniGameUnlocked
-          : miniGameAll;
+    // Game segments only random from mini-games that belong to the current book page.
+    const miniGames = miniGameAll;
     const tracingAlpha =
       tracingAlphaUnlocked.length > 0 ? tracingAlphaUnlocked : tracingAlphaAll;
     const tracingVocab =
@@ -916,6 +904,21 @@ export function GameMysteryWheel({
       tracingVocab,
     };
   }, [learnedFloorKeys, world1BookPage, worldId]);
+  const currentPageChallengeSourceKeys = useMemo(() => {
+    const keys = new Set<string>();
+    [
+      ...challengePools.miniGames,
+      ...challengePools.tracingAlpha,
+      ...challengePools.tracingVocab,
+    ].forEach((source) => {
+      keys.add(buildChallengeSourceKey(source));
+    });
+    return keys;
+  }, [
+    challengePools.miniGames,
+    challengePools.tracingAlpha,
+    challengePools.tracingVocab,
+  ]);
 
   const wheelScaleShake = isHolding && holdMs >= HOLD_TO_MAX_MS * 0.88;
   const powerRatio = clampNumber(holdMs / HOLD_TO_MAX_MS, 0, 1);
@@ -1893,7 +1896,12 @@ export function GameMysteryWheel({
       const restoredChallenge = normalizePersistedEmbeddedChallenge(
         stored.embeddedChallenge,
       );
-      if (restoredChallenge) {
+      const isRestoredChallengeFromCurrentPage =
+        !!restoredChallenge &&
+        currentPageChallengeSourceKeys.has(
+          buildChallengeSourceKey(restoredChallenge.source),
+        );
+      if (restoredChallenge && isRestoredChallengeFromCurrentPage) {
         challengeRunIdRef.current += 1;
         const restoredRunId = challengeRunIdRef.current;
         if (restoredChallenge.type === "game") {
@@ -1921,7 +1929,11 @@ export function GameMysteryWheel({
     return () => {
       cancelled = true;
     };
-  }, [clearVisualEffectQueue, progressStorageKey]);
+  }, [
+    clearVisualEffectQueue,
+    currentPageChallengeSourceKeys,
+    progressStorageKey,
+  ]);
 
   useEffect(() => {
     if (!isProgressHydrated) return;
